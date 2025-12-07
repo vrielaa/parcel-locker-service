@@ -1,0 +1,47 @@
+@use "base" as *;
+
+.main{
+    grid-column: col-start 2 / col-end 7;
+    grid-row: row-start 2 / row-end 10;
+
+    // background-color: aqua;
+
+    .db-result{
+        margin: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+
+        &__city-button{
+            background: none;
+            border: 2px solid $color-grey-dark-1;
+            padding: 0.8rem 1.5rem;
+            font-size: 1.6rem;
+            font-family: $font-primary;
+            text-transform: uppercase;
+            color: $color-grey-dark-1;
+            cursor: pointer;
+            transition: all 0.3s;
+
+            &:hover{
+                background-color: $color-grey-dark-1;
+                color: white;
+            }
+
+            &active{
+                background-color: $color-grey-dark-1;
+                border-color: $color-primary;
+                color: white;
+            }
+
+            &.is-active{
+                background-color: $color-grey-dark-1;
+                border-color: $color-primary;
+                color: white;
+            }
+
+
+        }
+    }
+}
