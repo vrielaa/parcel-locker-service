@@ -1,69 +1,173 @@
 SET search_path TO parcel_locker;
 
--- Wyczyść tabelę przy ponownym ładowaniu (opcjonalnie)
+--------------------------------------------------
+-- 1. WYCZYŚĆ DANE
+--------------------------------------------------
+TRUNCATE TABLE ZdarzeniePaczki RESTART IDENTITY CASCADE;
+TRUNCATE TABLE Przedluzenie   RESTART IDENTITY CASCADE;
+TRUNCATE TABLE Paczka         RESTART IDENTITY CASCADE;
+
+TRUNCATE TABLE ObslugaAutomatu RESTART IDENTITY CASCADE;
+TRUNCATE TABLE Pracownik       RESTART IDENTITY CASCADE;
+TRUNCATE TABLE Klient          RESTART IDENTITY CASCADE;
+
+TRUNCATE TABLE Skrytka RESTART IDENTITY CASCADE;
 TRUNCATE TABLE Automat RESTART IDENTITY CASCADE;
+TRUNCATE TABLE Rozmiar RESTART IDENTITY CASCADE;
 
 
--- Kraków
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('KRA-001', 'ul. Aleja Mickiewicza 30, 30-059 Kraków', '50.0669,19.9127', 'AKTYWNY'),
-  ('KRA-002', 'ul. Zwierzyniecka 10, 31-103 Kraków', '50.0552,19.9315', 'AKTYWNY'),
-  ('KRA-003', 'ul. Wielicka 72, 30-552 Kraków', '50.0295,19.9621', 'AKTYWNY'),
-  ('KRA-004', 'ul. Bora-Komorowskiego 41, 31-876 Kraków', '50.0963,20.0014', 'W_SERWISIE'),
-  ('KRA-005', 'ul. Karmelicka 15, 31-133 Kraków', '50.0654,19.9320', 'AKTYWNY');
-
--- Warszawa
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('WAR-001', 'ul. Marszałkowska 100, 00-001 Warszawa', '52.2297,21.0122', 'AKTYWNY'),
-  ('WAR-002', 'ul. Puławska 50, 02-515 Warszawa', '52.1667,21.0333', 'AKTYWNY'),
-  ('WAR-003', 'ul. Grochowska 200, 04-186 Warszawa', '52.2300,21.0500', 'W_SERWISIE'),
-  ('WAR-004', 'ul. Żelazna 59, 00-848 Warszawa', '52.2320,20.9980', 'AKTYWNY'),
-  ('WAR-005', 'ul. Słowackiego 10, 02-003 Warszawa', '52.2100,21.0200', 'AKTYWNY'); 
--- Poznań
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('POZ-001', 'ul. Święty Marcin 80, 61-809 Poznań', '52.4064,16.9252', 'AKTYWNY'),
-  ('POZ-002', 'ul. Głogowska 120, 60-004 Poznań', '52.3958,16.8850', 'AKTYWNY'),
-  ('POZ-003', 'ul. Grunwaldzka 5, 60-783 Poznań', '52.4100,16.9000', 'W_SERWISIE'),
-  ('POZ-004', 'ul. Dąbrowskiego 15, 61-841 Poznań', '52.4200,16.9300', 'AKTYWNY'),
-  ('POZ-005', 'ul. 27 Grudnia 42, 60-101 Poznań', '52.4000,16.9200', 'AKTYWNY');    
--- Gdańsk
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('GDA-001', 'ul. Długa 20, 80-831 Gdańsk', '54.3520,18.6466', 'AKTYWNY'),
-  ('GDA-002', 'ul. Grunwaldzka 100, 80-244 Gdańsk', '54.3600,18.6200', 'AKTYWNY'),
-  ('GDA-003', 'ul. Rajska 5, 80-850 Gdańsk', '54.3500,18.6400', 'W_SERWISIE'),
-  ('GDA-004', 'ul. Podwale Przedmiejskie 15, 80-895 Gdańsk', '54.3600,18.6500', 'AKTYWNY'),
-  ('GDA-005', 'ul. Chmielna 10, 80-748 Gdańsk', '54.3400,18.6300', 'AKTYWNY');  
-
--- Wrocław
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('WRO-001', 'ul. Rynek 1, 50-101 Wrocław', '51.1079,17.0385', 'AKTYWNY'),
-  ('WRO-002', 'ul. Świdnicka 10, 50-066 Wrocław', '51.1090,17.0320', 'AKTYWNY'),
-  ('WRO-003', 'ul. Legnicka 50, 54-202 Wrocław', '51.1000,16.9800', 'W_SERWISIE'),
-  ('WRO-004', 'ul. Piłsudskiego 20, 50-020 Wrocław', '51.1100,17.0400', 'AKTYWNY'),
-  ('WRO-005', 'ul. Kazimierza Wielkiego 15, 50-077 Wrocław', '51.1050,17.0250', 'AKTYWNY'); 
+--------------------------------------------------
+-- 2. ROZMIARY (TYLKO FIZYCZNE – BEZ SPAN_X / SPAN_Y)
+--------------------------------------------------
+INSERT INTO Rozmiar
+(kod, szerokosc_cm, wysokosc_cm, glebokosc_cm)
+VALUES
+('S', 20,  8, 30),
+('M', 40, 20, 40),
+('L', 60, 40, 60);
 
 
--- Łódź
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('LOD-001', 'ul. Piotrkowska 90, 90-001 Łódź', '51.7592,19.4560', 'AKTYWNY'),
-  ('LOD-002', 'ul. Narutowicza 50, 90-135 Łódź', '51.7600,19.4700', 'AKTYWNY'),
-  ('LOD-003', 'ul. Gdańska 20, 91-002 Łódź', '51.7700,19.4800', 'W_SERWISIE'),
-  ('LOD-004', 'ul. Wólczańska 15, 90-521 Łódź', '51.7500,19.4400', 'AKTYWNY'),
-  ('LOD-005', 'ul. Sienkiewicza 10, 90-113 Łódź', '51.7550,19.4500', 'AKTYWNY');
+--------------------------------------------------
+-- 3. AUTOMATY
+--------------------------------------------------
+INSERT INTO Automat
+(nazwa, adres, wspolrzedne_gps, status, liczba_wierszy, liczba_kolumn)
+VALUES
+-- KRAKÓW
+('KRA-001', 'ul. Aleja Mickiewicza 30, 30-059 Kraków', '50.0669,19.9127', 'AKTYWNY', 4, 6),
 
--- Szczecin
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('SZZ-001', 'ul. Krzywoustego 10, 70-250 Szczecin', '53.4285,14.5528', 'AKTYWNY'),
-  ('SZZ-002', 'ul. Wojska Polskiego 50, 70-481 Szczecin', '53.4300,14.5600', 'AKTYWNY'),
-  ('SZZ-003', 'ul. Piłsudskiego 20, 70-330 Szczecin', '53.4200,14.5400', 'W_SERWISIE'),
-  ('SZZ-004', 'ul. Słowackiego 15, 70-400 Szczecin', '53.4400,14.5700', 'AKTYWNY'),
-  ('SZZ-005', 'ul. 3 Maja 5, 70-205 Szczecin', '53.4250,14.5450', 'AKTYWNY'); 
+-- WARSZAWA
+('WAR-001', 'ul. Marszałkowska 100, 00-001 Warszawa', '52.2297,21.0122', 'AKTYWNY', 6, 8);
 
 
--- Lublin
-INSERT INTO Automat (nazwa, adres, wspolrzedne_gps, status) VALUES
-  ('LUB-001', 'ul. Krakowskie Przedmieście 15, 20-002 Lublin', '51.2465,22.5684', 'AKTYWNY'),
-  ('LUB-002', 'ul. Lipowa 10, 20-112 Lublin', '51.2500,22.5700', 'AKTYWNY'),
-  ('LUB-003', 'ul. Narutowicza 5, 20-016 Lublin', '51.2400,22.5600', 'W_SERWISIE'),
-  ('LUB-004', 'ul. Głęboka 20, 20-612 Lublin', '51.2550,22.5800', 'AKTYWNY'),
-  ('LUB-005', 'ul. Czechowska 30, 20-121 Lublin', '51.2450,22.5650', 'AKTYWNY');
+
+
+SET search_path TO parcel_locker;
+
+WITH
+-- 1) KLIENT
+kli AS (
+  INSERT INTO Klient (imie, nazwisko, email, telefon)
+  VALUES ('Test', 'Klient', 'klient@test.pl', '000000003')
+  ON CONFLICT (email) DO UPDATE
+    SET imie = EXCLUDED.imie
+  RETURNING klient_id
+),
+
+-- 2) PRACOWNICY
+adm AS (
+  INSERT INTO Pracownik (imie, nazwisko, email, telefon, rola)
+  VALUES ('Test', 'Admin', 'admin@test.pl', '000000000', 'ADMIN')
+  ON CONFLICT (email) DO UPDATE
+    SET rola = EXCLUDED.rola
+  RETURNING pracownik_id
+),
+opr AS (
+  INSERT INTO Pracownik (imie, nazwisko, email, telefon, rola)
+  VALUES ('Test', 'Operator', 'operator@test.pl', '000000001', 'OPERATOR')
+  ON CONFLICT (email) DO UPDATE
+    SET rola = EXCLUDED.rola
+  RETURNING pracownik_id
+),
+kur AS (
+  INSERT INTO Pracownik (imie, nazwisko, email, telefon, rola)
+  VALUES ('Test', 'Kurier', 'kurier@test.pl', '000000002', 'KURIER')
+  ON CONFLICT (email) DO UPDATE
+    SET rola = EXCLUDED.rola
+  RETURNING pracownik_id
+),
+
+-- 3) APPUSER: KLIENT
+u_klient AS (
+  INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
+  VALUES (
+    'klient@test.pl',
+    '$2b$10$93KvjylWV8l9SewI4uet5.1FuaUqeW9.bv.We634ZAtZJibf4K.e2',
+    'KLIENT',
+    (SELECT klient_id FROM kli),
+    NULL,
+    TRUE
+  )
+  ON CONFLICT (email) DO UPDATE
+    SET
+      password_hash = EXCLUDED.password_hash,
+      rola = EXCLUDED.rola,
+      klient_id = EXCLUDED.klient_id,
+      pracownik_id = EXCLUDED.pracownik_id,
+      must_change_password = EXCLUDED.must_change_password
+  RETURNING app_user_id
+),
+
+-- 4) APPUSER: ADMIN
+u_admin AS (
+  INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
+  VALUES (
+    'admin@test.pl',
+    '$2b$10$QmfEJCkZQAlOgUdkp5XfuO7lhJ9x89RZu5tV6xCVFGTDlYSTeJQUS',
+    'ADMIN',
+    NULL,
+    (SELECT pracownik_id FROM adm),
+    FALSE
+  )
+  ON CONFLICT (email) DO UPDATE
+    SET
+      password_hash = EXCLUDED.password_hash,
+      rola = EXCLUDED.rola,
+      klient_id = EXCLUDED.klient_id,
+      pracownik_id = EXCLUDED.pracownik_id,
+      must_change_password = EXCLUDED.must_change_password
+  RETURNING app_user_id
+),
+
+-- 5) APPUSER: OPERATOR
+u_operator AS (
+  INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
+  VALUES (
+    'operator@test.pl',
+    '$2b$10$QpSymrcIfv6jtHHGg./zL.0htJIBZKayu9Xq9YGYJCuJwNTzagyxa',
+    'OPERATOR',
+    NULL,
+    (SELECT pracownik_id FROM opr),
+    FALSE
+  )
+  ON CONFLICT (email) DO UPDATE
+    SET
+      password_hash = EXCLUDED.password_hash,
+      rola = EXCLUDED.rola,
+      klient_id = EXCLUDED.klient_id,
+      pracownik_id = EXCLUDED.pracownik_id,
+      must_change_password = EXCLUDED.must_change_password
+  RETURNING app_user_id
+),
+
+-- 6) APPUSER: KURIER
+u_kurier AS (
+  INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
+  VALUES (
+    'kurier@test.pl',
+    '$2b$10$eDAaICQ/8L/BSaaEwEM1AupcOJVC4HCVA3Pau65bSlbaGXYpxAoFa',
+    'KURIER',
+    NULL,
+    (SELECT pracownik_id FROM kur),
+    FALSE
+  )
+  ON CONFLICT (email) DO UPDATE
+    SET
+      password_hash = EXCLUDED.password_hash,
+      rola = EXCLUDED.rola,
+      klient_id = EXCLUDED.klient_id,
+      pracownik_id = EXCLUDED.pracownik_id,
+      must_change_password = EXCLUDED.must_change_password
+  RETURNING app_user_id
+)
+
+SELECT
+  (SELECT klient_id FROM kli) AS klient_id,
+  (SELECT pracownik_id FROM adm) AS admin_pracownik_id,
+  (SELECT pracownik_id FROM opr) AS operator_pracownik_id,
+  (SELECT pracownik_id FROM kur) AS kurier_pracownik_id,
+
+  (SELECT app_user_id FROM u_klient)   AS appuser_klient_id,
+  (SELECT app_user_id FROM u_admin)    AS appuser_admin_id,
+  (SELECT app_user_id FROM u_operator) AS appuser_operator_id,
+  (SELECT app_user_id FROM u_kurier)   AS appuser_kurier_id;

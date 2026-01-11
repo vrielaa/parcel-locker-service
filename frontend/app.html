@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css?family=Josefin+Sans:300,400,400i|Nunito:300,300i"
+      rel="stylesheet"
+    />
+
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+      <symbol id="icon-go-back" viewBox="0 0 128 128">
+        <path
+          d="M78.1 0v6.2c22.4 0 40.5 18.2 40.5 40.6s-18.1 40.6-40.5 40.6H17.9l27.9-28-4.5-4.5L5.5 90.8l36 36.2 4.5-4.5-28.8-28.9h60.9c25.8 0 46.7-21 46.7-46.8S103.9 0 78.1 0z"
+        />
+      </symbol>
+    </svg>
+
+    <link rel="stylesheet" href="sass/main.scss" />
+    <link rel="shortcut icon" type="image/png" href="img/parcel.png" />
+
+    <title>Parcel Locker Service</title>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- ========================= -->
+      <!-- HEADER                    -->
+      <!-- ========================= -->
+      <header class="header header-dev">
+        <div class="header__dev-buttons" data-roles="ADMIN,OPERATOR">
+          <button class="header__button" id="check-db-button">Sprawdz połączenie z bazą</button>
+          <button class="header__button" id="clear-db-button">Wyczyść baze danych</button>
+          <button class="header__button" id="init-db-button">Wczytaj baze danych</button>
+        </div>
+
+        <button class="header__button header__button-change-password" id="change-password-button">
+          Zmień hasło
+        </button>
+
+        <button class="header__button header__button-logout" id="logout-button">Wyloguj się</button>
+      </header>
+
+      <!-- ========================= -->
+      <!-- SIDEBAR                   -->
+      <!-- ========================= -->
+      <section class="sidebar">
+        <nav class="sidebar__nav">
+          <button class="sidebar__button" id="get-automaty">Lista automatów</button>
+
+          <button class="sidebar__button" id="nav-my-packages" data-roles="KLIENT">
+            Moje paczki
+          </button>
+
+          <button class="sidebar__button" id="nav-courier-packages" data-roles="KURIER">
+            Paczki do obsługi
+          </button>
+
+          <button class="sidebar__button" id="nav-operator-panel" data-roles="ADMIN,OPERATOR">
+            Panel operatora
+          </button>
+        </nav>
+      </section>
+
+      <!-- ========================= -->
+      <!-- GO BACK + MESSAGES        -->
+      <!-- ========================= -->
+      <button class="go-back-button hidden" id="go-back-button">Wróć do listy automatów</button>
+
+      <section class="message">
+        <p class="db-message" id="db-message"></p>
+      </section>
+
+      <!-- ========================= -->
+      <!-- MAIN                      -->
+      <!-- ========================= -->
+      <main class="main">
+        <!-- ===================================================== -->
+        <!-- WIDOK 1: LISTA AUTOMATÓW I WYBÓR AUTOMATU  -->
+        <!-- ===================================================== -->
+        <section class="view" id="view-automaty" data-view>
+          <section class="buttons-cities" id="buttons-cities"></section>
+
+          <section class="list-lockers-in-city" id="list-lockers-in-city"></section>
+
+          <section class="locker-display hidden" id="locker-display">
+            <h2 class="locker-display__locker-name" id="locker-name"></h2>
+
+            <div class="locker-display__grid"></div>
+          </section>
+        </section>
+
+        <!-- ========================= -->
+        <!-- WIDOK 2: KLIENT           -->
+        <!-- ========================= -->
+        <section class="view hidden" id="view-klient" data-view data-roles="KLIENT">
+          <section class="view__header">
+            <h2 class="view__title">Moje paczki</h2>
+          </section>
+
+          <section class="view__content">
+            <section class="paczki" id="klient-paczki">
+              <div class="paczki__list" id="klient-paczki-list"></div>
+            </section>
+
+            <section class="paczka-details hidden" id="klient-paczka-details">
+              <h3 class="paczka-details__title" id="klient-paczka-title"></h3>
+
+              <div class="paczka-details__actions">
+                <button class="header__button" id="klient-przedluz-btn">
+                  Przedłuż odbiór
+                </button>
+              </div>
+
+              <div class="paczka-details__events" id="klient-paczka-zdarzenia"></div>
+            </section>
+          </section>
+        </section>
+
+        <!-- ========================= -->
+        <!-- WIDOK 3: KURIER           -->
+        <!-- ========================= -->
+        <section class="view hidden" id="view-kurier" data-view data-roles="KURIER">
+          <section class="view__header">
+            <h2 class="view__title">Paczki do obsługi</h2>
+          </section>
+
+          <section class="view__content">
+            <section class="paczki" id="kurier-paczki">
+              <div class="paczki__list" id="kurier-paczki-list"></div>
+            </section>
+
+            <section class="paczka-details hidden" id="kurier-paczka-details">
+              <h3 class="paczka-details__title" id="kurier-paczka-title"></h3>
+
+              <div class="paczka-details__actions">
+                <button class="header__button" id="kurier-dostarcz-btn">
+                  Oznacz jako dostarczona
+                </button>
+                <button class="header__button" id="kurier-odebrana-btn">
+                  Oznacz jako odebrana
+                </button>
+              </div>
+
+              <div class="paczka-details__events" id="kurier-paczka-zdarzenia"></div>
+            </section>
+          </section>
+        </section>
+
+        <!-- ========================= -->
+        <!-- WIDOK 4: OPERATOR/ADMIN   -->
+        <!-- ========================= -->
+        <section class="view hidden" id="view-operator" data-view data-roles="ADMIN,OPERATOR">
+          <section class="view__header">
+            <h2 class="view__title">Panel operatora</h2>
+          </section>
+
+          <section class="view__content">
+            <section class="operator-panel" id="operator-panel">
+              <h3 class="operator-panel__title">Utwórz paczkę</h3>
+
+              <form class="operator-panel__form" id="operator-create-package-form">
+                <div class="operator-panel__row">
+                  <label class="operator-panel__label" for="op-tracking">Tracking</label>
+                  <input class="operator-panel__input" id="op-tracking" name="numer_tracking" type="text" />
+                </div>
+
+                <div class="operator-panel__row">
+                  <label class="operator-panel__label" for="op-w">Szerokość (cm)</label>
+                  <input class="operator-panel__input" id="op-w" name="szerokosc_cm" type="number" min="1" />
+                </div>
+
+                <div class="operator-panel__row">
+                  <label class="operator-panel__label" for="op-h">Wysokość (cm)</label>
+                  <input class="operator-panel__input" id="op-h" name="wysokosc_cm" type="number" min="1" />
+                </div>
+
+                <div class="operator-panel__row">
+                  <label class="operator-panel__label" for="op-d">Głębokość (cm)</label>
+                  <input class="operator-panel__input" id="op-d" name="glebokosc_cm" type="number" min="1" />
+                </div>
+
+                <div class="operator-panel__row">
+                  <label class="operator-panel__label" for="op-nadawca">Nadawca ID</label>
+                  <input class="operator-panel__input" id="op-nadawca" name="nadawca_id" type="number" min="1" />
+                </div>
+
+                <div class="operator-panel__row">
+                  <label class="operator-panel__label" for="op-odbiorca">Odbiorca ID</label>
+                  <input class="operator-panel__input" id="op-odbiorca" name="odbiorca_id" type="number" min="1" />
+                </div>
+
+                <div class="operator-panel__row operator-panel__row--actions">
+                  <button class="header__button" type="submit">Utwórz</button>
+                </div>
+              </form>
+
+              <div class="operator-panel__result" id="operator-create-result"></div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>

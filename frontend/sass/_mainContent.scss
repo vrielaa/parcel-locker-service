@@ -2,16 +2,28 @@
 
 .main{
     grid-column: col-start 2 / col-end 7;
-    grid-row: row-start 2 / row-end 10;
+    grid-row: row-start 2 / row-end 5;
+
+    display: grid;
+    width: 100%;
+
+
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+
 
     // background-color: aqua;
 
-    .db-result{
+
+    .buttons-cities{
+
         margin: 20px;
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
         justify-content: center;
+        grid-column: 1 / -1;
+        grid-row: 1 / 2;
 
         &__city-button{
             background: none;
@@ -29,13 +41,7 @@
                 color: white;
             }
 
-            &active{
-                background-color: $color-grey-dark-1;
-                border-color: $color-primary;
-                color: white;
-            }
-
-            &.is-active{
+            &:active{
                 background-color: $color-grey-dark-1;
                 border-color: $color-primary;
                 color: white;
@@ -44,4 +50,110 @@
 
         }
     }
+
+    .list-lockers-in-city{
+        margin: 20px;
+        grid-column: 2 / -2;
+        grid-row: 2;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+
+
+        &__locker-button{
+            border: none;
+            font-size: 1.4rem;
+            font-family: $font-primary;
+            color: $color-grey-dark-1;
+            margin-bottom: 10px;
+            width: 80%;
+            padding: 10px 15px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+
+            &:hover{
+                background-color: $color-quaternary;
+                color: white;
+                cursor: pointer;
+                transform: scale(1.02)
+            }
+
+            &:active{
+                background-color: $color-primary;
+                color: white;
+                transform: translateY(2px);
+            }
+        }
+
+
+    }
+
+    .locker-display{
+
+        grid-column: 1 / -1;
+        
+        &__grid-container{
+            display: grid;
+            gap: 1px;
+
+            width: 100%;
+            max-width: 900px;
+            margin: 20px auto;
+        }
+
+        &__locker{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            border: 2px solid #333;
+
+
+            font-size: 11px;
+            white-space: pre-line;
+            text-align: center;
+
+            background-color: #eaeaea;
+            transition: transform 0.15s ease;
+
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+            &:hover{
+                transform: scale(1.03);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            }
+        }
+
+        &__locker-name{
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+    }
+
+
+    .isActive{
+        background-color: $color-grey-dark-1;
+        border-color: $color-primary;
+        color: white;
+    }
+
+    .hidden{
+        display: none;
+    }
+
 }
+
+
+
+
+
+
+/* STATUSY */
+.status-WOLNA { background-color: #d4f8d4; }
+.status-ZAJETA { background-color: #ccc; }
+.status-USZKODZONA { background-color: #ff6b6b; color: #fff; }

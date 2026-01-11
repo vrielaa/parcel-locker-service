@@ -13,4 +13,19 @@ export default defineConfig({
       },
     },
   },
+
+  build: {
+    rollupOptions: {
+      input: {
+        login: path.resolve(__dirname, "login.html"),
+        app: path.resolve(__dirname, "app.html"),
+      },
+    },
+  },
+
+  server: {
+  open: "/login.html",
+},
+
 });
+

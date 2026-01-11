@@ -3,19 +3,24 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
-const pool = new pg.Pool({
+const { Pool } = pg
+
+const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+
+  ssl: { rejectUnauthorized: false },
+
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
+
+  keepAlive: true
 })
 
-export async function query(sql, params) {
-  const client = await pool.connect()
-  try {
-    const res = await client.query(sql, params)
-    return res
-  } finally {
-    client.release()
-  }
+pool.on("error", (err) => {
+  console.error("[DB][POOL_ERROR]", err)
+})
+
+export async function query(sql, params = []) {
+  return pool.query(sql, params)
 }

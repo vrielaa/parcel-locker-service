@@ -2,28 +2,63 @@
 .header{
     grid-column: full-start / -1;
     grid-row: header-row-start / header-row-end;
-    background-color: $color-grey-light-1;
-
-    display: flex;
+    background-color: $color-primary-light;
     align-items: center;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+
 
     gap: 2rem;
+    &__dev-buttons {
+        grid-column: 3 / 7;
+
+        display: flex;
+        justify-content: center;
+
+        gap: 2rem;
+    
+    }
 
     &__button{
         background: none;
         border: 2px solid $color-grey-dark-1;
         padding: 0.8rem 1.5rem;
+        margin-left: 1rem;
+        margin-right: 1rem;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
         font-size: 1.6rem;
         font-family: $font-primary;
         text-transform: uppercase;
         color: $color-grey-dark-1;
         cursor: pointer;
         transition: all 0.3s;
+ 
 
         &:hover{
             background-color: $color-grey-dark-1;
             color: white;
         }
+
+        &:active{
+            transform: translateY(2px);
+        }
     }
+
+    &__button-logout{
+        grid-column: 8 / 9;
+    }
+
+    &__button-clear-token{
+        grid-column: 8 / 9;
+    }
+}
+
+
+
+
+svg{
+    width: 2.5rem;
+    height: 2.5rem;
+    fill: $color-grey-dark-1;
+
 }
