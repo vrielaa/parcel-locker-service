@@ -5,17 +5,36 @@ dotenv.config()
 
 const { Pool } = pg
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+const hasCloudSql = Boolean(process.env.INSTANCE_CONNECTION_NAME)
 
-  ssl: { rejectUnauthorized: false },
+const pool = new Pool(
+  hasCloudSql
+    ? {
+        user: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME,
 
-  max: 10,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 10_000,
+        host: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`,
+        port: 5432,
 
-  keepAlive: true
-})
+        max: 5,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 10_000,
+
+        keepAlive: true
+      }
+    : {
+        connectionString: process.env.DATABASE_URL,
+
+        ssl: { rejectUnauthorized: false },
+
+        max: 10,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 10_000,
+
+        keepAlive: true
+      }
+)
 
 pool.on("error", (err) => {
   console.error("[DB][POOL_ERROR]", err)
