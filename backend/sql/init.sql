@@ -651,6 +651,189 @@ SELECT
   (SELECT app_user_id FROM u_admin)    AS appuser_admin_id,
   (SELECT app_user_id FROM u_operator) AS appuser_operator_id,
   (SELECT app_user_id FROM u_kurier)   AS appuser_kurier_id;
+
+
+
+-- paczka 
+
+
+SET search_path TO parcel_locker;
+
+WITH
+odb AS (
+  SELECT klient_id
+  FROM Klient
+  WHERE email = 'klient@test.pl'
+  LIMIT 1
+),
+nad1 AS (
+  INSERT INTO Klient (imie, nazwisko, email, telefon)
+  VALUES ('Sklep', 'Internetowy', 'sklep@test.pl', '111111111')
+  ON CONFLICT (email) DO UPDATE SET imie = EXCLUDED.imie
+  RETURNING klient_id
+),
+nad2 AS (
+  INSERT INTO Klient (imie, nazwisko, email, telefon)
+  VALUES ('Alicja', 'Nadawca', 'nadawca2@test.pl', '222222222')
+  ON CONFLICT (email) DO UPDATE SET imie = EXCLUDED.imie
+  RETURNING klient_id
+),
+
+sk_m1 AS (
+  SELECT s.skrytka_id
+  FROM Skrytka s
+  JOIN Rozmiar r ON r.rozmiar_id = s.rozmiar_id
+  JOIN Automat a ON a.automat_id = s.automat_id
+  WHERE a.nazwa = 'KRA-001' AND r.kod = 'M' AND s.status = 'WOLNA'
+  ORDER BY s.skrytka_id
+  LIMIT 1
+),
+sk_s1 AS (
+  SELECT s.skrytka_id
+  FROM Skrytka s
+  JOIN Rozmiar r ON r.rozmiar_id = s.rozmiar_id
+  JOIN Automat a ON a.automat_id = s.automat_id
+  WHERE a.nazwa = 'WAR-001' AND r.kod = 'S' AND s.status = 'WOLNA'
+  ORDER BY s.skrytka_id
+  LIMIT 1
+),
+
+p1 AS (
+  INSERT INTO Paczka (
+    numer_tracking,
+    szerokosc_cm, wysokosc_cm, glebokosc_cm,
+    nadawca_id, odbiorca_id,
+    skrytka_id,
+    status,
+    data_nadania, termin_odbioru, data_odbioru
+  )
+  VALUES (
+    'TRK-0001',
+    30, 15, 20,
+    (SELECT klient_id FROM nad1),
+    (SELECT klient_id FROM odb),
+    (SELECT skrytka_id FROM sk_m1),
+    'W_AUTOMACIE',
+    CURRENT_TIMESTAMP - INTERVAL '2 days',
+    CURRENT_TIMESTAMP + INTERVAL '2 days',
+    NULL
+  )
+  RETURNING paczka_id, skrytka_id
+),
+lock_p1 AS (
+  UPDATE Skrytka
+  SET status = 'ZAJETA'
+  WHERE skrytka_id = (SELECT skrytka_id FROM p1)
+  RETURNING skrytka_id
+),
+ev_p1 AS (
+  INSERT INTO ZdarzeniePaczki (paczka_id, typ, opis)
+  VALUES
+    ((SELECT paczka_id FROM p1), 'UTWORZONA', 'Paczka utworzona w systemie'),
+    ((SELECT paczka_id FROM p1), 'W_AUTOMACIE', 'Paczka umieszczona w automacie')
+  RETURNING zdarzenie_id
+),
+
+p2 AS (
+  INSERT INTO Paczka (
+    numer_tracking,
+    szerokosc_cm, wysokosc_cm, glebokosc_cm,
+    nadawca_id, odbiorca_id,
+    skrytka_id,
+    status,
+    data_nadania, termin_odbioru, data_odbioru
+  )
+  VALUES (
+    'TRK-0002',
+    10, 5, 15,
+    (SELECT klient_id FROM nad2),
+    (SELECT klient_id FROM odb),
+    NULL,
+    'W_DRODZE',
+    CURRENT_TIMESTAMP - INTERVAL '1 day',
+    NULL,
+    NULL
+  )
+  RETURNING paczka_id
+),
+ev_p2 AS (
+  INSERT INTO ZdarzeniePaczki (paczka_id, typ, opis)
+  VALUES
+    ((SELECT paczka_id FROM p2), 'UTWORZONA', 'Paczka utworzona w systemie')
+  RETURNING zdarzenie_id
+),
+
+p3 AS (
+  INSERT INTO Paczka (
+    numer_tracking,
+    szerokosc_cm, wysokosc_cm, glebokosc_cm,
+    nadawca_id, odbiorca_id,
+    skrytka_id,
+    status,
+    data_nadania, termin_odbioru, data_odbioru
+  )
+  VALUES (
+    'TRK-0003',
+    18, 7, 25,
+    (SELECT klient_id FROM nad1),
+    (SELECT klient_id FROM odb),
+    NULL,
+    'ODEBRANA',
+    CURRENT_TIMESTAMP - INTERVAL '7 days',
+    CURRENT_TIMESTAMP - INTERVAL '4 days',
+    CURRENT_TIMESTAMP - INTERVAL '3 days'
+  )
+  RETURNING paczka_id
+),
+ev_p3 AS (
+  INSERT INTO ZdarzeniePaczki (paczka_id, typ, opis)
+  VALUES
+    ((SELECT paczka_id FROM p3), 'UTWORZONA', 'Paczka utworzona w systemie'),
+    ((SELECT paczka_id FROM p3), 'ODEBRANA', 'Paczka odebrana przez klienta')
+  RETURNING zdarzenie_id
+),
+
+p4 AS (
+  INSERT INTO Paczka (
+    numer_tracking,
+    szerokosc_cm, wysokosc_cm, glebokosc_cm,
+    nadawca_id, odbiorca_id,
+    skrytka_id,
+    status,
+    data_nadania, termin_odbioru, data_odbioru
+  )
+  VALUES (
+    'TRK-0004',
+    19, 8, 28,
+    (SELECT klient_id FROM nad2),
+    (SELECT klient_id FROM odb),
+    (SELECT skrytka_id FROM sk_s1),
+    'PRZETERMINOWANA',
+    CURRENT_TIMESTAMP - INTERVAL '10 days',
+    CURRENT_TIMESTAMP - INTERVAL '6 days',
+    NULL
+  )
+  RETURNING paczka_id, skrytka_id
+),
+lock_p4 AS (
+  UPDATE Skrytka
+  SET status = 'ZAJETA'
+  WHERE skrytka_id = (SELECT skrytka_id FROM p4)
+  RETURNING skrytka_id
+),
+ev_p4 AS (
+  INSERT INTO ZdarzeniePaczki (paczka_id, typ, opis)
+  VALUES
+    ((SELECT paczka_id FROM p4), 'UTWORZONA', 'Paczka utworzona w systemie'),
+    ((SELECT paczka_id FROM p4), 'PRZETERMINOWANA', 'Minął termin odbioru')
+  RETURNING zdarzenie_id
+)
+
+SELECT
+  (SELECT paczka_id FROM p1) AS paczka_w_automacie,
+  (SELECT paczka_id FROM p2) AS paczka_w_drodze,
+  (SELECT paczka_id FROM p3) AS paczka_odebrana,
+  (SELECT paczka_id FROM p4) AS paczka_przeterminowana;
 set search_path to parcel_locker;
 -- =====================================================
 -- ROLES / PERMISSIONS

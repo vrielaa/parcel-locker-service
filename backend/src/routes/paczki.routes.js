@@ -4,21 +4,38 @@ import { requireAuth, requireRole } from "../middleware/auth.js"
 
 const router = Router()
 
-router.get("/me/paczki", requireAuth, requireRole(["KLIENT"]), async (req, res) => {
-  const klientId = req.user.klientId
+router.get("/me/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
+  try {
+    const klientId = req.user.klientId
 
-  const result = await query(
-    `
-    SELECT paczka_id, numer_tracking, status, termin_odbioru, skrytka_id
-    FROM parcel_locker.paczka
-    WHERE odbiorca_id = $1
-    ORDER BY data_nadania DESC
-    `,
-    [klientId]
-  )
+    if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
 
-  res.json({ ok: true, paczki: result.rows })
+    const result = await query(
+      `
+      SELECT
+        p.paczka_id,
+        p.numer_tracking,
+        p.status,
+        p.data_nadania,
+        p.termin_odbioru,
+        p.data_odbioru,
+        n.email AS nadawca_email
+      FROM parcel_locker.paczka p
+      JOIN parcel_locker.klient n
+        ON n.klient_id = p.nadawca_id
+      WHERE p.odbiorca_id = $1
+      ORDER BY p.data_nadania DESC
+      `,
+      [klientId]
+    )
+
+    res.json({ ok: true, paczki: result.rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ ok: false, error: "Get packages failed" })
+  }
 })
+
 
 router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
   const paczkaId = Number(req.params.id)
