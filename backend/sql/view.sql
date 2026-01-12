@@ -1,18 +1,19 @@
+set search_path to parcel_locker;
 -- VIEW z automatami + miasto
-CREATE OR REPLACE VIEW parcel_locker.automaty_in_city AS
+CREATE OR REPLACE VIEW automaty_in_city AS
 SELECT
     automat_id,
     nazwa,
     adres,
     wspolrzedne_gps,
     status,
-    parcel_locker.extract_city_from_address(adres) AS miasto
+    extract_city_from_address(adres) AS miasto
 FROM Automat;
 
 
 
 -- VIEW do renderowania automatu (frontend)
-CREATE OR REPLACE VIEW parcel_locker.automat_view AS
+CREATE OR REPLACE VIEW automat_view AS
 SELECT
     a.automat_id,
     a.liczba_wierszy,

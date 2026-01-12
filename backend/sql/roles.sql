@@ -1,3 +1,4 @@
+set search_path to parcel_locker;
 -- =====================================================
 -- ROLES / PERMISSIONS
 -- =====================================================
@@ -5,23 +6,23 @@
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'parcel_admin') THEN
-    CREATE ROLE parcel_admin LOGIN PASSWORD 'CHANGE_ME_admin';
+    CREATE ROLE parcel_admin LOGIN PASSWORD 'ParcelAdmin2026!';
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'parcel_operator') THEN
-    CREATE ROLE parcel_operator LOGIN PASSWORD 'CHANGE_ME_operator';
+    CREATE ROLE parcel_operator LOGIN PASSWORD 'ParcelOperator2026!';
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'parcel_kurier') THEN
-    CREATE ROLE parcel_kurier LOGIN PASSWORD 'CHANGE_ME_kurier';
+    CREATE ROLE parcel_kurier LOGIN PASSWORD 'ParcelKurier2026!';
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'parcel_klient') THEN
-    CREATE ROLE parcel_klient LOGIN PASSWORD 'CHANGE_ME_klient';
+    CREATE ROLE parcel_klient LOGIN PASSWORD 'ParcelKlient2026!';
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'parcel_report') THEN
-    CREATE ROLE parcel_report LOGIN PASSWORD 'CHANGE_ME_report';
+    CREATE ROLE parcel_report LOGIN PASSWORD 'ParcelReport2026!';
   END IF;
 END
 $$;

@@ -82,7 +82,7 @@ u_klient AS (
   INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
   VALUES (
     'klient@test.pl',
-    '$2b$10$93KvjylWV8l9SewI4uet5.1FuaUqeW9.bv.We634ZAtZJibf4K.e2',
+    '$2b$10$ocoiqSyYkWyvqXoT6JGfteR31TWogFXqqJfVW4Jy.7JJOwXxVtz9i',
     'KLIENT',
     (SELECT klient_id FROM kli),
     NULL,
@@ -103,7 +103,7 @@ u_admin AS (
   INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
   VALUES (
     'admin@test.pl',
-    '$2b$10$QmfEJCkZQAlOgUdkp5XfuO7lhJ9x89RZu5tV6xCVFGTDlYSTeJQUS',
+    '$2b$10$wd3YAAcbeF7gjGQrQaX/vuOieuZp8aJyjFR.Jmu.c1GU5bWzP939C',
     'ADMIN',
     NULL,
     (SELECT pracownik_id FROM adm),
@@ -124,7 +124,7 @@ u_operator AS (
   INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
   VALUES (
     'operator@test.pl',
-    '$2b$10$QpSymrcIfv6jtHHGg./zL.0htJIBZKayu9Xq9YGYJCuJwNTzagyxa',
+    '$2b$10$OUou6IxryJnFGJGvbftOz.1hWLv7gmMtqS6PqTpmTQGP1Nia.uSvy',
     'OPERATOR',
     NULL,
     (SELECT pracownik_id FROM opr),
@@ -145,7 +145,7 @@ u_kurier AS (
   INSERT INTO AppUser (email, password_hash, rola, klient_id, pracownik_id, must_change_password)
   VALUES (
     'kurier@test.pl',
-    '$2b$10$eDAaICQ/8L/BSaaEwEM1AupcOJVC4HCVA3Pau65bSlbaGXYpxAoFa',
+    '$2b$10$0WTKoeHSi2rTv.7hZ6zzlOMv6UXpDjuOAf6bHbMNPyz9m7mzTKkS6',
     'KURIER',
     NULL,
     (SELECT pracownik_id FROM kur),

@@ -4,7 +4,9 @@
     "start": "node src/server.js",
     "test-db": "node src/test-db.js",
     "lint": "stylelint '**/*.{css,scss}'",
-    "dev": "vite"
+    "dev": "vite",
+    "hash-passwords": "node scripts/hash-passwords.js"
+
   },
   "name": "backend",
   "version": "1.0.0",
