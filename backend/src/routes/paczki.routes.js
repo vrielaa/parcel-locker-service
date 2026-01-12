@@ -1,6 +1,7 @@
 import { Router } from "express"
 import { query } from "../db.js"
-import { requireAuth, requireRole } from "../middleware/auth.js"
+import { requireAuth } from "../middleware/auth.js"
+import { requireRoles } from "../middleware/requireRoles.js"
 
 const router = Router()
 

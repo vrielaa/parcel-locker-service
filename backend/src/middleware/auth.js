@@ -34,14 +34,3 @@ export function requireAuth(req, res, next) {
     res.status(401).json({ ok: false, error: "Niepoprawny token" })
   }
 }
-
-export function requireRole(roles = []) {
-  return (req, res, next) => {
-    const role = req.user?.rola
-    if (!role || !roles.includes(role)) {
-      res.status(403).json({ ok: false, error: "Brak uprawnień" })
-      return
-    }
-    next()
-  }
-}
