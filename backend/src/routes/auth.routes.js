@@ -95,6 +95,10 @@ router.post("/change-password", requireAuth, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Podaj aktualne hasło." })
     }
 
+    if (current_password === new_password) {
+      return res.status(400).json({ ok: false, error: "Nowe hasło musi różnić się od aktualnego." })
+    }
+
     const userId = req.user.appUserId
 
     const result = await query(
