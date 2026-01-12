@@ -7,8 +7,6 @@ export default defineConfig({
       sass: {
         additionalData: `
           @use '${path.resolve(__dirname, "sass/base")}' as *;
-          @use '${path.resolve(__dirname, "sass/components")}' as *;
-          @use '${path.resolve(__dirname, "sass/layout")}' as *;
         `,
       },
     },
@@ -19,6 +17,7 @@ export default defineConfig({
       input: {
         login: path.resolve(__dirname, "login.html"),
         app: path.resolve(__dirname, "app.html"),
+        changePassword: path.resolve(__dirname, "change-password.html"),
       },
     },
   },

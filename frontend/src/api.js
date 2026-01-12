@@ -1,6 +1,7 @@
+//api.js
 import { displayMessageForSeconds } from "./messages.js"
 
-export const API_BASE = "http://localhost:3000"
+export const API_BASE = "/api"
 
 export const getToken = () => localStorage.getItem("token")
 export const setToken = (t) => localStorage.setItem("token", t)
@@ -77,7 +78,7 @@ export const authGuard = async () => {
   }
 
   try {
-    const res = await apiFetch("/api/auth/me", { method: "GET" })
+    const res = await apiFetch("/auth/me", { method: "GET" })
     const data = await safeJson(res)
 
     if (!res.ok || !data?.ok) {

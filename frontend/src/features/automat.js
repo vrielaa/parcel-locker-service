@@ -1,3 +1,4 @@
+//automat.js
 import { qs, qsa, getElById, addClass, removeClass, hasClass } from "../utils.js"
 import { displayMessageForSeconds } from "../messages.js"
 import { API_BASE, apiFetch } from "../api.js"
@@ -64,7 +65,7 @@ export function initAutomatsView() {
         displayMessageForSeconds("Ładowanie miast...", 2, "db-message")
 
         try {
-            const res = await fetch(`${API_BASE}/api/miasta`)
+            const res = await fetch(`${API_BASE}/miasta`)
             const miasta = await res.json()
 
         citiesButtons = miasta.map((miasto) => {
@@ -89,7 +90,7 @@ export function initAutomatsView() {
         showAutomats()
 
         try {
-        const res = await apiFetch(`/api/automaty?miasto=${encodeURIComponent(miasto)}`)
+        const res = await apiFetch(`/automaty?miasto=${encodeURIComponent(miasto)}`)
         const automaty = await res.json()
 
         automaty.forEach((automat) => {
@@ -144,7 +145,7 @@ export function initAutomatsView() {
 
     const displayLockerDetails = async (automat) => {
         try {
-        const res = await apiFetch(`/api/automaty/${automat.automat_id}`)
+        const res = await apiFetch(`/automaty/${automat.automat_id}`)
         const layout = await res.json()
 
         if (!Array.isArray(layout) || layout.length === 0) {

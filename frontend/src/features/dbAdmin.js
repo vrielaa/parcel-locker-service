@@ -9,14 +9,14 @@ export function initDbAdminControls() {
   if (!checkBtn || !clearBtn || !initBtn) return
 
   checkBtn.addEventListener("click", async () => {
-    await callApi("/api/db/test", { method: "GET" }, "db-message")
+    await callApi("/db/test", { method: "GET" }, "db-message")
   })
 
   clearBtn.addEventListener("click", async () => {
-    await callApi("/api/db/clear", { method: "POST" }, "db-message")
+    await callApi("/db/clear", { method: "POST" }, "db-message")
   })
 
   initBtn.addEventListener("click", async () => {
-    await callApi("/api/db/init", { method: "POST" }, "db-message")
+    await callApi("/db/init", { method: "POST" }, "db-message")
   })
 }

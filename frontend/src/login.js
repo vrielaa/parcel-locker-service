@@ -1,3 +1,4 @@
+//login.js
 import "../sass/main.scss"
 
 import { getElById } from "./utils.js"
@@ -45,7 +46,7 @@ form.addEventListener("submit", async (e) => {
   displayMessageForSeconds("Logowanie...", 2, "db-message")
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

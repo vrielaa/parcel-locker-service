@@ -1,0 +1,16 @@
+{
+  "hosting": {
+    "public": "frontend/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/", "destination": "/login.html" },
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "parcel-locker-service",
+          "region": "europe-central2"
+        }
+      }
+    ]
+  }
+}

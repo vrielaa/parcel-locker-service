@@ -1,3 +1,4 @@
+//authClient.js
 import { API_BASE } from "./api.js"
 
 export const getToken = () => localStorage.getItem("token")
@@ -10,7 +11,7 @@ export async function fetchMe() {
   const token = getToken()
   if (!token) return null
 
-  const res = await fetch(`${API_BASE}/api/auth/me`, {
+  const res = await fetch(`${API_BASE}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` }
   })
 

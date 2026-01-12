@@ -91,6 +91,10 @@ router.post("/change-password", requireAuth, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Hasło musi mieć min. 8 znaków." })
     }
 
+    if (!current_password) {
+      return res.status(400).json({ ok: false, error: "Podaj aktualne hasło." })
+    }
+
     const userId = req.user.appUserId
 
     const result = await query(
@@ -106,19 +110,8 @@ router.post("/change-password", requireAuth, async (req, res) => {
     const user = result.rows[0]
     if (!user) return res.status(404).json({ ok: false, error: "User not found" })
 
-    if (user.must_change_password) {
-      if (!current_password) {
-        return res.status(400).json({ ok: false, error: "Podaj aktualne hasło." })
-      }
-
-      const ok = await bcrypt.compare(current_password, user.password_hash)
-      if (!ok) return res.status(401).json({ ok: false, error: "Aktualne hasło jest niepoprawne." })
-    } else {
-      if (current_password) {
-        const ok = await bcrypt.compare(current_password, user.password_hash)
-        if (!ok) return res.status(401).json({ ok: false, error: "Aktualne hasło jest niepoprawne." })
-      }
-    }
+    const ok = await bcrypt.compare(current_password, user.password_hash)
+    if (!ok) return res.status(401).json({ ok: false, error: "Aktualne hasło jest niepoprawne." })
 
     const newHash = await bcrypt.hash(new_password, 10)
 
@@ -137,5 +130,6 @@ router.post("/change-password", requireAuth, async (req, res) => {
     res.status(500).json({ ok: false, error: "Change password failed" })
   }
 })
+
 
 export default router
