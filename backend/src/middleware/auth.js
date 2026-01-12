@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken"
 import { logWarn, logInfo, maskToken } from "../logger.js"
 
-export function authRequired(req, res, next) {
+export function requireAuth(req, res, next) {
   const header = req.headers.authorization || ""
   const [type, token] = header.split(" ")
 
