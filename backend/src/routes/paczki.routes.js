@@ -68,7 +68,7 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
   res.json({ ok: true, zdarzenia: result.rows })
 })
 
-router.post("/paczki/:id/przedluzenia", requireAuth, requireRole(["KLIENT"]), async (req, res) => {
+router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), async (req, res) => {
   const paczkaId = Number(req.params.id)
   const { ile_godzin } = req.body
 
@@ -103,7 +103,7 @@ router.post("/paczki/:id/przedluzenia", requireAuth, requireRole(["KLIENT"]), as
   res.json({ ok: true })
 })
 
-router.post("/paczki", requireAuth, requireRole(["OPERATOR"]), async (req, res) => {
+router.post("/paczki", requireAuth, requireRoles("OPERATOR"), async (req, res) => {
   const { numer_tracking, szerokosc_cm, wysokosc_cm, glebokosc_cm, nadawca_id, odbiorca_id } = req.body
 
   const result = await query(
