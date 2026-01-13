@@ -890,7 +890,6 @@ ev_p4 AS (
     ((SELECT paczka_id FROM p4), 'UTWORZONA', 'Paczka utworzona w systemie'),
     ((SELECT paczka_id FROM p4), 'W_AUTOMACIE', 'Paczka umieszczona w automacie WAR-001'),
     ((SELECT paczka_id FROM p4), 'PRZETERMINOWANA', 'Minął termin odbioru')
-  revealed
   RETURNING zdarzenie_id
 ),
 
