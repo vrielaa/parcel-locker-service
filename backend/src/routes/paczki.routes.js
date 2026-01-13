@@ -155,4 +155,218 @@ router.post("/paczki", requireAuth, requireRoles("OPERATOR"), async (req, res) =
   res.json({ ok: true, paczka_id: paczkaId })
 })
 
+
+router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (req, res) => {
+  const paczkaId = Number(req.params.id)
+  const kurierId = req.user?.pracownikId
+
+  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki" })
+  if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+
+  const client = await pool.connect()
+
+  try {
+    await client.query("BEGIN")
+
+    const p = await client.query(
+      `
+      SELECT p.paczka_id, p.status, p.skrytka_id,
+             s.automat_id,
+             a.nazwa AS automat_nazwa
+      FROM parcel_locker.paczka p
+      JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
+      JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
+      WHERE p.paczka_id = $1
+      FOR UPDATE
+      `,
+      [paczkaId]
+    )
+
+    if (p.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(404).json({ ok: false, error: "Paczka nie istnieje albo nie jest w automacie" })
+    }
+
+    const row = p.rows[0]
+    if (String(row.status || "").toUpperCase() !== "W_AUTOMACIE" || !row.skrytka_id) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Paczki nie można podjąć w tym statusie" })
+    }
+
+    const allowed = await client.query(
+      `
+      SELECT 1
+      FROM parcel_locker.obslugaautomatu oa
+      WHERE oa.kurier_id = $1
+        AND oa.automat_id = $2
+        AND oa.data_od <= CURRENT_TIMESTAMP
+        AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
+      LIMIT 1
+      `,
+      [kurierId, row.automat_id]
+    )
+
+    if (allowed.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(403).json({ ok: false, error: "Kurier nie jest przypisany do tego automatu" })
+    }
+
+    await client.query(
+      `
+      UPDATE parcel_locker.skrytka
+      SET status = 'WOLNA'
+      WHERE skrytka_id = $1
+      `,
+      [row.skrytka_id]
+    )
+
+    const upd = await client.query(
+      `
+      UPDATE parcel_locker.paczka
+      SET skrytka_id = NULL,
+          status = 'W_DRODZE'
+      WHERE paczka_id = $1
+      RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru
+      `,
+      [paczkaId]
+    )
+
+    await client.query(
+      `
+      INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
+      VALUES
+        ($1, 'WYJETA_Z_AUTOMATU', $2),
+        ($1, 'W_DRODZE', 'Paczka w transporcie')
+      `,
+      [paczkaId, `Podjęta przez kuriera z automatu ${row.automat_nazwa} (ID: ${row.automat_id})`]
+    )
+
+    await client.query("COMMIT")
+    res.json({ ok: true, paczka: upd.rows[0] })
+  } catch (err) {
+    try { await client.query("ROLLBACK") } catch {}
+    res.status(500).json({ ok: false, error: "Błąd serwera" })
+  } finally {
+    client.release()
+  }
+})
+
+router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"), async (req, res) => {
+  const paczkaId = Number(req.params.id)
+  const kurierId = req.user?.pracownikId
+  const skrytkaId = Number(req.body?.skrytka_id)
+
+  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki" })
+  if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne skrytka_id" })
+  if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+
+  const client = await pool.connect()
+
+  try {
+    await client.query("BEGIN")
+
+    const p = await client.query(
+      `
+      SELECT paczka_id, status, skrytka_id
+      FROM parcel_locker.paczka
+      WHERE paczka_id = $1
+      FOR UPDATE
+      `,
+      [paczkaId]
+    )
+
+    if (p.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
+    }
+
+    const pr = p.rows[0]
+    if (String(pr.status || "").toUpperCase() !== "W_DRODZE" || pr.skrytka_id != null) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Paczka nie jest w transporcie" })
+    }
+
+    const s = await client.query(
+      `
+      SELECT s.skrytka_id, s.status, s.automat_id, a.nazwa AS automat_nazwa
+      FROM parcel_locker.skrytka s
+      JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
+      WHERE s.skrytka_id = $1
+      FOR UPDATE
+      `,
+      [skrytkaId]
+    )
+
+    if (s.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(404).json({ ok: false, error: "Skrytka nie istnieje" })
+    }
+
+    const sr = s.rows[0]
+    if (String(sr.status || "").toUpperCase() !== "WOLNA") {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna" })
+    }
+
+    const allowed = await client.query(
+      `
+      SELECT 1
+      FROM parcel_locker.obslugaautomatu oa
+      WHERE oa.kurier_id = $1
+        AND oa.automat_id = $2
+        AND oa.data_od <= CURRENT_TIMESTAMP
+        AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
+      LIMIT 1
+      `,
+      [kurierId, sr.automat_id]
+    )
+
+    if (allowed.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(403).json({ ok: false, error: "Kurier nie jest przypisany do tego automatu" })
+    }
+
+    const upd = await client.query(
+      `
+      UPDATE parcel_locker.paczka
+      SET skrytka_id = $2,
+          status = 'W_AUTOMACIE',
+          termin_odbioru = COALESCE(termin_odbioru, CURRENT_TIMESTAMP + INTERVAL '48 hours')
+      WHERE paczka_id = $1
+      RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru
+      `,
+      [paczkaId, skrytkaId]
+    )
+
+    await client.query(
+      `
+      UPDATE parcel_locker.skrytka
+      SET status = 'ZAJETA'
+      WHERE skrytka_id = $1
+      `,
+      [skrytkaId]
+    )
+
+    await client.query(
+      `
+      INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
+      VALUES ($1, 'W_AUTOMACIE', $2)
+      `,
+      [paczkaId, `Umieszczona w automacie ${sr.automat_nazwa} (ID: ${sr.automat_id}), skrytka ${skrytkaId}`]
+    )
+
+    await client.query("COMMIT")
+    res.json({ ok: true, paczka: upd.rows[0] })
+  } catch (err) {
+    try { await client.query("ROLLBACK") } catch {}
+    const msg = String(err?.message || "")
+    if (msg.includes("Paczka nie mieści się w skrytce")) return res.status(409).json({ ok: false, error: "Paczka nie mieści się w skrytce" })
+    if (msg.includes("Skrytka nie istnieje lub nie jest wolna")) return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna" })
+    res.status(500).json({ ok: false, error: "Błąd serwera" })
+  } finally {
+    client.release()
+  }
+})
+
+
 export default router
