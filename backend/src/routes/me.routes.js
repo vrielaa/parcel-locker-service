@@ -1,3 +1,4 @@
+// backend/src/routes/me.routes.js
 import { Router } from "express"
 import crypto from "crypto"
 import { query } from "../db.js"
@@ -38,42 +39,37 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
     const numer_tracking = makeTracking()
 
     const result = await query(
-      `
-      WITH odb AS (
+    `
+    WITH odb AS (
         INSERT INTO parcel_locker.klient (imie, nazwisko, email, telefon)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (email) DO UPDATE
-          SET
+        SET
             imie = EXCLUDED.imie,
             nazwisko = EXCLUDED.nazwisko,
             telefon = COALESCE(EXCLUDED.telefon, parcel_locker.klient.telefon)
         RETURNING klient_id, email
-      ),
-      p AS (
+    ),
+    p AS (
         INSERT INTO parcel_locker.paczka (
-          numer_tracking,
-          szerokosc_cm, wysokosc_cm, glebokosc_cm,
-          nadawca_id, odbiorca_id,
-          skrytka_id,
-          status,
-          data_nadania, termin_odbioru, data_odbioru
+        numer_tracking,
+        szerokosc_cm, wysokosc_cm, glebokosc_cm,
+        nadawca_id, odbiorca_id
         )
         VALUES (
-          $5,
-          $6, $7, $8,
-          $9, (SELECT klient_id FROM odb),
-          NULL,
-          'NADANA',
-          CURRENT_TIMESTAMP, NULL, NULL
+        $5,
+        $6, $7, $8,
+        $9, (SELECT klient_id FROM odb)
         )
-        RETURNING paczka_id, numer_tracking, status, data_nadania, termin_odbioru, skrytka_id, odbiorca_id
-      ),
-      ev AS (
+        RETURNING
+        paczka_id, numer_tracking, status, data_nadania, termin_odbioru, skrytka_id, odbiorca_id
+    ),
+    ev AS (
         INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
         VALUES ((SELECT paczka_id FROM p), 'UTWORZONA', 'Paczka nadana przez klienta')
         RETURNING zdarzenie_id
-      )
-      SELECT
+    )
+    SELECT
         (SELECT paczka_id FROM p) AS paczka_id,
         (SELECT numer_tracking FROM p) AS numer_tracking,
         (SELECT status FROM p) AS status,
@@ -82,8 +78,8 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
         (SELECT skrytka_id FROM p) AS skrytka_id,
         (SELECT email FROM odb) AS odbiorca_email,
         (SELECT zdarzenie_id FROM ev) AS zdarzenie_id
-      `,
-      [
+    `,
+    [
         odb_imie,
         odb_nazwisko,
         odb_email,
@@ -93,8 +89,9 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
         wysokosc_cm,
         glebokosc_cm,
         klientId
-      ]
-    )
+    ]
+)
+
 
     res.status(201).json({ ok: true, paczka: result.rows[0] })
   } catch (err) {
@@ -105,6 +102,42 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
 
     console.error(err)
     res.status(500).json({ ok: false, error: "Nie udało się nadać paczki" })
+  }
+})
+
+
+
+
+
+router.get("/me/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
+  try {
+    const klientId = req.user.klientId
+
+    if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
+
+    const result = await query(
+      `
+      SELECT
+        p.paczka_id,
+        p.numer_tracking,
+        p.status,
+        p.data_nadania,
+        p.termin_odbioru,
+        p.data_odbioru,
+        n.email AS nadawca_email
+      FROM parcel_locker.paczka p
+      JOIN parcel_locker.klient n
+        ON n.klient_id = p.nadawca_id
+      WHERE p.odbiorca_id = $1
+      ORDER BY p.data_nadania DESC
+      `,
+      [klientId]
+    )
+
+    res.json({ ok: true, paczki: result.rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ ok: false, error: "Get packages failed" })
   }
 })
 

@@ -1,3 +1,4 @@
+// backend/src/routes/automaty.routes.js
 import { Router } from "express"
 import { getAllMiasta, getAutomatyInCity, getAutomatInfoById } from "../utils.js"
 import { query } from "../db.js"

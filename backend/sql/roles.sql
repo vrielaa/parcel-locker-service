@@ -57,12 +57,18 @@ GRANT SELECT, INSERT         ON parcel_locker.ZdarzeniePaczki TO parcel_kurier;
 
 GRANT SELECT ON parcel_locker.ObslugaAutomatu TO parcel_kurier;
 
--- klient: podgląd swoich danych i operacje związane z paczkami (na razie ogólnie)
+-- klient: podgląd swoich danych i operacje związane z paczkami (przegląd, przedłużenie, tworzenie)
 -- docelowo "tylko swoje" robi się przez RLS, ale do projektu wystarczy warstwa uprawnień + endpointy.
 GRANT SELECT, UPDATE ON parcel_locker.Klient       TO parcel_klient;
 GRANT SELECT        ON parcel_locker.Paczka        TO parcel_klient;
 GRANT SELECT, INSERT ON parcel_locker.Przedluzenie TO parcel_klient;
 GRANT SELECT        ON parcel_locker.ZdarzeniePaczki TO parcel_klient;
+
+GRANT INSERT (numer_tracking, szerokosc_cm, wysokosc_cm, glebokosc_cm, nadawca_id, odbiorca_id)
+ON parcel_locker.Paczka
+TO parcel_klient;
+
+GRANT INSERT ON parcel_locker.ZdarzeniePaczki TO parcel_klient;
 
 -- report: read-only na wszystko (albo tylko na widoki, jeśli wolisz)
 GRANT SELECT ON ALL TABLES IN SCHEMA parcel_locker TO parcel_report;

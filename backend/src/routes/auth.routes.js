@@ -1,3 +1,4 @@
+// backend/src/routes/auth.routes.js
 import { Router } from "express"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"

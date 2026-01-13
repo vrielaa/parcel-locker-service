@@ -262,3 +262,43 @@ CREATE TRIGGER trg_generate_automat_layout
 AFTER INSERT ON Automat
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.trg_generate_layout_fn();
+
+
+-- =====================================================
+-- Funkcja: jakie kolumny moze insetorwać klient
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION parcel_locker.enforce_client_package_rules()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF current_user = 'parcel_klient' THEN
+    IF NEW.skrytka_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Klient nie może ustawiać skrytka_id';
+    END IF;
+
+    IF NEW.status IS NOT NULL AND NEW.status NOT IN ('DO_ZATWIERDZENIA', 'NADANA') THEN
+      RAISE EXCEPTION 'Klient nie może ustawiać statusu %', NEW.status;
+    END IF;
+
+    IF NEW.termin_odbioru IS NOT NULL OR NEW.data_odbioru IS NOT NULL THEN
+      RAISE EXCEPTION 'Klient nie może ustawiać termin_odbioru/data_odbioru';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+-- =====================================================
+-- Trigger: enforce_client_package_rules
+-- =====================================================
+
+DROP TRIGGER IF EXISTS trg_enforce_client_package_rules ON parcel_locker.Paczka;
+
+CREATE TRIGGER trg_enforce_client_package_rules
+BEFORE INSERT OR UPDATE ON parcel_locker.Paczka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.enforce_client_package_rules();

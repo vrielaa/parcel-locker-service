@@ -3,7 +3,8 @@ import authRoutes from "./auth.routes.js"
 import dbAdminRoutes from "./dbAdmin.routes.js"
 import automatyRoutes from "./automaty.routes.js"
 import paczkiRoutes from "./paczki.routes.js"
-import meRouter from "./me.routes.js"
+import meRoutes from "./me.routes.js"
+import operatorRoutes from "./operator.routes.js"
 
 const router = Router()
 
@@ -11,6 +12,7 @@ router.use("/auth", authRoutes)
 router.use("/db", dbAdminRoutes)
 router.use("/", automatyRoutes)
 router.use("/", paczkiRoutes)
-router.use("/me", meRouter)
+router.use("/me", meRoutes)
+router.use("/operator", operatorRoutes)
 
 export default router
