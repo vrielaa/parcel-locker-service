@@ -7,15 +7,15 @@ const { Pool } = pg
 
 const isCloudSql = !!process.env.INSTANCE_CONNECTION_NAME
 
-const pool = new Pool({
+export const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
 
-  host: isCloudSql ? `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}` : undefined,
+  host: isCloudSql ? `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}` : process.env.DB_HOST,
   port: 5432,
 
-  ssl: isCloudSql ? false : { rejectUnauthorized: false },
+  ssl: isCloudSql ? false : false,
 
   max: 10,
   idleTimeoutMillis: 30_000,

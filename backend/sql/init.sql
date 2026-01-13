@@ -139,8 +139,8 @@ CREATE TABLE Paczka (
         REFERENCES Skrytka(skrytka_id)
         ON DELETE SET NULL,
 
-    status          TEXT NOT NULL
-        CHECK (status IN ('NADANA','W_DRODZE','W_AUTOMACIE','ODEBRANA','PRZETERMINOWANA','ANULOWANA')),
+    status          TEXT NOT NULL DEFAULT 'DO_ZATWIERDZENIA'
+        CHECK (status IN ('DO_ZATWIERDZENIA','NADANA','W_DRODZE','W_AUTOMACIE','ODEBRANA','PRZETERMINOWANA','ANULOWANA')),
 
     data_nadania    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     termin_odbioru  TIMESTAMP,
@@ -478,7 +478,48 @@ $$;
 CREATE TRIGGER trg_generate_automat_layout
 AFTER INSERT ON Automat
 FOR EACH ROW
-EXECUTE FUNCTION parcel_locker.trg_generate_layout_fn();SET search_path TO parcel_locker;
+EXECUTE FUNCTION parcel_locker.trg_generate_layout_fn();
+
+
+-- =====================================================
+-- Funkcja: jakie kolumny moze insetorwać klient
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION parcel_locker.enforce_client_package_rules()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF current_user = 'parcel_klient' THEN
+    IF NEW.skrytka_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Klient nie może ustawiać skrytka_id';
+    END IF;
+
+    IF NEW.status IS NOT NULL AND NEW.status NOT IN ('DO_ZATWIERDZENIA', 'NADANA') THEN
+      RAISE EXCEPTION 'Klient nie może ustawiać statusu %', NEW.status;
+    END IF;
+
+    IF NEW.termin_odbioru IS NOT NULL OR NEW.data_odbioru IS NOT NULL THEN
+      RAISE EXCEPTION 'Klient nie może ustawiać termin_odbioru/data_odbioru';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+-- =====================================================
+-- Trigger: enforce_client_package_rules
+-- =====================================================
+
+DROP TRIGGER IF EXISTS trg_enforce_client_package_rules ON parcel_locker.Paczka;
+
+CREATE TRIGGER trg_enforce_client_package_rules
+BEFORE INSERT OR UPDATE ON parcel_locker.Paczka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.enforce_client_package_rules();
+SET search_path TO parcel_locker;
 
 --------------------------------------------------
 -- 1. WYCZYŚĆ DANE
@@ -893,12 +934,18 @@ GRANT SELECT, INSERT         ON parcel_locker.ZdarzeniePaczki TO parcel_kurier;
 
 GRANT SELECT ON parcel_locker.ObslugaAutomatu TO parcel_kurier;
 
--- klient: podgląd swoich danych i operacje związane z paczkami (na razie ogólnie)
+-- klient: podgląd swoich danych i operacje związane z paczkami (przegląd, przedłużenie, tworzenie)
 -- docelowo "tylko swoje" robi się przez RLS, ale do projektu wystarczy warstwa uprawnień + endpointy.
 GRANT SELECT, UPDATE ON parcel_locker.Klient       TO parcel_klient;
 GRANT SELECT        ON parcel_locker.Paczka        TO parcel_klient;
 GRANT SELECT, INSERT ON parcel_locker.Przedluzenie TO parcel_klient;
 GRANT SELECT        ON parcel_locker.ZdarzeniePaczki TO parcel_klient;
+
+GRANT INSERT (numer_tracking, szerokosc_cm, wysokosc_cm, glebokosc_cm, nadawca_id, odbiorca_id)
+ON parcel_locker.Paczka
+TO parcel_klient;
+
+GRANT INSERT ON parcel_locker.ZdarzeniePaczki TO parcel_klient;
 
 -- report: read-only na wszystko (albo tylko na widoki, jeśli wolisz)
 GRANT SELECT ON ALL TABLES IN SCHEMA parcel_locker TO parcel_report;
