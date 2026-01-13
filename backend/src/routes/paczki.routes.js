@@ -68,40 +68,96 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
   res.json({ ok: true, zdarzenia: result.rows })
 })
 
-router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), async (req, res) => {
-  const paczkaId = Number(req.params.id)
-  const { ile_godzin } = req.body
+router.post(
+  "/paczki/:id/przedluzenia",
+  requireAuth,
+  requireRoles("KLIENT"),
+  async (req, res) => {
+    const paczkaId = Number(req.params.id)
+    const ile_godzin = Number(req.body?.ile_godzin)
 
-  const own = await query(
-    `
-    SELECT termin_odbioru
-    FROM parcel_locker.paczka
-    WHERE paczka_id = $1 AND odbiorca_id = $2
-    LIMIT 1
-    `,
-    [paczkaId, req.user.klientId]
-  )
+    if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
+      return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+    }
 
-  if (own.rowCount === 0) return res.status(403).json({ ok: false, error: "Forbidden" })
+    if (!Number.isFinite(ile_godzin) || ile_godzin <= 0) {
+      return res.status(400).json({ ok: false, error: "Niepoprawna liczba godzin." })
+    }
 
-  await query(
-    `
-    INSERT INTO parcel_locker.przedluzenie(paczka_id, klient_id, ile_godzin)
-    VALUES ($1, $2, $3)
-    `,
-    [paczkaId, req.user.klientId, ile_godzin]
-  )
+    const client = await pool.connect()
 
-  await query(
-    `
-    INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
-    VALUES ($1, 'PRZEDLUZONA', $2)
-    `,
-    [paczkaId, `Przedłużenie o ${ile_godzin} godzin`]
-  )
+    try {
+      await client.query("BEGIN")
 
-  res.json({ ok: true })
-})
+      const own = await client.query(
+        `
+        SELECT paczka_id, status, termin_odbioru
+        FROM parcel_locker.paczka
+        WHERE paczka_id = $1 AND odbiorca_id = $2
+        FOR UPDATE
+        LIMIT 1
+        `,
+        [paczkaId, req.user.klientId]
+      )
+
+      if (own.rowCount === 0) {
+        await client.query("ROLLBACK")
+        return res.status(403).json({ ok: false, error: "Forbidden" })
+      }
+
+      const { status, termin_odbioru } = own.rows[0]
+      const statusUpper = String(status || "").toUpperCase()
+
+      if (statusUpper !== "W_AUTOMACIE") {
+        await client.query("ROLLBACK")
+        return res.status(409).json({ ok: false, error: "Nie można przedłużyć paczki w tym statusie." })
+      }
+
+      if (!termin_odbioru || new Date(termin_odbioru).getTime() <= Date.now()) {
+        await client.query("ROLLBACK")
+        return res.status(409).json({ ok: false, error: "Minął termin odbioru – paczka została odesłana." })
+      }
+
+      await client.query(
+        `
+        INSERT INTO parcel_locker.przedluzenie(paczka_id, klient_id, ile_godzin)
+        VALUES ($1, $2, $3)
+        `,
+        [paczkaId, req.user.klientId, ile_godzin]
+      )
+
+      const upd = await client.query(
+        `
+        UPDATE parcel_locker.paczka
+        SET termin_odbioru = termin_odbioru + make_interval(hours => $3::int)
+        WHERE paczka_id = $1 AND odbiorca_id = $2
+        RETURNING termin_odbioru
+        `,
+        [paczkaId, req.user.klientId, ile_godzin]
+      )
+
+      await client.query(
+        `
+        INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
+        VALUES ($1, 'PRZEDLUZENIE', $2)
+        `,
+        [paczkaId, `Przedłużenie o ${ile_godzin} godzin`]
+      )
+
+      await client.query("COMMIT")
+
+      res.json({ ok: true, termin_odbioru: upd.rows[0]?.termin_odbioru })
+    } catch (err) {
+      try {
+        await client.query("ROLLBACK")
+      } catch {}
+      res.status(500).json({ ok: false, error: "Błąd serwera." })
+    } finally {
+      client.release()
+    }
+  }
+)
+
 
 router.post("/paczki", requireAuth, requireRoles("OPERATOR"), async (req, res) => {
   const { numer_tracking, szerokosc_cm, wysokosc_cm, glebokosc_cm, nadawca_id, odbiorca_id } = req.body
