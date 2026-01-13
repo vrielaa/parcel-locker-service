@@ -1,22 +1,51 @@
-// backend/src/routes/paczki.routes.js
 import { Router } from "express"
 import { query, pool } from "../db.js"
 import { requireAuth } from "../middleware/auth.js"
 import { requireRoles } from "../middleware/requireRoles.js"
 
-
 const router = Router()
 
+router.get("/me/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
+  const klientId = req.user?.klientId
+  if (!klientId) return res.status(403).json({ ok: false, error: "Brak klientId w tokenie" })
+
+  const result = await query(
+    `
+    SELECT
+      p.paczka_id,
+      p.numer_tracking,
+      p.status,
+      p.data_nadania,
+      p.termin_odbioru,
+      p.data_odbioru,
+      p.nadawca_id,
+      p.odbiorca_id,
+      p.skrytka_id,
+      s.automat_id,
+      a.nazwa AS automat_nazwa,
+      a.adres AS automat_adres
+    FROM parcel_locker.paczka p
+    LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
+    LEFT JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
+    WHERE p.odbiorca_id = $1 OR p.nadawca_id = $1
+    ORDER BY COALESCE(p.data_nadania, p.termin_odbioru, p.paczka_id::text::timestamp) DESC, p.paczka_id DESC
+    `,
+    [klientId]
+  )
+
+  res.json({ ok: true, paczki: result.rows })
+})
 
 router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
   const paczkaId = Number(req.params.id)
+  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
 
   if (req.user.rola === "KLIENT") {
     const own = await query(
       `
       SELECT 1
       FROM parcel_locker.paczka
-      WHERE paczka_id = $1 AND odbiorca_id = $2
+      WHERE paczka_id = $1 AND (odbiorca_id = $2 OR nadawca_id = $2)
       LIMIT 1
       `,
       [paczkaId, req.user.klientId]
@@ -24,6 +53,21 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
 
     if (own.rowCount === 0) return res.status(403).json({ ok: false, error: "Forbidden" })
   }
+
+  const info = await query(
+    `
+    SELECT
+      s.automat_id,
+      a.nazwa AS automat_nazwa,
+      a.adres AS automat_adres
+    FROM parcel_locker.paczka p
+    LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
+    LEFT JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
+    WHERE p.paczka_id = $1
+    LIMIT 1
+    `,
+    [paczkaId]
+  )
 
   const result = await query(
     `
@@ -35,99 +79,101 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
     [paczkaId]
   )
 
-  res.json({ ok: true, zdarzenia: result.rows })
+  const row = info.rows[0] || {}
+
+  res.json({
+    ok: true,
+    zdarzenia: result.rows,
+    automat_id: row.automat_id ?? null,
+    automat_nazwa: row.automat_nazwa ?? null,
+    automat_adres: row.automat_adres ?? null
+  })
 })
 
-router.post(
-  "/paczki/:id/przedluzenia",
-  requireAuth,
-  requireRoles("KLIENT"),
-  async (req, res) => {
-    const paczkaId = Number(req.params.id)
-    const ile_godzin = Number(req.body?.ile_godzin)
+router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), async (req, res) => {
+  const paczkaId = Number(req.params.id)
+  const ile_godzin = Number(req.body?.ile_godzin)
 
-    if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
-      return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
-    }
-
-    if (!Number.isFinite(ile_godzin) || ile_godzin <= 0) {
-      return res.status(400).json({ ok: false, error: "Niepoprawna liczba godzin." })
-    }
-
-    const client = await pool.connect()
-
-    try {
-      await client.query("BEGIN")
-
-      const own = await client.query(
-        `
-        SELECT paczka_id, status, termin_odbioru
-        FROM parcel_locker.paczka
-        WHERE paczka_id = $1 AND odbiorca_id = $2
-        FOR UPDATE
-        LIMIT 1
-        `,
-        [paczkaId, req.user.klientId]
-      )
-
-      if (own.rowCount === 0) {
-        await client.query("ROLLBACK")
-        return res.status(403).json({ ok: false, error: "Forbidden" })
-      }
-
-      const { status, termin_odbioru } = own.rows[0]
-      const statusUpper = String(status || "").toUpperCase()
-
-      if (statusUpper !== "W_AUTOMACIE") {
-        await client.query("ROLLBACK")
-        return res.status(409).json({ ok: false, error: "Nie można przedłużyć paczki w tym statusie." })
-      }
-
-      if (!termin_odbioru || new Date(termin_odbioru).getTime() <= Date.now()) {
-        await client.query("ROLLBACK")
-        return res.status(409).json({ ok: false, error: "Minął termin odbioru – paczka została odesłana." })
-      }
-
-      await client.query(
-        `
-        INSERT INTO parcel_locker.przedluzenie(paczka_id, klient_id, ile_godzin)
-        VALUES ($1, $2, $3)
-        `,
-        [paczkaId, req.user.klientId, ile_godzin]
-      )
-
-      const upd = await client.query(
-        `
-        UPDATE parcel_locker.paczka
-        SET termin_odbioru = termin_odbioru + make_interval(hours => $3::int)
-        WHERE paczka_id = $1 AND odbiorca_id = $2
-        RETURNING termin_odbioru
-        `,
-        [paczkaId, req.user.klientId, ile_godzin]
-      )
-
-      await client.query(
-        `
-        INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
-        VALUES ($1, 'PRZEDLUZONA', $2)
-        `,
-        [paczkaId, `Przedłużenie o ${ile_godzin} godzin`]
-      )
-
-      await client.query("COMMIT")
-
-      res.json({ ok: true, termin_odbioru: upd.rows[0]?.termin_odbioru })
-    } catch (err) {
-      try {
-        await client.query("ROLLBACK")
-      } catch {}
-      res.status(500).json({ ok: false, error: "Błąd serwera." })
-    } finally {
-      client.release()
-    }
+  if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
+    return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
   }
-)
 
+  if (!Number.isFinite(ile_godzin) || ile_godzin <= 0) {
+    return res.status(400).json({ ok: false, error: "Niepoprawna liczba godzin." })
+  }
+
+  const client = await pool.connect()
+
+  try {
+    await client.query("BEGIN")
+
+    const own = await client.query(
+      `
+      SELECT paczka_id, status, termin_odbioru
+      FROM parcel_locker.paczka
+      WHERE paczka_id = $1 AND odbiorca_id = $2
+      FOR UPDATE
+      LIMIT 1
+      `,
+      [paczkaId, req.user.klientId]
+    )
+
+    if (own.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(403).json({ ok: false, error: "Forbidden" })
+    }
+
+    const { status, termin_odbioru } = own.rows[0]
+    const statusUpper = String(status || "").toUpperCase()
+
+    if (statusUpper !== "W_AUTOMACIE") {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Nie można przedłużyć paczki w tym statusie." })
+    }
+
+    if (!termin_odbioru || new Date(termin_odbioru).getTime() <= Date.now()) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Minął termin odbioru – paczka została odesłana." })
+    }
+
+    await client.query(
+      `
+      INSERT INTO parcel_locker.przedluzenie(paczka_id, klient_id, ile_godzin)
+      VALUES ($1, $2, $3)
+      `,
+      [paczkaId, req.user.klientId, ile_godzin]
+    )
+
+    const upd = await client.query(
+      `
+      UPDATE parcel_locker.paczka
+      SET termin_odbioru = termin_odbioru + make_interval(hours => $3::int)
+      WHERE paczka_id = $1 AND odbiorca_id = $2
+      RETURNING termin_odbioru
+      `,
+      [paczkaId, req.user.klientId, ile_godzin]
+    )
+
+    await client.query(
+      `
+      INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
+      VALUES ($1, 'PRZEDLUZONA', $2)
+      `,
+      [paczkaId, `Przedłużenie o ${ile_godzin} godzin`]
+    )
+
+    await client.query("COMMIT")
+
+    res.json({ ok: true, termin_odbioru: upd.rows[0]?.termin_odbioru })
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK")
+    } catch {}
+    res.status(500).json({ ok: false, error: "Błąd serwera." })
+  } finally {
+    client.release()
+  }
+})
 
 router.post("/paczki", requireAuth, requireRoles("OPERATOR"), async (req, res) => {
   const { numer_tracking, szerokosc_cm, wysokosc_cm, glebokosc_cm, nadawca_id, odbiorca_id } = req.body
@@ -154,7 +200,6 @@ router.post("/paczki", requireAuth, requireRoles("OPERATOR"), async (req, res) =
 
   res.json({ ok: true, paczka_id: paczkaId })
 })
-
 
 router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (req, res) => {
   const paczkaId = Number(req.params.id)
@@ -367,6 +412,5 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
     client.release()
   }
 })
-
 
 export default router

@@ -116,21 +116,26 @@ router.get("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
     if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
 
     const result = await query(
-      `
-      SELECT
-        p.paczka_id,
-        p.numer_tracking,
-        p.status,
-        p.data_nadania,
-        p.termin_odbioru,
-        p.data_odbioru,
-        n.email AS nadawca_email
-      FROM parcel_locker.paczka p
-      JOIN parcel_locker.klient n
-        ON n.klient_id = p.nadawca_id
-      WHERE p.odbiorca_id = $1
-      ORDER BY p.data_nadania DESC
-      `,
+    `
+    SELECT
+      p.paczka_id,
+      p.numer_tracking,
+      p.status,
+      p.data_nadania,
+      p.termin_odbioru,
+      p.data_odbioru,
+      p.nadawca_id,
+      p.odbiorca_id,
+      p.skrytka_id,
+      s.automat_id,
+      a.nazwa AS automat_nazwa,
+      a.adres AS automat_adres
+    FROM parcel_locker.paczka p
+    LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
+    LEFT JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
+    WHERE p.odbiorca_id = $1 OR p.nadawca_id = $1
+    ORDER BY p.paczka_id DESC
+    `,
       [klientId]
     )
 
