@@ -109,7 +109,7 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
 
 
 
-router.get("/me/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
+router.get("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
   try {
     const klientId = req.user.klientId
 
