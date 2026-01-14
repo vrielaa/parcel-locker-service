@@ -5,36 +5,6 @@ import { requireRoles } from "../middleware/requireRoles.js"
 
 const router = Router()
 
-router.get("/me/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
-  const klientId = req.user?.klientId
-  if (!klientId) return res.status(403).json({ ok: false, error: "Brak klientId w tokenie" })
-
-  const result = await query(
-    `
-    SELECT
-      p.paczka_id,
-      p.numer_tracking,
-      p.status,
-      p.data_nadania,
-      p.termin_odbioru,
-      p.data_odbioru,
-      p.nadawca_id,
-      p.odbiorca_id,
-      p.skrytka_id,
-      s.automat_id,
-      a.nazwa AS automat_nazwa,
-      a.adres AS automat_adres
-    FROM parcel_locker.paczka p
-    LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
-    LEFT JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
-    WHERE p.odbiorca_id = $1 OR p.nadawca_id = $1
-    ORDER BY COALESCE(p.data_nadania, p.termin_odbioru, p.paczka_id::text::timestamp) DESC, p.paczka_id DESC
-    `,
-    [klientId]
-  )
-
-  res.json({ ok: true, paczki: result.rows })
-})
 
 router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
   const paczkaId = Number(req.params.id)
