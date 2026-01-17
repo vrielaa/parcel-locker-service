@@ -278,7 +278,7 @@ BEGIN
       RAISE EXCEPTION 'Klient nie może ustawiać skrytka_id';
     END IF;
 
-    IF NEW.status IS NOT NULL AND NEW.status NOT IN ('DO_ZATWIERDZENIA', 'NADANA') THEN
+    IF NEW.status IS NOT NULL AND NEW.status NOT IN ('CZEKA_NA_ZATWIERDZENIE', 'NADANA') THEN
       RAISE EXCEPTION 'Klient nie może ustawiać statusu %', NEW.status;
     END IF;
 

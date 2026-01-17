@@ -406,4 +406,4 @@ SELECT
   (SELECT paczka_id FROM p2) AS paczka_w_drodze,
   (SELECT paczka_id FROM p3) AS paczka_odebrana,
   (SELECT paczka_id FROM p4) AS paczka_przeterminowana,
-  (SELECT paczka_id FROM p5) AS paczka_nadana_do_zatwierdzenia;
+  (SELECT paczka_id FROM p5) AS paczka_nadana_czeka_na_zatwierdzenie;
