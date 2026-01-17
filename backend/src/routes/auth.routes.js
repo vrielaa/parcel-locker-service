@@ -5,8 +5,148 @@ import jwt from "jsonwebtoken"
 import { query } from "../db.js"
 import { requireAuth } from "../middleware/auth.js"
 import { logInfo, logWarn, maskToken } from "../logger.js"
+import { query, pool } from "../db.js"
 
 const router = Router()
+
+router.post("/register", async (req, res) => {
+  const { imie, nazwisko, email, telefon, password, password2 } = req.body
+
+  const imieTrim = String(imie || "").trim()
+  const nazwiskoTrim = String(nazwisko || "").trim()
+  const emailTrim = String(email || "").trim().toLowerCase()
+  const telefonTrim = String(telefon || "").trim() || null
+
+  if (!imieTrim || !nazwiskoTrim || !emailTrim) {
+    return res.status(400).json({ ok: false, error: "Uzupełnij imię, nazwisko i email." })
+  }
+
+  if (!password || password.length < 8) {
+    return res.status(400).json({ ok: false, error: "Hasło musi mieć min. 8 znaków." })
+  }
+
+  if (password !== password2) {
+    return res.status(400).json({ ok: false, error: "Hasła nie są takie same." })
+  }
+
+  const client = await pool.connect()
+
+  try {
+    await client.query("BEGIN")
+
+    const existingAppUser = await client.query(
+      `
+      SELECT app_user_id
+      FROM parcel_locker.appuser
+      WHERE email = $1
+      LIMIT 1
+      `,
+      [emailTrim]
+    )
+
+    if (existingAppUser.rowCount > 0) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Konto o tym emailu już istnieje." })
+    }
+
+    const existingClient = await client.query(
+      `
+      SELECT klient_id
+      FROM parcel_locker.klient
+      WHERE email = $1
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [emailTrim]
+    )
+
+    let klientId = null
+
+    if (existingClient.rowCount === 0) {
+      const ins = await client.query(
+        `
+        INSERT INTO parcel_locker.klient (imie, nazwisko, email, telefon)
+        VALUES ($1, $2, $3, $4)
+        RETURNING klient_id
+        `,
+        [imieTrim, nazwiskoTrim, emailTrim, telefonTrim]
+      )
+
+      klientId = ins.rows[0]?.klient_id ?? null
+    } else {
+      klientId = existingClient.rows[0]?.klient_id ?? null
+
+      await client.query(
+        `
+        UPDATE parcel_locker.klient
+        SET imie = $2,
+            nazwisko = $3,
+            telefon = $4
+        WHERE klient_id = $1
+        `,
+        [klientId, imieTrim, nazwiskoTrim, telefonTrim]
+      )
+    }
+
+    if (!klientId) {
+      await client.query("ROLLBACK")
+      return res.status(500).json({ ok: false, error: "Nie udało się utworzyć profilu klienta." })
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10)
+
+    const insUser = await client.query(
+      `
+      INSERT INTO parcel_locker.appuser (email, password_hash, rola, klient_id, must_change_password)
+      VALUES ($1, $2, 'KLIENT', $3, FALSE)
+      RETURNING app_user_id, rola, klient_id, must_change_password
+      `,
+      [emailTrim, passwordHash, klientId]
+    )
+
+    const user = insUser.rows[0]
+
+    const token = jwt.sign(
+      {
+        appUserId: user.app_user_id,
+        rola: user.rola,
+        klientId: user.klient_id,
+        pracownikId: null
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "2h" }
+    )
+
+    await client.query("COMMIT")
+
+    logInfo("REGISTER ok", {
+      ip: req.ip,
+      email: emailTrim,
+      appUserId: user.app_user_id,
+      rola: user.rola,
+      token: maskToken(token),
+      exp: "2h"
+    })
+
+    res.json({ ok: true, token, rola: user.rola, must_change_password: user.must_change_password })
+  } catch (err) {
+    try { await client.query("ROLLBACK") } catch {}
+
+    const msg = String(err?.message || "")
+
+    if (msg.includes("duplicate key")) {
+      return res.status(409).json({ ok: false, error: "Konto o tym emailu już istnieje." })
+    }
+
+    console.error(err)
+    res.status(500).json({ ok: false, error: "Register failed" })
+  } finally {
+    client.release()
+  }
+})
+
+
+
 
 router.post("/login", async (req, res) => {
   try {
