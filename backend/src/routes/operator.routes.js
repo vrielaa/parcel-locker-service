@@ -20,7 +20,7 @@ router.get("/paczki/pending", requireAuth, requireRoles("ADMIN", "OPERATOR"), as
       FROM parcel_locker.paczka p
       JOIN parcel_locker.klient n ON n.klient_id = p.nadawca_id
       JOIN parcel_locker.klient o ON o.klient_id = p.odbiorca_id
-      WHERE p.status = 'NADANA'
+      WHERE p.status = 'CZEKA_NA_ZATWIERDZENIE'
         AND p.skrytka_id IS NULL
       ORDER BY p.data_nadania DESC
       `
@@ -43,9 +43,9 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
     const upd = await query(
       `
       UPDATE parcel_locker.paczka
-      SET status = 'W_DRODZE'
+      SET status = 'NADANA'
       WHERE paczka_id = $1
-        AND status = 'NADANA'
+        AND status = 'CZEKA_NA_ZATWIERDZENIE'
         AND skrytka_id IS NULL
       RETURNING paczka_id, status
       `,

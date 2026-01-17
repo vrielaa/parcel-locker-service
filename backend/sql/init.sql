@@ -139,8 +139,8 @@ CREATE TABLE Paczka (
         REFERENCES Skrytka(skrytka_id)
         ON DELETE SET NULL,
 
-    status          TEXT NOT NULL DEFAULT 'DO_ZATWIERDZENIA'
-        CHECK (status IN ('DO_ZATWIERDZENIA','NADANA','W_DRODZE','W_AUTOMACIE','ODEBRANA','PRZETERMINOWANA','ANULOWANA')),
+    status          TEXT NOT NULL DEFAULT 'CZEKA_NA_ZATWIERDZENIE'
+        CHECK (status IN ('CZEKA_NA_ZATWIERDZENIE','NADANA','W_DRODZE','W_AUTOMACIE','ODEBRANA','PRZETERMINOWANA','ANULOWANA')),
 
     data_nadania    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     termin_odbioru  TIMESTAMP,
@@ -495,7 +495,7 @@ BEGIN
       RAISE EXCEPTION 'Klient nie może ustawiać skrytka_id';
     END IF;
 
-    IF NEW.status IS NOT NULL AND NEW.status NOT IN ('DO_ZATWIERDZENIA', 'NADANA') THEN
+    IF NEW.status IS NOT NULL AND NEW.status NOT IN ('CZEKA_NA_ZATWIERDZENIE', 'NADANA') THEN
       RAISE EXCEPTION 'Klient nie może ustawiać statusu %', NEW.status;
     END IF;
 
@@ -927,7 +927,7 @@ SELECT
   (SELECT paczka_id FROM p2) AS paczka_w_drodze,
   (SELECT paczka_id FROM p3) AS paczka_odebrana,
   (SELECT paczka_id FROM p4) AS paczka_przeterminowana,
-  (SELECT paczka_id FROM p5) AS paczka_nadana_do_zatwierdzenia;
+  (SELECT paczka_id FROM p5) AS paczka_nadana_czeka_na_zatwierdzenie;
 set search_path to parcel_locker;
 -- =====================================================
 -- ROLES / PERMISSIONS
