@@ -2,7 +2,6 @@
 import { Router } from "express"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
-import { query } from "../db.js"
 import { requireAuth } from "../middleware/auth.js"
 import { logInfo, logWarn, maskToken } from "../logger.js"
 import { query, pool } from "../db.js"
