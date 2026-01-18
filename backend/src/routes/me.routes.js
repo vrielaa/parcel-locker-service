@@ -17,6 +17,22 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
     const klientId = req.user?.klientId
     if (!klientId) return res.status(403).json({ ok: false, error: "Brak klientId w tokenie" })
 
+    const automatId = Number(req.body?.automat_id)
+    if (!Number.isInteger(automatId) || automatId <= 0) {
+      return res.status(400).json({ ok: false, error: "Niepoprawny automat_id" })
+    }
+
+    const a = await query(
+      `
+      SELECT automat_id
+      FROM parcel_locker.automat
+      WHERE automat_id = $1
+      LIMIT 1
+      `,
+      [automatId]
+    )
+    if (a.rowCount === 0) return res.status(404).json({ ok: false, error: "Automat nie istnieje" })
+
     const szerokosc_cm = Number(req.body?.szerokosc_cm)
     const wysokosc_cm = Number(req.body?.wysokosc_cm)
     const glebokosc_cm = Number(req.body?.glebokosc_cm)
@@ -53,15 +69,17 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
           numer_tracking,
           szerokosc_cm, wysokosc_cm, glebokosc_cm,
           nadawca_id, odbiorca_id,
+          docelowy_automat_id,
           status
         )
         VALUES (
           $3,
           $4, $5, $6,
           $7, (SELECT klient_id FROM odb LIMIT 1),
+          $8,
           'CZEKA_NA_ZATWIERDZENIE'
         )
-        RETURNING paczka_id, numer_tracking, status, data_nadania, termin_odbioru, skrytka_id, nadawca_id, odbiorca_id
+        RETURNING paczka_id, numer_tracking, status, data_nadania, termin_odbioru, skrytka_id, odbiorca_id, docelowy_automat_id
       ),
       ev AS (
         INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
@@ -75,8 +93,7 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
         (SELECT data_nadania FROM p) AS data_nadania,
         (SELECT termin_odbioru FROM p) AS termin_odbioru,
         (SELECT skrytka_id FROM p) AS skrytka_id,
-        (SELECT nadawca_id FROM p) AS nadawca_id,
-        (SELECT odbiorca_id FROM p) AS odbiorca_id,
+        (SELECT docelowy_automat_id FROM p) AS docelowy_automat_id,
         (SELECT email FROM odb LIMIT 1) AS odbiorca_email,
         (SELECT zdarzenie_id FROM ev) AS zdarzenie_id
       `,
@@ -87,7 +104,8 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
         szerokosc_cm,
         wysokosc_cm,
         glebokosc_cm,
-        klientId
+        klientId,
+        automatId
       ]
     )
 

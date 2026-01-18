@@ -150,6 +150,7 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body
+  
 
     const result = await query(
       `
@@ -196,7 +197,7 @@ router.post("/login", async (req, res) => {
     res.json({ ok: true, token, rola: user.rola, must_change_password: user.must_change_password })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ ok: false, error: "Auth failed" })
+    res.status(500).json({ ok: false, error: err.message || "Auth failed" })
   }
 })
 
