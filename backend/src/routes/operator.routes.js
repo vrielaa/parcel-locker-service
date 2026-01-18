@@ -1,4 +1,3 @@
-// backend/src/routes/operator.routes.js
 import { Router } from "express"
 import { query } from "../db.js"
 import { requireAuth } from "../middleware/auth.js"
@@ -21,14 +20,12 @@ router.get("/paczki/pending", requireAuth, requireRoles("ADMIN", "OPERATOR"), as
       JOIN parcel_locker.klient n ON n.klient_id = p.nadawca_id
       JOIN parcel_locker.klient o ON o.klient_id = p.odbiorca_id
       WHERE p.status = 'CZEKA_NA_ZATWIERDZENIE'
-        AND p.skrytka_id IS NULL
       ORDER BY p.data_nadania DESC
       `
     )
 
     res.json({ ok: true, paczki: result.rows })
   } catch (err) {
-    console.error(err)
     res.status(500).json({ ok: false, error: "Get pending packages failed" })
   }
 })
@@ -46,7 +43,6 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       SET status = 'NADANA'
       WHERE paczka_id = $1
         AND status = 'CZEKA_NA_ZATWIERDZENIE'
-        AND skrytka_id IS NULL
       RETURNING paczka_id, status
       `,
       [paczkaId]
@@ -56,12 +52,18 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       return res.status(409).json({ ok: false, error: "Nie można zatwierdzić (zły status lub już obsłużona)." })
     }
 
+    await query(
+      `
+      INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
+      VALUES ($1, 'UTWORZONA', 'Zatwierdzona przez operatora')
+      `,
+      [paczkaId]
+    )
+
     res.json({ ok: true, paczka: upd.rows[0] })
   } catch (err) {
-    console.error(err)
     res.status(500).json({ ok: false, error: "Approve failed" })
   }
 })
-
 
 export default router
