@@ -103,21 +103,14 @@ router.get("/paczki/:id/skrytki", requireAuth, requireRoles("ADMIN", "OPERATOR")
 
 
 router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"), async (req, res) => {
-
-  console.log("Approve package endpoint called")
   const paczkaId = Number(req.params.id)
   const skrytkaId = Number(req.body?.skrytka_id)
-
-  console.log("Approving package", paczkaId, "with locker", skrytkaId)
 
   if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
   if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne skrytka_id." })
 
-    console.log("Connecting to DB")
-
   const client = await pool.connect()
 
-  const response = {}
   try {
     await client.query("BEGIN")
 
@@ -142,6 +135,11 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       return res.status(409).json({ ok: false, error: "Nie można zatwierdzić (zły status lub już obsłużona)." })
     }
 
+    if (!pr.docelowy_automat_id) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Brak docelowego automatu dla paczki." })
+    }
+
     const s = await client.query(
       `
       SELECT skrytka_id, status, automat_id
@@ -151,9 +149,6 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       `,
       [skrytkaId]
     )
-
-    response.s = s
-    response.p = p
 
     if (s.rowCount === 0) {
       await client.query("ROLLBACK")
@@ -171,16 +166,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna." })
     }
 
-    await client.query(
-      `
-      UPDATE parcel_locker.skrytka
-      SET status = 'ZAJETA'
-      WHERE skrytka_id = $1
-      `,
-      [skrytkaId]
-    )
-
-
+    // 1) NAJPIERW przypisz skrytkę do paczki (w tym momencie skrytka nadal jest WOLNA)
     const upd = await client.query(
       `
       UPDATE parcel_locker.paczka
@@ -193,23 +179,54 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       `,
       [paczkaId, skrytkaId]
     )
-    
-    response.upd = upd
 
     if (upd.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Nie udało się zatwierdzić." })
     }
 
+    // 2) DOPIERO teraz oznacz skrytkę jako ZAJETA
+    const lock = await client.query(
+      `
+      UPDATE parcel_locker.skrytka
+      SET status = 'ZAJETA'
+      WHERE skrytka_id = $1
+        AND status = 'WOLNA'
+      RETURNING skrytka_id
+      `,
+      [skrytkaId]
+    )
+
+    if (lock.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna (ktoś ją zajął)." })
+    }
+
+    await client.query(
+      `
+      INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
+      VALUES ($1, 'UTWORZONA', 'Zatwierdzona przez operatora')
+      `,
+      [paczkaId]
+    )
+
     await client.query("COMMIT")
     res.json({ ok: true, paczka: upd.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
+
     console.error(err)
-    res.status(500).json({ ok: false, error: "Approve failed" , message: err?.message , response })
+
+    // jeśli to wyjątek z triggera (RAISE EXCEPTION), często ma code P0001
+    if (err?.code === "P0001") {
+      return res.status(409).json({ ok: false, error: err.message })
+    }
+
+    res.status(500).json({ ok: false, error: "Approve failed", message: err?.message || "Internal server error" })
   } finally {
     client.release()
   }
 })
+
 
 export default router
