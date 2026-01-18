@@ -135,6 +135,9 @@ CREATE TABLE Paczka (
     odbiorca_id     INT NOT NULL
         REFERENCES Klient(klient_id),
 
+    docelowy_automat_id INT NOT NULL
+        REFERENCES Automat(automat_id),
+
     skrytka_id      INT
         REFERENCES Skrytka(skrytka_id)
         ON DELETE SET NULL,
@@ -149,6 +152,7 @@ CREATE TABLE Paczka (
     CHECK (data_odbioru IS NULL OR data_odbioru >= data_nadania),
     CHECK (termin_odbioru IS NULL OR termin_odbioru >= data_nadania)
 );
+
 
 -- =====================================================
 -- PRZEDŁUŻENIE TERMINU ODBIORU PACZKI

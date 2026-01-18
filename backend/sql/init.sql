@@ -135,6 +135,9 @@ CREATE TABLE Paczka (
     odbiorca_id     INT NOT NULL
         REFERENCES Klient(klient_id),
 
+    docelowy_automat_id INT NOT NULL
+        REFERENCES Automat(automat_id),
+
     skrytka_id      INT
         REFERENCES Skrytka(skrytka_id)
         ON DELETE SET NULL,
@@ -149,6 +152,7 @@ CREATE TABLE Paczka (
     CHECK (data_odbioru IS NULL OR data_odbioru >= data_nadania),
     CHECK (termin_odbioru IS NULL OR termin_odbioru >= data_nadania)
 );
+
 
 -- =====================================================
 -- PRZEDŁUŻENIE TERMINU ODBIORU PACZKI
@@ -697,7 +701,6 @@ SELECT
 
 -- paczka 
 
-
 WITH
 odb AS (
   SELECT klient_id
@@ -764,6 +767,7 @@ p1 AS (
     numer_tracking,
     szerokosc_cm, wysokosc_cm, glebokosc_cm,
     nadawca_id, odbiorca_id,
+    docelowy_automat_id,
     skrytka_id,
     status,
     data_nadania, termin_odbioru, data_odbioru
@@ -773,6 +777,7 @@ p1 AS (
     30, 15, 20,
     (SELECT klient_id FROM nad1),
     (SELECT klient_id FROM odb),
+    (SELECT automat_id FROM a_krk),
     (SELECT skrytka_id FROM sk_krk_m),
     'W_AUTOMACIE',
     CURRENT_TIMESTAMP - INTERVAL '2 days',
@@ -800,6 +805,7 @@ p2 AS (
     numer_tracking,
     szerokosc_cm, wysokosc_cm, glebokosc_cm,
     nadawca_id, odbiorca_id,
+    docelowy_automat_id,
     skrytka_id,
     status,
     data_nadania, termin_odbioru, data_odbioru
@@ -809,6 +815,7 @@ p2 AS (
     10, 5, 15,
     (SELECT klient_id FROM nad2),
     (SELECT klient_id FROM odb),
+    (SELECT automat_id FROM a_war),
     NULL,
     'W_DRODZE',
     CURRENT_TIMESTAMP - INTERVAL '1 day',
@@ -831,6 +838,7 @@ p3 AS (
     numer_tracking,
     szerokosc_cm, wysokosc_cm, glebokosc_cm,
     nadawca_id, odbiorca_id,
+    docelowy_automat_id,
     skrytka_id,
     status,
     data_nadania, termin_odbioru, data_odbioru
@@ -840,6 +848,7 @@ p3 AS (
     18, 7, 25,
     (SELECT klient_id FROM nad1),
     (SELECT klient_id FROM odb),
+    (SELECT automat_id FROM a_krk),
     NULL,
     'ODEBRANA',
     CURRENT_TIMESTAMP - INTERVAL '7 days',
@@ -861,6 +870,7 @@ p4 AS (
     numer_tracking,
     szerokosc_cm, wysokosc_cm, glebokosc_cm,
     nadawca_id, odbiorca_id,
+    docelowy_automat_id,
     skrytka_id,
     status,
     data_nadania, termin_odbioru, data_odbioru
@@ -870,6 +880,7 @@ p4 AS (
     19, 8, 28,
     (SELECT klient_id FROM nad2),
     (SELECT klient_id FROM odb),
+    (SELECT automat_id FROM a_war),
     (SELECT skrytka_id FROM sk_war_s),
     'PRZETERMINOWANA',
     CURRENT_TIMESTAMP - INTERVAL '10 days',
@@ -898,6 +909,7 @@ p5 AS (
     numer_tracking,
     szerokosc_cm, wysokosc_cm, glebokosc_cm,
     nadawca_id, odbiorca_id,
+    docelowy_automat_id,
     skrytka_id,
     status,
     data_nadania, termin_odbioru, data_odbioru
@@ -907,8 +919,9 @@ p5 AS (
     35, 18, 30,
     (SELECT klient_id FROM odb),
     (SELECT klient_id FROM nad1),
+    (SELECT automat_id FROM a_krk),
     NULL,
-    'NADANA',
+    'CZEKA_NA_ZATWIERDZENIE',
     CURRENT_TIMESTAMP - INTERVAL '2 hours',
     NULL,
     NULL
@@ -927,7 +940,8 @@ SELECT
   (SELECT paczka_id FROM p2) AS paczka_w_drodze,
   (SELECT paczka_id FROM p3) AS paczka_odebrana,
   (SELECT paczka_id FROM p4) AS paczka_przeterminowana,
-  (SELECT paczka_id FROM p5) AS paczka_nadana_czeka_na_zatwierdzenie;
+  (SELECT paczka_id FROM p5) AS paczka_czeka_na_zatwierdzenie;
+
 set search_path to parcel_locker;
 -- =====================================================
 -- ROLES / PERMISSIONS
