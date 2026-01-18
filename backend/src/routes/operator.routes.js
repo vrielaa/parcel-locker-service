@@ -104,9 +104,7 @@ router.get("/paczki/:id/skrytki", requireAuth, requireRoles("ADMIN", "OPERATOR")
 
 router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"), async (req, res) => {
   const paczkaId = Number(req.params.id)
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
-    return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
-  }
+  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
 
   const client = await pool.connect()
 
@@ -115,7 +113,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
 
     const p = await client.query(
       `
-      SELECT paczka_id, status, skrytka_id
+      SELECT paczka_id, status
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
@@ -129,41 +127,40 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
     }
 
     const pr = p.rows[0]
-    if (String(pr.status || "").toUpperCase() !== "CZEKA_NA_ZATWIERDZENIE" || pr.skrytka_id != null) {
+    if (String(pr.status || "").toUpperCase() !== "CZEKA_NA_ZATWIERDZENIE") {
       await client.query("ROLLBACK")
-      return res.status(409).json({ ok: false, error: "Nie można zatwierdzić (zły status lub już obsłużona)." })
+      return res.status(409).json({ ok: false, error: "Nie można zatwierdzić w tym statusie." })
     }
 
     const upd = await client.query(
       `
       UPDATE parcel_locker.paczka
-      SET status = 'W_DRODZE'
+      SET status = 'NADANA'
       WHERE paczka_id = $1
         AND status = 'CZEKA_NA_ZATWIERDZENIE'
-        AND skrytka_id IS NULL
-      RETURNING paczka_id, status, skrytka_id
+      RETURNING paczka_id, status
       `,
       [paczkaId]
     )
 
     await client.query(
       `
-      INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
-      VALUES ($1, 'W_DRODZE', 'Zatwierdzona przez operatora – przekazana kurierowi')
+      INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
+      VALUES ($1, 'NADANA', 'Paczka została zatwierdzona przez operatora')
       `,
       [paczkaId]
     )
 
     await client.query("COMMIT")
-    return res.json({ ok: true, paczka: upd.rows[0] })
+    res.json({ ok: true, paczka: upd.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
-    console.error(err)
-    return res.status(500).json({ ok: false, error: "Approve failed" })
+    res.status(500).json({ ok: false, error: "Approve failed", message: err?.message || "Internal server error" })
   } finally {
     client.release()
   }
 })
+
 
 
 
