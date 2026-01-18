@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { query } from "../db.js"
+import { query, pool } from "../db.js"
 import { requireAuth } from "../middleware/auth.js"
 import { requireRoles } from "../middleware/requireRoles.js"
 
@@ -106,8 +106,12 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
   const paczkaId = Number(req.params.id)
   const skrytkaId = Number(req.body?.skrytka_id)
 
+  console.log("Approving package", paczkaId, "with locker", skrytkaId)
+
   if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
   if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne skrytka_id." })
+
+    console.log("Connecting to DB")
 
   const client = await pool.connect()
 
