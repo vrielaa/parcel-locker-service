@@ -104,10 +104,9 @@ router.get("/paczki/:id/skrytki", requireAuth, requireRoles("ADMIN", "OPERATOR")
 
 router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"), async (req, res) => {
   const paczkaId = Number(req.params.id)
-  const skrytkaId = Number(req.body?.skrytka_id)
-
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
-  if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne skrytka_id." })
+  if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
+    return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+  }
 
   const client = await pool.connect()
 
@@ -116,7 +115,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
 
     const p = await client.query(
       `
-      SELECT paczka_id, status, skrytka_id, docelowy_automat_id
+      SELECT paczka_id, status, skrytka_id
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
@@ -135,98 +134,37 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       return res.status(409).json({ ok: false, error: "Nie można zatwierdzić (zły status lub już obsłużona)." })
     }
 
-    if (!pr.docelowy_automat_id) {
-      await client.query("ROLLBACK")
-      return res.status(409).json({ ok: false, error: "Brak docelowego automatu dla paczki." })
-    }
-
-    const s = await client.query(
-      `
-      SELECT skrytka_id, status, automat_id
-      FROM parcel_locker.skrytka
-      WHERE skrytka_id = $1
-      FOR UPDATE
-      `,
-      [skrytkaId]
-    )
-
-    if (s.rowCount === 0) {
-      await client.query("ROLLBACK")
-      return res.status(404).json({ ok: false, error: "Skrytka nie istnieje." })
-    }
-
-    const sr = s.rows[0]
-    if (Number(sr.automat_id) !== Number(pr.docelowy_automat_id)) {
-      await client.query("ROLLBACK")
-      return res.status(409).json({ ok: false, error: "Skrytka nie należy do docelowego automatu." })
-    }
-
-    if (String(sr.status || "").toUpperCase() !== "WOLNA") {
-      await client.query("ROLLBACK")
-      return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna." })
-    }
-
-    // 1) NAJPIERW przypisz skrytkę do paczki (w tym momencie skrytka nadal jest WOLNA)
     const upd = await client.query(
       `
       UPDATE parcel_locker.paczka
-      SET status = 'NADANA',
-          skrytka_id = $2
+      SET status = 'W_DRODZE'
       WHERE paczka_id = $1
         AND status = 'CZEKA_NA_ZATWIERDZENIE'
         AND skrytka_id IS NULL
       RETURNING paczka_id, status, skrytka_id
       `,
-      [paczkaId, skrytkaId]
+      [paczkaId]
     )
-
-    if (upd.rowCount === 0) {
-      await client.query("ROLLBACK")
-      return res.status(409).json({ ok: false, error: "Nie udało się zatwierdzić." })
-    }
-
-    // 2) DOPIERO teraz oznacz skrytkę jako ZAJETA
-    const lock = await client.query(
-      `
-      UPDATE parcel_locker.skrytka
-      SET status = 'ZAJETA'
-      WHERE skrytka_id = $1
-        AND status = 'WOLNA'
-      RETURNING skrytka_id
-      `,
-      [skrytkaId]
-    )
-
-    if (lock.rowCount === 0) {
-      await client.query("ROLLBACK")
-      return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna (ktoś ją zajął)." })
-    }
 
     await client.query(
       `
       INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
-      VALUES ($1, 'NADANA', 'Zatwierdzona przez operatora i umieszczona w skrytce.')
+      VALUES ($1, 'W_DRODZE', 'Zatwierdzona przez operatora – przekazana kurierowi')
       `,
       [paczkaId]
     )
 
     await client.query("COMMIT")
-    res.json({ ok: true, paczka: upd.rows[0] })
+    return res.json({ ok: true, paczka: upd.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
-
     console.error(err)
-
-    // jeśli to wyjątek z triggera (RAISE EXCEPTION), często ma code P0001
-    if (err?.code === "P0001") {
-      return res.status(409).json({ ok: false, error: err.message })
-    }
-
-    res.status(500).json({ ok: false, error: "Approve failed", message: err?.message || "Internal server error" })
+    return res.status(500).json({ ok: false, error: "Approve failed" })
   } finally {
     client.release()
   }
 })
+
 
 
 export default router

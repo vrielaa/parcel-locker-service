@@ -12,53 +12,34 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
 
     const result = await query(
       `
-      WITH allowed AS (
-        SELECT automat_id
-        FROM parcel_locker.obslugaautomatu
-        WHERE kurier_id = $1
-          AND data_od <= CURRENT_TIMESTAMP
-          AND (data_do IS NULL OR data_do >= CURRENT_TIMESTAMP)
-      )
       SELECT
         p.paczka_id,
         p.numer_tracking,
         p.status,
         p.data_nadania,
+        p.termin_odbioru,
+        p.skrytka_id,
 
         p.szerokosc_cm,
         p.wysokosc_cm,
         p.glebokosc_cm,
 
         p.docelowy_automat_id,
-        ad.nazwa AS docelowy_automat_nazwa,
-        ad.adres AS docelowy_automat_adres,
-
-        p.skrytka_id,
-        s.automat_id AS aktualny_automat_id,
-        aa.nazwa AS aktualny_automat_nazwa,
-        aa.adres AS aktualny_automat_adres,
+        a.nazwa AS docelowy_automat_nazwa,
+        a.adres AS docelowy_automat_adres,
 
         n.email AS nadawca_email,
         o.email AS odbiorca_email
       FROM parcel_locker.paczka p
       JOIN parcel_locker.klient n ON n.klient_id = p.nadawca_id
       JOIN parcel_locker.klient o ON o.klient_id = p.odbiorca_id
-
-      LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
-      LEFT JOIN parcel_locker.automat aa ON aa.automat_id = s.automat_id
-
-      LEFT JOIN parcel_locker.automat ad ON ad.automat_id = p.docelowy_automat_id
-
-      WHERE
-        (
-          p.status = 'W_AUTOMACIE'
-          AND s.automat_id IN (SELECT automat_id FROM allowed)
-        )
-        OR
-        (
-          p.status = 'W_DRODZE'
-          AND p.docelowy_automat_id IN (SELECT automat_id FROM allowed)
-        )
+      JOIN parcel_locker.obslugaautomatu oa
+        ON oa.automat_id = p.docelowy_automat_id
+       AND oa.kurier_id = $1
+       AND oa.data_od <= CURRENT_TIMESTAMP
+       AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
+      LEFT JOIN parcel_locker.automat a ON a.automat_id = p.docelowy_automat_id
+      WHERE p.status IN ('NADANA', 'W_DRODZE', 'W_AUTOMACIE')
       ORDER BY p.data_nadania DESC
       `,
       [kurierId]
