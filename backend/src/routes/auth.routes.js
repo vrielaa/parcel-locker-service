@@ -6,8 +6,6 @@ import { requireAuth } from "../middleware/auth.js"
 import { logInfo, logWarn, maskToken } from "../logger.js"
 import { query, pool } from "../db.js"
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret"
-
 
 const router = Router()
 
@@ -115,7 +113,7 @@ router.post("/register", async (req, res) => {
         klientId: user.klient_id,
         pracownikId: null
       },
-      JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "2h" }
     )
 
@@ -184,7 +182,7 @@ router.post("/login", async (req, res) => {
         klientId: user.klient_id,
         pracownikId: user.pracownik_id
       },
-      JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "2h" }
     )
 
