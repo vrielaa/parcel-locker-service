@@ -205,7 +205,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
     await client.query(
       `
       INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
-      VALUES ($1, 'UTWORZONA', 'Zatwierdzona przez operatora')
+      VALUES ($1, 'NADANA', 'Zatwierdzona przez operatora i umieszczona w skrytce.')
       `,
       [paczkaId]
     )
