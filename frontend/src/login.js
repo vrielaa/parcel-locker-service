@@ -10,10 +10,11 @@ const form = getElById("login-form")
 const submitBtn = getElById("login-button")
 const loginErrorEl = getElById("login-error")
 
-
-if (localStorage.getItem("token")) {
-  window.location.href = "/app.html"
+if (localStorage.getItem("token") || localStorage.getItem("access_token")) {
+  // Nie rób auto-redirect, bo nie da się przelogować na inną rolę.
+  // Opcjonalnie: możesz tu wyświetlić komunikat "Masz aktywną sesję" i przycisk "Wyloguj".
 }
+
 
 const goApp = () => {
   window.location.href = "/app.html"
@@ -69,8 +70,10 @@ form.addEventListener("submit", async (e) => {
       }
     }
 
-    setToken(data.token)
-    localStorage.setItem("rola", data.rola)
+    clearToken()
+  setToken(data.token)
+  localStorage.setItem("rola", String(data.rola || "").trim().toUpperCase())
+
 
     displayMessageForSeconds("Zalogowano. Rola: " + data.rola, 3, "db-message")
 

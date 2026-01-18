@@ -56,6 +56,11 @@ const getDestLockerText = (p) => {
 }
 
 export function initOperatorPanel() {
+const role = (localStorage.getItem("rola") || "").trim().toUpperCase()
+if (role !== "OPERATOR" && role !== "ADMIN") return
+
+
+
   const panelEl = getElById("operator-panel")
   if (!panelEl) return
 
@@ -326,7 +331,12 @@ export function initOperatorPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skrytka_id })
       })
+
+      console.log(selectedId, skrytka_id)
+
+      console.log("approveSelected res:", await res.text())
       const data = await res.json().catch(() => null)
+      console.log("approveSelected data:", data)
 
       if (!res.ok) {
         const msg = data?.error || `Błąd zatwierdzania (${res.status})`

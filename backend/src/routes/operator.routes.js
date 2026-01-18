@@ -117,6 +117,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
 
   const client = await pool.connect()
 
+  const response = {}
   try {
     await client.query("BEGIN")
 
@@ -151,6 +152,9 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       [skrytkaId]
     )
 
+    response.s = s
+    response.p = p
+
     if (s.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(404).json({ ok: false, error: "Skrytka nie istnieje." })
@@ -176,6 +180,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       [skrytkaId]
     )
 
+
     const upd = await client.query(
       `
       UPDATE parcel_locker.paczka
@@ -188,6 +193,8 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       `,
       [paczkaId, skrytkaId]
     )
+    
+    response.upd = upd
 
     if (upd.rowCount === 0) {
       await client.query("ROLLBACK")
@@ -199,7 +206,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
     console.error(err)
-    res.status(500).json({ ok: false, error: "Approve failed" , message: err?.message , upd , p , s })
+    res.status(500).json({ ok: false, error: "Approve failed" , message: err?.message , response })
   } finally {
     client.release()
   }

@@ -37,36 +37,44 @@ export const apiFetch = async (path, options = {}) => {
     }
   })
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     clearToken()
     redirectToLogin()
     throw new Error("AUTH_REQUIRED")
   }
 
+  if (res.status === 403) {
+    throw new Error("FORBIDDEN")
+  }
+
   return res
 }
+
 
 export async function callApi(path, options = {}, messageOutputId = "db-message") {
   displayMessageForSeconds("Ładowanie...", 2, messageOutputId)
 
   try {
-    const res = await apiFetch(path, options)
-    const data = await safeJson(res)
+      const res = await apiFetch(path, options)
+      const data = await safeJson(res)
 
-    if (!res.ok) {
-      const msg = data?.error || `HTTP ${res.status}`
-      displayMessageForSeconds("Błąd: " + msg, 5, messageOutputId)
+      if (!res.ok) {
+        const msg = data?.error || `HTTP ${res.status}`
+        displayMessageForSeconds("Błąd: " + msg, 5, messageOutputId)
+        return null
+      }
+
+      displayMessageForSeconds("Sukces: " + JSON.stringify(data ?? { ok: true }), 5, messageOutputId)
+      return data ?? { ok: true }
+    } catch (err) {
+      if (err?.message === "AUTH_REQUIRED") return null
+      if (err?.message === "FORBIDDEN") return null
+
+      clearToken()
+      redirectToLogin()
       return null
-    }
-
-    displayMessageForSeconds("Sukces: " + JSON.stringify(data ?? { ok: true }), 5, messageOutputId)
-    return data ?? { ok: true }
-  } catch (err) {
-    if (err?.message === "AUTH_REQUIRED") return null
-
-    displayMessageForSeconds("Błąd: " + err.message, 5, messageOutputId)
-    return null
   }
+
 }
 
 export const authGuard = async () => {
