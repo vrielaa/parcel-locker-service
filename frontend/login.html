@@ -24,31 +24,27 @@
   </head>
   <body>
     <div class="container container--login">
-      <header class="header">
-          <div class="header__dev-buttons">
-            <button class="header__button" id="check-db-button">Sprawdz połączenie z bazą</button>
-            <button class="header__button" id="clear-db-button">Wyczyść baze danych</button>
-            <button class="header__button" id="init-db-button">Wczytaj baze danych</button>
-          </div>
-
-          <button class="header__button header__button-clear-token" id="clear-token-button">Wyczyść token</button>
-      </header>
+ 
 
         <section class="message">
             <p class="db-message" id="db-message"></p>
         </section>
-
+        <h1 class="heading--1 login__heading--1">
+          System Obsługi Automatów Paczkowych
+        </h1>
 
 
 
       <main class="main main--login">
-        <section class="login-entry">
-          <header class="login-header">
-            <h1>Logowanie</h1>
-            <p>Zaloguj się jako klient lub operator.</p>
-          </header>
 
+        <section class="login-entry">
           <section class="login-section">
+
+            <div class="login-header">
+              <h2 class="heading--2 login__heading--2">Logowanie</h2>
+              <p class="subheading login__subheading">Zaloguj się jako klient lub operator</p>
+            </div>
+
             <form id="login-form" class="login-section__form" novalidate>
               <div class="login-section__form-row">
                 <label class="login-section__form-row--label" for="email">Email</label>
@@ -77,6 +73,7 @@
               <div class="login-section__form-row login-section__form-row--actions">
                 <button class="login-section__form-row--button" type="submit" id="login-button">Zaloguj</button>
               </div>
+              <p id="register-link-paragraph">Nie masz konta? <a href="register.html" id="register-link-href">Zarejestruj się</a></p>
 
                 
               </p>

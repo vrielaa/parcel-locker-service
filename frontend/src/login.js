@@ -10,7 +10,6 @@ const form = getElById("login-form")
 const submitBtn = getElById("login-button")
 const loginErrorEl = getElById("login-error")
 
-const clearTokenBtn = getElById("clear-token-button")
 
 if (localStorage.getItem("token")) {
   window.location.href = "/app.html"
@@ -20,11 +19,7 @@ const goApp = () => {
   window.location.href = "/app.html"
 }
 
-clearTokenBtn.addEventListener("click", () => {
-  clearToken()
-  localStorage.removeItem("rola")
-  displayMessageForSeconds("Token usunięty.", 3, "db-message")
-})
+
 
 submitBtn.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {

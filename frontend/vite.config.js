@@ -14,9 +14,10 @@ export default defineConfig({
 
   build: {
     rollupOptions: {
-      input: {
+      input: { //so app recognizes multiple html entry points
         login: path.resolve(__dirname, "login.html"),
         app: path.resolve(__dirname, "app.html"),
+        register: path.resolve(__dirname, "register.html"),
         changePassword: path.resolve(__dirname, "change-password.html"),
       },
     },

@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm start --prefix backend\""
+    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm start --prefix backend\"",
+    "firebase-build": "npm --prefix frontend ci && npm --prefix frontend run build",
+    "firebase-deploy": "npm run firebase-build && npx firebase-tools deploy --only hosting"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

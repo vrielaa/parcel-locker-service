@@ -1,8 +1,8 @@
 @use "base" as *;
 
 .main{
-    grid-column: col-start 2 / col-end 7;
-    grid-row: row-start 2 / row-end 5;
+    grid-column:  2 /  -1;
+    grid-row:  2 / -1;
 
     display: grid;
     width: 100%;
@@ -23,7 +23,7 @@
         gap: 10px;
         justify-content: center;
         grid-column: 1 / -1;
-        grid-row: 1 / 2;
+        grid-row: 2 / 3;
 
         &__city-button{
             background: none;
@@ -54,7 +54,7 @@
     .list-lockers-in-city{
         margin: 20px;
         grid-column: 2 / -2;
-        grid-row: 2;
+        grid-row: 3;
 
         display: flex;
         flex-direction: column;
@@ -92,6 +92,7 @@
 
     .locker-display{
 
+        grid-row: 4 / -1;
         grid-column: 1 / -1;
         
         &__grid-container{

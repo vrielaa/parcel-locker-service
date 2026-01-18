@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css?family=Josefin+Sans:300,400,400i|Nunito:300,300i"
+      rel="stylesheet"
+    />
+
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+      <symbol id="icon-go-back" viewBox="0 0 128 128">
+        <path d="M78.1 0v6.2c22.4 0 40.5 18.2 40.5 40.6s-18.1 40.6-40.5 40.6H17.9l27.9-28-4.5-4.5L5.5 90.8l36 36.2 4.5-4.5-28.8-28.9h60.9c25.8 0 46.7-21 46.7-46.8S103.9 0 78.1 0z"/>
+      </symbol>
+    </svg>
+    <link rel="icon" href="./favicon.ico">
+    <link rel="stylesheet" href="sass/main.scss" />
+    <link rel="shortcut icon" type="image/png" href="img/parcel.png" />
+    <title>Parcel Locker Service - Register</title>
+  </head>
+  <body>
+    <div class="container container--register">
+
+
+      <h1 class="heading--1 register__heading--1">
+        System Obsługi Automatów Paczkowych
+      </h1>
+
+      <main class="main main--register">
+        <section class="register-entry">
+          <section class="register-section">
+            <div class="register-header">
+              <h2 class="heading--2 register__heading--2">Rejestracja</h2>
+              <p class="subheading register__subheading">Załóż konto klienta</p>
+            </div>
+
+            <form id="register-form" class="login-section__form" novalidate>
+              <div class="login-section__form-row">
+                <label class="login-section__form-row--label" for="first-name">Imię</label>
+                <input
+                  class="login-section__form-row--input"
+                  id="first-name"
+                  name="first-name"
+                  type="text"
+                  required
+                  autocomplete="given-name"
+                />
+              </div>
+
+              <div class="login-section__form-row">
+                <label class="login-section__form-row--label" for="last-name">Nazwisko</label>
+                <input
+                  class="login-section__form-row--input"
+                  id="last-name"
+                  name="last-name"
+                  type="text"
+                  required
+                  autocomplete="family-name"
+                />
+              </div>
+
+              <div class="login-section__form-row">
+                <label class="login-section__form-row--label" for="phone">Telefon</label>
+                <input
+                  class="login-section__form-row--input"
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autocomplete="tel"
+                />
+              </div>
+
+              <div class="login-section__form-row">
+                <label class="login-section__form-row--label" for="email">Email</label>
+                <input
+                  class="login-section__form-row--input"
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autocomplete="username"
+                />
+              </div>
+
+              <div class="login-section__form-row">
+                <label class="login-section__form-row--label" for="password">Hasło</label>
+                <input
+                  class="login-section__form-row--input"
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  autocomplete="new-password"
+                />
+              </div>
+
+              <div class="login-section__form-row">
+                <label class="login-section__form-row--label" for="password2">Powtórz</label>
+                <input
+                  class="login-section__form-row--input"
+                  id="password2"
+                  name="password2"
+                  type="password"
+                  required
+                  autocomplete="new-password"
+                />
+              </div>
+
+              <p class="login-section__login-error" id="register-error"></p>
+
+              <div class="login-section__form-row login-section__form-row--actions">
+                <button class="login-section__form-row--button" type="submit" id="register-button">Zarejestruj</button>
+              </div>
+
+              <p id="register-link-paragraph">Masz już konto? <a href="login.html" id="register-link-href">Zaloguj się</a></p>
+            </form>
+          </section>
+        </section>
+
+        <section class="register-svg">
+          <img src="svg/parcel-locker.svg" alt="Register Illustration" />
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="src/register.js"></script>
+  </body>
+</html>
