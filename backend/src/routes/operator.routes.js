@@ -103,6 +103,8 @@ router.get("/paczki/:id/skrytki", requireAuth, requireRoles("ADMIN", "OPERATOR")
 
 
 router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"), async (req, res) => {
+
+  console.log("Approve package endpoint called")
   const paczkaId = Number(req.params.id)
   const skrytkaId = Number(req.body?.skrytka_id)
 
@@ -197,7 +199,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
     console.error(err)
-    res.status(500).json({ ok: false, error: "Approve failed" })
+    res.status(500).json({ ok: false, error: "Approve failed" , message: err?.message || "Internal server error" })
   } finally {
     client.release()
   }
