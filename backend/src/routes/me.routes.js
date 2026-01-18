@@ -1,4 +1,3 @@
-// backend/src/routes/me.routes.js
 import { Router } from "express"
 import crypto from "crypto"
 import { query } from "../db.js"
@@ -53,14 +52,16 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
         INSERT INTO parcel_locker.paczka (
           numer_tracking,
           szerokosc_cm, wysokosc_cm, glebokosc_cm,
-          nadawca_id, odbiorca_id
+          nadawca_id, odbiorca_id,
+          status
         )
         VALUES (
           $3,
           $4, $5, $6,
-          $7, (SELECT klient_id FROM odb LIMIT 1)
+          $7, (SELECT klient_id FROM odb LIMIT 1),
+          'CZEKA_NA_ZATWIERDZENIE'
         )
-        RETURNING paczka_id, numer_tracking, status, data_nadania, termin_odbioru, skrytka_id, odbiorca_id
+        RETURNING paczka_id, numer_tracking, status, data_nadania, termin_odbioru, skrytka_id, nadawca_id, odbiorca_id
       ),
       ev AS (
         INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
@@ -74,6 +75,8 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
         (SELECT data_nadania FROM p) AS data_nadania,
         (SELECT termin_odbioru FROM p) AS termin_odbioru,
         (SELECT skrytka_id FROM p) AS skrytka_id,
+        (SELECT nadawca_id FROM p) AS nadawca_id,
+        (SELECT odbiorca_id FROM p) AS odbiorca_id,
         (SELECT email FROM odb LIMIT 1) AS odbiorca_email,
         (SELECT zdarzenie_id FROM ev) AS zdarzenie_id
       `,
@@ -94,20 +97,14 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
   }
 })
 
-
-
-
-
-
 router.get("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
   try {
     const klientId = req.user.klientId
-
     if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
 
     const result = await query(
-    `
-        SELECT
+      `
+      SELECT
         p.paczka_id,
         p.numer_tracking,
         p.status,
@@ -124,20 +121,21 @@ router.get("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
 
         kn.email AS nadawca_email,
         ko.email AS odbiorca_email
-        FROM parcel_locker.paczka p
-        LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
-        LEFT JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
-        LEFT JOIN parcel_locker.klient kn ON kn.klient_id = p.nadawca_id
-        LEFT JOIN parcel_locker.klient ko ON ko.klient_id = p.odbiorca_id
-        WHERE p.odbiorca_id = $1 OR p.nadawca_id = $1
-        ORDER BY p.paczka_id DESC;
-    `,
+      FROM parcel_locker.paczka p
+      LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
+      LEFT JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
+      LEFT JOIN parcel_locker.klient kn ON kn.klient_id = p.nadawca_id
+      LEFT JOIN parcel_locker.klient ko ON ko.klient_id = p.odbiorca_id
+      WHERE
+        p.nadawca_id = $1
+        OR (p.odbiorca_id = $1 AND p.status <> 'CZEKA_NA_ZATWIERDZENIE')
+      ORDER BY p.paczka_id DESC
+      `,
       [klientId]
     )
 
     res.json({ ok: true, paczki: result.rows })
   } catch (err) {
-    console.error(err)
     res.status(500).json({ ok: false, error: "Get packages failed" })
   }
 })
