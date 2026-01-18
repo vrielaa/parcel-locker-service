@@ -6,10 +6,30 @@ import { requireRoles } from "../middleware/requireRoles.js"
 const router = Router()
 
 router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
-  const paczkaId = Number(req.params.id)
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
 
-  if (req.user.rola === "KLIENT") {
+ const paczkaId = Number(req.params.id)
+  if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
+    return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+  }
+
+  const role = String(req.user?.rola || "").trim().toUpperCase()
+
+  const pRow = await query(
+    `
+    SELECT paczka_id, status, docelowy_automat_id
+    FROM parcel_locker.paczka
+    WHERE paczka_id = $1
+    LIMIT 1
+    `,
+    [paczkaId]
+  )
+
+  if (pRow.rowCount === 0) return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
+
+  const paczka = pRow.rows[0]
+  const status = String(paczka.status || "").toUpperCase()
+
+  if (role === "KLIENT") {
     const own = await query(
       `
       SELECT 1
@@ -23,26 +43,26 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
     if (own.rowCount === 0) return res.status(403).json({ ok: false, error: "Forbidden" })
   }
 
-  if (req.user.rola === "KURIER") {
+  if (role === "KURIER") {
     const kurierId = req.user?.pracownikId
     if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
 
-    const allowed = await query(
-      `
-      SELECT 1
-      FROM parcel_locker.paczka p
-      JOIN parcel_locker.obslugaautomatu oa
-        ON oa.automat_id = p.docelowy_automat_id
-      WHERE p.paczka_id = $1
-        AND oa.kurier_id = $2
-        AND oa.data_od <= CURRENT_TIMESTAMP
-        AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
-      LIMIT 1
-      `,
-      [paczkaId, kurierId]
-    )
+    if (status !== "NADANA") {
+      const allowed = await query(
+        `
+        SELECT 1
+        FROM parcel_locker.obslugaautomatu oa
+        WHERE oa.kurier_id = $1
+          AND oa.automat_id = $2
+          AND oa.data_od <= CURRENT_TIMESTAMP
+          AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
+        LIMIT 1
+        `,
+        [kurierId, paczka.docelowy_automat_id]
+      )
 
-    if (allowed.rowCount === 0) return res.status(403).json({ ok: false, error: "Forbidden" })
+      if (allowed.rowCount === 0) return res.status(403).json({ ok: false, error: "Forbidden" })
+    }
   }
 
   const info = await query(

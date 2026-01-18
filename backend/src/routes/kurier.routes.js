@@ -121,14 +121,15 @@ router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (
     }
 
     await client.query(
-      `
-      INSERT INTO parcel_locker.obslugaautomatu(kurier_id, automat_id, data_od, data_do)
-      VALUES ($1, $2, CURRENT_TIMESTAMP, NULL)
-      ON CONFLICT (kurier_id, automat_id)
-      DO UPDATE SET data_od = CURRENT_TIMESTAMP, data_do = NULL
-      `,
-      [kurierId, pr.docelowy_automat_id]
+        `
+        INSERT INTO parcel_locker.obslugaautomatu (kurier_id, automat_id, data_od, data_do)
+        VALUES ($1, $2, CURRENT_TIMESTAMP, NULL)
+        ON CONFLICT (kurier_id, automat_id)
+        DO UPDATE SET data_od = EXCLUDED.data_od, data_do = NULL
+        `,
+        [kurierId, pr.docelowy_automat_id]
     )
+
 
     const upd = await client.query(
       `
