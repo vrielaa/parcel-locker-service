@@ -2,7 +2,7 @@ import { getElById } from "../utils.js"
 import { displayMessageForSeconds } from "../messages.js"
 import { apiFetch } from "../api.js"
 
-const endpoint = "operator/paczki/pending"
+const endpoint = "/operator/paczki/pending"
 
 const escapeHtml = (s) =>
   String(s ?? "")
@@ -49,17 +49,15 @@ const getDimsText = (p) => {
   return `${w} × ${h} × ${d} cm`
 }
 
-const getDestLockerText = (p) => {
+const getDestAutomatText = (p) => {
   const name = p?.docelowy_automat_nazwa ?? p?.automat_nazwa ?? "-"
   const addr = p?.docelowy_automat_adres ?? p?.automat_adres ?? ""
   return addr ? `${name} — ${addr}` : name
 }
 
 export function initOperatorPanel() {
-const role = (localStorage.getItem("rola") || "").trim().toUpperCase()
-if (role !== "OPERATOR" && role !== "ADMIN") return
-
-
+  const role = (localStorage.getItem("rola") || "").trim().toUpperCase()
+  if (role !== "OPERATOR" && role !== "ADMIN") return
 
   const panelEl = getElById("operator-panel")
   if (!panelEl) return
@@ -80,10 +78,9 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
   const createdValue = getElById("operator-created-value")
   const dimsValue = getElById("operator-dims-value")
   const lockerValue = getElById("operator-locker-value")
-  const skrytkaSelect = getElById("operator-skrytka-select")
   const hintEl = getElById("operator-hint")
 
-  if (!listEl || !msgEl || !searchEl || !refreshBtn || !detailsBox || !approveBtn || !skrytkaSelect) return
+  if (!listEl || !msgEl || !searchEl || !refreshBtn || !detailsBox || !approveBtn) return
 
   let all = []
   let filtered = []
@@ -92,35 +89,11 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
 
   const setMessage = (t) => {
     msgEl.textContent = t || ""
-    if (t) displayMessageForSeconds(t)
+    if (t) displayMessageForSeconds(t, 2, "db-message")
   }
 
   const showDetails = () => detailsBox.classList.remove("hidden")
   const hideDetails = () => detailsBox.classList.add("hidden")
-
-  const setSkrytkaOptions = (list) => {
-    skrytkaSelect.replaceChildren()
-
-    const ph = document.createElement("option")
-    ph.value = ""
-    ph.disabled = true
-    ph.selected = true
-    ph.textContent = list?.length ? "Wybierz skrytkę" : "Brak pasujących skrytek"
-    skrytkaSelect.appendChild(ph)
-
-    ;(Array.isArray(list) ? list : []).forEach((s) => {
-      const id = s?.skrytka_id ?? null
-      if (!id) return
-      const w = s?.wiersz ?? "-"
-      const k = s?.kolumna ?? "-"
-      const r = s?.rozmiar_kod ?? "-"
-
-      const opt = document.createElement("option")
-      opt.value = String(id)
-      opt.textContent = `#${id} (wiersz ${w}, kol ${k}) [${r}]`
-      skrytkaSelect.appendChild(opt)
-    })
-  }
 
   const clearDetails = () => {
     statusValue && (statusValue.textContent = "")
@@ -131,45 +104,20 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
     dimsValue && (dimsValue.textContent = "")
     lockerValue && (lockerValue.textContent = "")
     hintEl && (hintEl.textContent = "")
-    setSkrytkaOptions([])
     approveBtn.disabled = true
     hideDetails()
-  }
-
-  const loadSkrytki = async (paczkaId) => {
-    try {
-      setSkrytkaOptions([])
-      const res = await apiFetch(`/operator/paczki/${paczkaId}/skrytki`)
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok) {
-        hintEl && (hintEl.textContent = data?.error || `Błąd pobierania skrytek (${res.status})`)
-        approveBtn.disabled = true
-        return
-      }
-
-      const list = data?.skrytki ?? data?.rows ?? data ?? []
-      const sk = Array.isArray(list) ? list : []
-
-      setSkrytkaOptions(sk)
-
-      if (sk.length === 0) {
-        approveBtn.disabled = true
-        hintEl && (hintEl.textContent = "Brak pasujących skrytek w docelowym automacie.")
-        return
-      }
-
-      approveBtn.disabled = false
-      hintEl && (hintEl.textContent = "")
-    } catch (err) {
-      approveBtn.disabled = true
-      hintEl && (hintEl.textContent = err?.message || "Nie udało się pobrać skrytek.")
-    }
   }
 
   const setDetails = async (p) => {
     if (!p) {
       clearDetails()
+      return
+    }
+
+    const id = getId(p)
+    if (!id) {
+      clearDetails()
+      hintEl && (hintEl.textContent = "Brak ID paczki.")
       return
     }
 
@@ -179,19 +127,11 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
     receiverValue && (receiverValue.textContent = String(getReceiverEmail(p) || "-"))
     createdValue && (createdValue.textContent = toLocal(getCreated(p)))
     dimsValue && (dimsValue.textContent = getDimsText(p))
-    lockerValue && (lockerValue.textContent = getDestLockerText(p))
+    lockerValue && (lockerValue.textContent = getDestAutomatText(p))
 
-    approveBtn.disabled = true
-    hintEl && (hintEl.textContent = "Ładowanie skrytek...")
+    hintEl && (hintEl.textContent = "Skrytkę wybierze kurier w docelowym automacie.")
+    approveBtn.disabled = false
     showDetails()
-
-    const id = getId(p)
-    if (!id) {
-      hintEl && (hintEl.textContent = "Brak ID paczki.")
-      return
-    }
-
-    await loadSkrytki(id)
   }
 
   const applyFilter = () => {
@@ -248,7 +188,7 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
         if (selectedId === id) {
           selectedId = null
           renderList()
-          await setDetails(null)
+          clearDetails()
           return
         }
 
@@ -259,13 +199,6 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
 
       listEl.appendChild(btn)
     })
-
-    if (selectedId) {
-      const picked = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
-      setDetails(picked)
-    } else {
-      clearDetails()
-    }
   }
 
   const loadPending = async () => {
@@ -276,7 +209,7 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
       setMessage("Ładowanie paczek...")
       clearDetails()
 
-      const res = await apiFetch(`/${endpoint}`)
+      const res = await apiFetch(endpoint)
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
@@ -293,11 +226,17 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
       applyFilter()
 
       if (selectedId) {
-        const stillExists = filtered.some((x) => String(getId(x)) === String(selectedId))
-        if (!stillExists) selectedId = null
+        const picked = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
+        if (!picked) selectedId = null
       }
 
       renderList()
+
+      if (selectedId) {
+        const picked = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
+        if (picked) await setDetails(picked)
+        else clearDetails()
+      }
     } catch (err) {
       setMessage(err?.message || "Nie udało się pobrać paczek.")
       all = []
@@ -311,14 +250,6 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
   const approveSelected = async () => {
     if (!selectedId) return
 
-    const pickedSkrytka = String(skrytkaSelect.value || "").trim()
-    const skrytka_id = Number(pickedSkrytka)
-
-    if (!Number.isInteger(skrytka_id) || skrytka_id <= 0) {
-      hintEl && (hintEl.textContent = "Wybierz skrytkę.")
-      return
-    }
-
     const p = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
     if (!p) return
 
@@ -327,16 +258,10 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
 
     try {
       const res = await apiFetch(`/operator/paczki/${selectedId}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skrytka_id })
+        method: "POST"
       })
 
-      console.log(selectedId, skrytka_id)
-
-      console.log("approveSelected res:", await res.text())
       const data = await res.json().catch(() => null)
-      console.log("approveSelected data:", data)
 
       if (!res.ok) {
         const msg = data?.error || `Błąd zatwierdzania (${res.status})`
@@ -361,6 +286,14 @@ if (role !== "OPERATOR" && role !== "ADMIN") return
     searchEl.addEventListener("input", () => {
       applyFilter()
       renderList()
+
+      if (selectedId) {
+        const picked = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
+        if (!picked) {
+          selectedId = null
+          clearDetails()
+        }
+      }
     })
 
     refreshBtn.addEventListener("click", () => {

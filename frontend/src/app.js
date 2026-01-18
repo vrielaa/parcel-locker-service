@@ -8,6 +8,7 @@ import { clearToken } from "./authClient.js"
 import { addClass, removeClass, getElById } from "./utils.js"
 import { apiFetch } from "./api.js"
 import { initOperatorPanel } from "./features/operatorPanel.js"
+import { initKurierPanel } from "./features/kurier.js"
 
 async function main() {
   // ----------------------------
@@ -141,6 +142,7 @@ async function main() {
   initPackagesView()
   initSendPackageView()
   initOperatorPanel()
+  initKurierPanel()
 }
 
 main()
