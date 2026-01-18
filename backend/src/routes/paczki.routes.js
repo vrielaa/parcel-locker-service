@@ -282,13 +282,14 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
 
     const p = await client.query(
       `
-      SELECT paczka_id, status, skrytka_id
+      SELECT paczka_id, status, skrytka_id, docelowy_automat_id
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
       `,
       [paczkaId]
     )
+
 
     if (p.rowCount === 0) {
       await client.query("ROLLBACK")
@@ -322,6 +323,12 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna" })
     }
+
+    if (Number(sr.automat_id) !== Number(pr.docelowy_automat_id)) {
+        await client.query("ROLLBACK")
+        return res.status(409).json({ ok: false, error: "Skrytka nie należy do docelowego automatu." })
+    }
+
 
     const allowed = await client.query(
       `
