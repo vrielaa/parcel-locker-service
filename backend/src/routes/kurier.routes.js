@@ -270,6 +270,7 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
     }
 
     const pr = p.rows[0]
+    
     if (String(pr.status || "").toUpperCase() !== "W_DRODZE" || pr.skrytka_id != null) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Paczka nie jest w transporcie" })
