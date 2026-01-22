@@ -93,9 +93,7 @@ CREATE TABLE Pracownik (
 
     data_utworzenia  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
--- =====================================================
--- RELACJA N-M: KURIER <-> AUTOMAT (OBSŁUGA)
--- =====================================================
+
 -- =====================================================
 -- RELACJA N-M: KURIER <-> AUTOMAT (OBSŁUGA)
 -- =====================================================
@@ -142,6 +140,10 @@ CREATE TABLE Paczka (
         REFERENCES Skrytka(skrytka_id)
         ON DELETE SET NULL,
 
+    kurier_id       INT
+        REFERENCES Pracownik(pracownik_id)
+        ON DELETE SET NULL,
+
     status          TEXT NOT NULL DEFAULT 'CZEKA_NA_ZATWIERDZENIE'
         CHECK (status IN ('CZEKA_NA_ZATWIERDZENIE','NADANA','W_DRODZE','W_AUTOMACIE','ODEBRANA','PRZETERMINOWANA','ANULOWANA')),
 
@@ -152,7 +154,6 @@ CREATE TABLE Paczka (
     CHECK (data_odbioru IS NULL OR data_odbioru >= data_nadania),
     CHECK (termin_odbioru IS NULL OR termin_odbioru >= data_nadania)
 );
-
 
 -- =====================================================
 -- PRZEDŁUŻENIE TERMINU ODBIORU PACZKI
@@ -189,7 +190,6 @@ CREATE TABLE ZdarzeniePaczki (
     opis          TEXT
 );
 
-
 -- =====================================================
 -- APP USER (LOGOWANIE DO APLIKACJI)
 -- =====================================================
@@ -209,7 +209,6 @@ CREATE TABLE AppUser (
     pracownik_id    INT
         REFERENCES Pracownik(pracownik_id)
         ON DELETE CASCADE,
-
 
     must_change_password BOOLEAN 
         NOT NULL DEFAULT TRUE,

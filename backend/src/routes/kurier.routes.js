@@ -24,11 +24,15 @@ router.get("/paczki/pool", requireAuth, requireRoles("KURIER"), async (req, res)
 
         n.email AS nadawca_email,
         o.email AS odbiorca_email
+
       FROM parcel_locker.paczka p
       JOIN parcel_locker.klient n ON n.klient_id = p.nadawca_id
       JOIN parcel_locker.klient o ON o.klient_id = p.odbiorca_id
       LEFT JOIN parcel_locker.automat a ON a.automat_id = p.docelowy_automat_id
+
       WHERE p.status = 'NADANA'
+        AND p.kurier_id IS NULL
+
       ORDER BY p.data_nadania DESC
       `
     )
@@ -59,22 +63,23 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
         p.wysokosc_cm,
         p.glebokosc_cm,
 
+        p.kurier_id,
+
         p.docelowy_automat_id,
         a.nazwa AS docelowy_automat_nazwa,
         a.adres AS docelowy_automat_adres,
 
         n.email AS nadawca_email,
         o.email AS odbiorca_email
+
       FROM parcel_locker.paczka p
       JOIN parcel_locker.klient n ON n.klient_id = p.nadawca_id
       JOIN parcel_locker.klient o ON o.klient_id = p.odbiorca_id
-      JOIN parcel_locker.obslugaautomatu oa
-        ON oa.automat_id = p.docelowy_automat_id
-       AND oa.kurier_id = $1
-       AND oa.data_od <= CURRENT_TIMESTAMP
-       AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
       LEFT JOIN parcel_locker.automat a ON a.automat_id = p.docelowy_automat_id
-      WHERE p.status IN ('NADANA', 'W_DRODZE', 'W_AUTOMACIE')
+
+      WHERE p.kurier_id = $1
+        AND p.status IN ('W_DRODZE', 'W_AUTOMACIE')
+
       ORDER BY p.data_nadania DESC
       `,
       [kurierId]
@@ -101,7 +106,7 @@ router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (
 
     const p = await client.query(
       `
-      SELECT paczka_id, status, docelowy_automat_id
+      SELECT paczka_id, status, docelowy_automat_id, kurier_id
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
@@ -115,32 +120,35 @@ router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (
     }
 
     const pr = p.rows[0]
+
     if (String(pr.status || "").toUpperCase() !== "NADANA") {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Transport można rozpocząć tylko dla statusu NADANA" })
     }
 
-    await client.query(
-        `
-        INSERT INTO parcel_locker.obslugaautomatu (kurier_id, automat_id, data_od, data_do)
-        VALUES ($1, $2, CURRENT_TIMESTAMP, NULL)
-        ON CONFLICT (kurier_id, automat_id)
-        DO UPDATE SET data_od = EXCLUDED.data_od, data_do = NULL
-        `,
-        [kurierId, pr.docelowy_automat_id]
-    )
-
+    if (pr.kurier_id != null && Number(pr.kurier_id) !== Number(kurierId)) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Ta paczka została już podjęta przez innego kuriera" })
+    }
 
     const upd = await client.query(
       `
       UPDATE parcel_locker.paczka
-      SET status = 'W_DRODZE'
+      SET
+        status = 'W_DRODZE',
+        kurier_id = $2
       WHERE paczka_id = $1
         AND status = 'NADANA'
-      RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru
+        AND (kurier_id IS NULL OR kurier_id = $2)
+      RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru, docelowy_automat_id, kurier_id
       `,
-      [paczkaId]
+      [paczkaId, kurierId]
     )
+
+    if (upd.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Nie udało się podjąć paczki (możliwy konflikt)" })
+    }
 
     await client.query(
       `
@@ -154,6 +162,7 @@ router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (
     res.json({ ok: true, paczka: upd.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
+    console.error(err)
     res.status(500).json({ ok: false, error: "Błąd serwera" })
   } finally {
     client.release()
@@ -172,19 +181,15 @@ router.get("/paczki/:id/skrytki-docelowe", requireAuth, requireRoles("KURIER"), 
       `
       SELECT 1
       FROM parcel_locker.paczka p
-      JOIN parcel_locker.obslugaautomatu oa
-        ON oa.automat_id = p.docelowy_automat_id
-       AND oa.kurier_id = $2
-       AND oa.data_od <= CURRENT_TIMESTAMP
-       AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
       WHERE p.paczka_id = $1
         AND p.status = 'W_DRODZE'
+        AND p.kurier_id = $2
       LIMIT 1
       `,
       [paczkaId, kurierId]
     )
 
-    if (allowed.rowCount === 0) return res.status(403).json({ ok: false, error: "Brak dostępu do docelowego automatu tej paczki." })
+    if (allowed.rowCount === 0) return res.status(403).json({ ok: false, error: "Brak dostępu do tej paczki (nie jest Twoja lub nie jest w transporcie)." })
 
     const result = await query(
       `
@@ -256,7 +261,7 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
 
     const p = await client.query(
       `
-      SELECT paczka_id, status, skrytka_id, docelowy_automat_id
+      SELECT paczka_id, status, skrytka_id, docelowy_automat_id, kurier_id
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
@@ -270,28 +275,15 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
     }
 
     const pr = p.rows[0]
-    
+
+    if (Number(pr.kurier_id ?? 0) !== Number(kurierId)) {
+      await client.query("ROLLBACK")
+      return res.status(403).json({ ok: false, error: "Brak dostępu: ta paczka nie jest przypisana do Ciebie" })
+    }
+
     if (String(pr.status || "").toUpperCase() !== "W_DRODZE" || pr.skrytka_id != null) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Paczka nie jest w transporcie" })
-    }
-
-    const allowed = await client.query(
-      `
-      SELECT 1
-      FROM parcel_locker.obslugaautomatu oa
-      WHERE oa.kurier_id = $1
-        AND oa.automat_id = $2
-        AND oa.data_od <= CURRENT_TIMESTAMP
-        AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
-      LIMIT 1
-      `,
-      [kurierId, pr.docelowy_automat_id]
-    )
-
-    if (allowed.rowCount === 0) {
-      await client.query("ROLLBACK")
-      return res.status(403).json({ ok: false, error: "Kurier nie jest przypisany do docelowego automatu" })
     }
 
     const s = await client.query(
@@ -324,14 +316,23 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
     const upd = await client.query(
       `
       UPDATE parcel_locker.paczka
-      SET skrytka_id = $2,
-          status = 'W_AUTOMACIE',
-          termin_odbioru = COALESCE(termin_odbioru, CURRENT_TIMESTAMP + INTERVAL '48 hours')
+      SET
+        skrytka_id = $2,
+        status = 'W_AUTOMACIE',
+        termin_odbioru = COALESCE(termin_odbioru, CURRENT_TIMESTAMP + INTERVAL '48 hours')
       WHERE paczka_id = $1
-      RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru
+        AND kurier_id = $3
+        AND status = 'W_DRODZE'
+        AND skrytka_id IS NULL
+      RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru, kurier_id
       `,
-      [paczkaId, skrytkaId]
+      [paczkaId, skrytkaId, kurierId]
     )
+
+    if (upd.rowCount === 0) {
+      await client.query("ROLLBACK")
+      return res.status(409).json({ ok: false, error: "Nie udało się umieścić paczki (możliwy konflikt)" })
+    }
 
     await client.query(
       `
@@ -354,6 +355,7 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
     res.json({ ok: true, paczka: upd.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
+    console.error(err)
     res.status(500).json({ ok: false, error: "Błąd serwera" })
   } finally {
     client.release()

@@ -13,7 +13,6 @@ BEGIN
 END;
 $$;
 
-
 -- =====================================================
 -- FUNKCJA: WYODRĘBNIENIE MIASTA Z ADRESU
 -- =====================================================
@@ -99,12 +98,11 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
 CREATE TRIGGER trg_set_ekran_column
 BEFORE INSERT ON Automat
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.set_ekran_column();
-
-
 
 CREATE OR REPLACE FUNCTION parcel_locker.generate_automat_layout(
     p_automat_id INT
@@ -198,11 +196,9 @@ BEGIN
         -- ŚRODEK
         -- ======================
         IF col = col_screen THEN
-            -- ekran → nic nie wstawiamy
             NULL;
 
         ELSIF col = 1 OR col = cols THEN
-            -- BOCZNE KOLUMNY → M
             row := 2;
             FOR i IN 1..m_per_col LOOP
                 INSERT INTO Skrytka
@@ -214,7 +210,6 @@ BEGIN
             END LOOP;
 
         ELSE
-            -- ŚRODEK → S
             row := 2;
             FOR i IN 1..s_per_col LOOP
                 INSERT INTO Skrytka
@@ -246,9 +241,6 @@ BEGIN
 END;
 $$;
 
-
-
-
 CREATE OR REPLACE FUNCTION parcel_locker.trg_generate_layout_fn()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -258,11 +250,11 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
 CREATE TRIGGER trg_generate_automat_layout
 AFTER INSERT ON Automat
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.trg_generate_layout_fn();
-
 
 -- =====================================================
 -- Funkcja: jakie kolumny moze insetorwać klient
@@ -278,6 +270,10 @@ BEGIN
       RAISE EXCEPTION 'Klient nie może ustawiać skrytka_id';
     END IF;
 
+    IF NEW.kurier_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Klient nie może ustawiać kurier_id';
+    END IF;
+
     IF NEW.status IS NOT NULL AND NEW.status NOT IN ('CZEKA_NA_ZATWIERDZENIE', 'NADANA') THEN
       RAISE EXCEPTION 'Klient nie może ustawiać statusu %', NEW.status;
     END IF;
@@ -291,7 +287,6 @@ BEGIN
 END;
 $$;
 
-
 -- =====================================================
 -- Trigger: enforce_client_package_rules
 -- =====================================================
@@ -302,3 +297,48 @@ CREATE TRIGGER trg_enforce_client_package_rules
 BEFORE INSERT OR UPDATE ON parcel_locker.Paczka
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.enforce_client_package_rules();
+
+
+-- =====================================================
+-- Trigger: zamykanie obsługi automatu po zakończeniu dostawy
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION parcel_locker.trg_close_oa_when_done()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF TG_OP = 'UPDATE'
+     AND NEW.kurier_id IS NOT NULL
+     AND NEW.docelowy_automat_id IS NOT NULL
+     AND OLD.status IS DISTINCT FROM NEW.status
+     AND NEW.status IN ('ODEBRANA', 'PRZETERMINOWANA', 'ANULOWANA')
+  THEN
+    UPDATE parcel_locker.obslugaautomatu oa
+    SET data_do = CURRENT_TIMESTAMP
+    WHERE oa.kurier_id = NEW.kurier_id
+      AND oa.automat_id = NEW.docelowy_automat_id
+      AND oa.data_do IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM parcel_locker.paczka p
+        WHERE p.kurier_id = NEW.kurier_id
+          AND p.docelowy_automat_id = NEW.docelowy_automat_id
+          AND p.status IN ('W_DRODZE', 'W_AUTOMACIE')
+      );
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+    
+--====================================================
+-- Trigger: trg_close_oa_when_done
+-- =====================================================
+
+DROP TRIGGER IF EXISTS trg_close_oa_when_done ON parcel_locker.paczka;
+
+CREATE TRIGGER trg_close_oa_when_done
+AFTER UPDATE OF status ON parcel_locker.paczka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.trg_close_oa_when_done();
