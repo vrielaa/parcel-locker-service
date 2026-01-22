@@ -266,39 +266,40 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    s_w INT;
-    s_h INT;
-    s_d INT;
+  s_w INT;
+  s_h INT;
+  s_d INT;
 BEGIN
-    SELECT r.szerokosc_cm, r.wysokosc_cm, r.glebokosc_cm
-    INTO s_w, s_h, s_d
-    FROM Skrytka s
-    JOIN Rozmiar r ON r.rozmiar_id = s.rozmiar_id
-    WHERE s.skrytka_id = NEW.skrytka_id
-      AND s.status = 'WOLNA';
+  SELECT r.szerokosc_cm, r.wysokosc_cm, r.glebokosc_cm
+  INTO s_w, s_h, s_d
+  FROM parcel_locker.skrytka s
+  JOIN parcel_locker.rozmiar r ON r.rozmiar_id = s.rozmiar_id
+  WHERE s.skrytka_id = NEW.skrytka_id
+    AND s.status = 'WOLNA';
 
-    IF NOT FOUND THEN
-        RAISE EXCEPTION
-            'Skrytka nie istnieje lub nie jest wolna';
-    END IF;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Skrytka nie istnieje lub nie jest wolna';
+  END IF;
 
-    IF NEW.szerokosc_cm > s_w
-       OR NEW.wysokosc_cm  > s_h
-       OR NEW.glebokosc_cm > s_d THEN
-        RAISE EXCEPTION
-            'Paczka nie mieści się w skrytce';
-    END IF;
+  IF NEW.szerokosc_cm > s_w
+     OR NEW.wysokosc_cm > s_h
+     OR NEW.glebokosc_cm > s_d THEN
+    RAISE EXCEPTION 'Paczka nie mieści się w skrytce';
+  END IF;
 
-    RETURN NEW;
+  RETURN NEW;
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_check_package_fits ON parcel_locker.paczka;
+
 CREATE TRIGGER trg_check_package_fits
 BEFORE INSERT OR UPDATE OF skrytka_id, szerokosc_cm, wysokosc_cm, glebokosc_cm
-ON Paczka
+ON parcel_locker.paczka
 FOR EACH ROW
 WHEN (NEW.skrytka_id IS NOT NULL)
 EXECUTE FUNCTION parcel_locker.check_if_package_fits();
+
 
 -- =====================================================
 -- TRIGGER: ZAKAZ NACHODZENIA SKRYTEK

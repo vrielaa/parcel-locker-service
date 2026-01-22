@@ -5,6 +5,29 @@ import { requireRoles } from "../middleware/requireRoles.js"
 
 const router = Router()
 
+const pgErrorToHttp = (err) => {
+  const msg = String(err?.message || "Błąd bazy danych")
+
+  if (err?.code === "P0001") {
+    return { status: 409, error: msg }
+  }
+
+  if (err?.code === "23514") {
+    return { status: 409, error: msg }
+  }
+
+  if (err?.code === "23503") {
+    return { status: 409, error: "Nieprawidłowe powiązanie danych." }
+  }
+
+  if (err?.code === "22P02") {
+    return { status: 400, error: "Niepoprawny format danych." }
+  }
+
+  return { status: 500, error: "Błąd serwera" }
+}
+
+
 router.get("/paczki/pool", requireAuth, requireRoles("KURIER"), async (req, res) => {
   try {
     const result = await query(
@@ -355,11 +378,13 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
     res.json({ ok: true, paczka: upd.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
-    console.error(err)
-    res.status(500).json({ ok: false, error: "Błąd serwera" })
+
+    const mapped = pgErrorToHttp(err)
+    return res.status(mapped.status).json({ ok: false, error: mapped.error })
   } finally {
     client.release()
   }
 })
+
 
 export default router
