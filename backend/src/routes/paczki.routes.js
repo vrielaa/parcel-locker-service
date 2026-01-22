@@ -6,100 +6,98 @@ import { requireRoles } from "../middleware/requireRoles.js"
 const router = Router()
 
 router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
+  try {
+    const paczkaId = Number(req.params.id)
+    if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
+      return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+    }
 
- const paczkaId = Number(req.params.id)
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
-    return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
-  }
+    const role = String(req.user?.rola || "").trim().toUpperCase()
 
-  const role = String(req.user?.rola || "").trim().toUpperCase()
-
-  const pRow = await query(
-    `
-    SELECT paczka_id, status, docelowy_automat_id
-    FROM parcel_locker.paczka
-    WHERE paczka_id = $1
-    LIMIT 1
-    `,
-    [paczkaId]
-  )
-
-  if (pRow.rowCount === 0) return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
-
-  const paczka = pRow.rows[0]
-  const status = String(paczka.status || "").toUpperCase()
-
-  if (role === "KLIENT") {
-    const own = await query(
+    const pRow = await query(
       `
-      SELECT 1
+      SELECT
+        paczka_id,
+        status,
+        docelowy_automat_id,
+        kurier_id,
+        nadawca_id,
+        odbiorca_id
       FROM parcel_locker.paczka
-      WHERE paczka_id = $1 AND (odbiorca_id = $2 OR nadawca_id = $2)
+      WHERE paczka_id = $1
       LIMIT 1
       `,
-      [paczkaId, req.user.klientId]
+      [paczkaId]
     )
 
-    if (own.rowCount === 0) return res.status(403).json({ ok: false, error: "Forbidden" })
-  }
+    if (pRow.rowCount === 0) return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
 
-  if (role === "KURIER") {
-    const kurierId = req.user?.pracownikId
-    if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+    const paczka = pRow.rows[0]
+    const status = String(paczka.status || "").trim().toUpperCase()
 
-    if (status !== "NADANA") {
-      const allowed = await query(
-        `
-        SELECT 1
-        FROM parcel_locker.obslugaautomatu oa
-        WHERE oa.kurier_id = $1
-          AND oa.automat_id = $2
-          AND oa.data_od <= CURRENT_TIMESTAMP
-          AND (oa.data_do IS NULL OR oa.data_do >= CURRENT_TIMESTAMP)
-        LIMIT 1
-        `,
-        [kurierId, paczka.docelowy_automat_id]
-      )
+    if (role === "KLIENT") {
+      const klientId = req.user?.klientId
+      if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
 
-      if (allowed.rowCount === 0) return res.status(403).json({ ok: false, error: "Forbidden" })
+      const own =
+        Number(paczka.odbiorca_id ?? 0) === Number(klientId) ||
+        Number(paczka.nadawca_id ?? 0) === Number(klientId)
+
+      if (!own) return res.status(403).json({ ok: false, error: "Forbidden" })
+    } else if (role === "KURIER") {
+      const kurierId = req.user?.pracownikId
+      if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+
+      const isPool = status === "NADANA" && paczka.kurier_id == null
+      const isMine = paczka.kurier_id != null && Number(paczka.kurier_id) === Number(kurierId)
+
+      if (!isPool && !isMine) return res.status(403).json({ ok: false, error: "Forbidden" })
+    } else if (role === "OPERATOR" || role === "ADMIN") {
+      // ok
+    } else {
+      return res.status(403).json({ ok: false, error: "Forbidden" })
     }
+
+    const info = await query(
+      `
+      SELECT
+        COALESCE(s.automat_id, p.docelowy_automat_id) AS automat_id,
+        a.nazwa AS automat_nazwa,
+        a.adres AS automat_adres
+      FROM parcel_locker.paczka p
+      LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
+      LEFT JOIN parcel_locker.automat a ON a.automat_id = COALESCE(s.automat_id, p.docelowy_automat_id)
+      WHERE p.paczka_id = $1
+      LIMIT 1
+      `,
+      [paczkaId]
+    )
+
+    const result = await query(
+      `
+      SELECT zdarzenie_id, typ, czas, opis
+      FROM parcel_locker.zdarzeniepaczki
+      WHERE paczka_id = $1
+      ORDER BY czas DESC
+      `,
+      [paczkaId]
+    )
+
+    const row = info.rows[0] || {}
+
+    res.json({
+      ok: true,
+      zdarzenia: result.rows,
+      automat_id: row.automat_id ?? null,
+      automat_nazwa: row.automat_nazwa ?? null,
+      automat_adres: row.automat_adres ?? null
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ ok: false, error: "Błąd serwera" })
   }
-
-  const info = await query(
-    `
-    SELECT
-      COALESCE(s.automat_id, p.docelowy_automat_id) AS automat_id,
-      a.nazwa AS automat_nazwa,
-      a.adres AS automat_adres
-    FROM parcel_locker.paczka p
-    LEFT JOIN parcel_locker.skrytka s ON s.skrytka_id = p.skrytka_id
-    LEFT JOIN parcel_locker.automat a ON a.automat_id = COALESCE(s.automat_id, p.docelowy_automat_id)
-    WHERE p.paczka_id = $1
-    LIMIT 1
-    `,
-    [paczkaId]
-  )
-
-  const result = await query(
-    `
-    SELECT zdarzenie_id, typ, czas, opis
-    FROM parcel_locker.zdarzeniepaczki
-    WHERE paczka_id = $1
-    ORDER BY czas DESC
-    `,
-    [paczkaId]
-  )
-
-  const row = info.rows[0] || {}
-
-  res.json({
-    ok: true,
-    zdarzenia: result.rows,
-    automat_id: row.automat_id ?? null,
-    automat_nazwa: row.automat_nazwa ?? null,
-    automat_adres: row.automat_adres ?? null
-  })
 })
+
 
 router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), async (req, res) => {
   const paczkaId = Number(req.params.id)
