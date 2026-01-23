@@ -39,7 +39,7 @@ form.addEventListener("submit", async (e) => {
     return
   }
 
-  displayMessageForSeconds("Logowanie...", 2, "db-message")
+  // displayMessageForSeconds("Logowanie...", 2, "db-message")
 
   try {
     const res = await fetch(`${API_BASE}/auth/login`, {
@@ -75,7 +75,7 @@ form.addEventListener("submit", async (e) => {
   localStorage.setItem("rola", String(data.rola || "").trim().toUpperCase())
 
 
-    displayMessageForSeconds("Zalogowano. Rola: " + data.rola, 3, "db-message")
+    // displayMessageForSeconds("Zalogowano. Rola: " + data.rola, 3, "db-message")
 
     setTimeout(() => {
       if (data.must_change_password) {

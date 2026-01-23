@@ -18,15 +18,17 @@ $$;
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION parcel_locker.extract_city_from_address(adres TEXT)
-RETURNS TEXT    
+RETURNS TEXT
 LANGUAGE sql
 AS $$
-    SELECT regexp_replace(
-        adres,
-        '.*,\s*\d{2}-\d{3}\s+',
-        ''
-    )
+  SELECT NULLIF(btrim(
+    CASE
+      WHEN adres ~ ',\s*[^,]+$' THEN regexp_replace(adres, '.*,\s*', '')
+      ELSE NULL
+    END
+  ), '')
 $$;
+
 
 CREATE OR REPLACE FUNCTION parcel_locker.get_all_cities_with_automat()
 RETURNS TABLE (miasto text)
@@ -34,8 +36,10 @@ LANGUAGE sql
 AS $$
   SELECT DISTINCT parcel_locker.extract_city_from_address(adres) AS miasto
   FROM parcel_locker.Automat
+  WHERE parcel_locker.extract_city_from_address(adres) IS NOT NULL
   ORDER BY miasto
 $$;
+
 
 -- =====================================================
 -- TRIGGER: CZY PACZKA MIEŚCI SIĘ W SKRYTCE

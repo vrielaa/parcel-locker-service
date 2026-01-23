@@ -33,16 +33,18 @@
       <!-- HEADER                    -->
       <!-- ========================= -->
       <div class="buttons-bar">
+
+
+        <button class="buttons-bar__button buttons-bar__button-account" id="account-button">Moje konto</button>
+
         <div class="buttons-bar__dev-buttons" data-roles="ADMIN,OPERATOR">
           <button class="buttons-bar__button" id="check-db-button">Sprawdz połączenie z bazą</button>
           <button class="buttons-bar__button" id="init-db-button">Wczytaj baze danych</button>
         </div>
 
-        <button class="buttons-bar__button buttons-bar__button-change-password" id="change-password-button">
-          Zmień hasło
-        </button>
-
+        <button class="buttons-bar__button buttons-bar__button-change-password" id="change-password-button">Zmień hasło</button>
         <button class="buttons-bar__button buttons-bar__button-logout" id="logout-button">Wyloguj się</button>
+    
       </div>
 
       <!-- ========================= -->
@@ -96,7 +98,7 @@
         <!-- ===================================================== -->
         <!-- WIDOK 1: LISTA AUTOMATÓW I WYBÓR AUTOMATU  -->
         <!-- ===================================================== -->
-        <section class="view hidden" id="view-automaty" data-view data-roles="ADMIN,KURIER,OPERATOR,KLIENT">
+        <section class="view hidden" id="view-automaty" data-view data-roles="ADMIN,KURIER,OPERATOR">
            <button class="go-back-button hidden" id="go-back-button">Wróć do listy automatów</button>
           <section class="buttons-cities" id="buttons-cities"></section>
 
@@ -106,6 +108,28 @@
             <h2 class="locker-display__locker-name" id="locker-name"></h2>
 
             <div class="locker-display__grid"></div>
+            <div class="locker-display__info" id="locker-info">
+              <p class="locker-display__info-title">Legenda</p>
+              <div class="locker-display__info__legend-box">
+
+                <div class="locker-display__info__legend-box--free">
+                  <div class="legend-box__color legend-box__color--free"></div>
+                  <span class="legend-box__label">Wolna</span>
+                </div>
+                
+                <div class="locker-display__info__legend-box--occupied">
+                  <div class="legend-box__color legend-box__color--occupied"></div>
+                  <span class="legend-box__label">Zajęta</span>
+                </div>
+
+                <div class="locker-display__info__legend-box--out-of-order">
+                  <div class="legend-box__color legend-box__color--out-of-order"></div>
+                  <span class="legend-box__label">Uszkodzona</span>
+                </div>
+
+              </div>
+
+            </div>
           </section>
         </section>
 
@@ -184,51 +208,56 @@
         <section class="view-create-package hidden" id="view-create-package" data-view data-roles="KLIENT">
           <form class="view-create-package__form" id="create-package-form">
             <div class="form-group--1 form-group">
-              <label for="recipient-email">Email odbiorcy:</label>
+              <label for="recipient-email" class="label-create-package">Email odbiorcy:</label>
               <input type="email" id="recipient-email" name="recipient-email" required />
             </div>
 
             <div class="form-group--2 form-group">
-              <label for="city-select">Wybierz miasto:</label>
-              <select id="city-select" name="city-select" required>
-                <option value="" disabled selected>Wybierz miasto</option>
-              </select>
-
-              <label for="locker-select">Wybierz automat docelowy:</label>
-              <select id="locker-select" name="locker-select" required>
-                <option value="" disabled selected>Najpierw wybierz miasto</option>
-              </select>
-              <div class="package-dims-input">
-
-                <div class="dims-prop dims-prop-width">
-                  <label for="package-width">Szerokość (cm):</label>
-                  <input type="number" id="package-width" name="package-width" min="1" step="0.1" required />
-                </div>
-
-                <div class="dims-prop dims-prop-height">
-                  <label for="package-height">Wysokość (cm):</label>
-                  <input type="number" id="package-height" name="package-height" min="1" step="0.1" required />
-                </div>
-
-                <div class="dims-prop dims-prop-depth">
-                  <label for="package-depth">Głębokość (cm):</label>
-                  <input type="number" id="package-depth" name="package-depth" min="1" step="0.1" required />
-                </div>
+              <div class="select-row">
+                <label for="city-select" class="label-create-package">Wybierz miasto:</label>
+                <select id="city-select" name="city-select" required>
+                  <option value="" disabled selected>Wybierz miasto</option>
+                </select>
               </div>
 
-              <p class="view-create-package__hint" id="package-size-hint"></p>
-
-              <select id="package-size" name="package-size" required>
-                <option value="" disabled selected>Wybierz rozmiar</option>
-                <option value="small">Mała</option>
-                <option value="medium">Średnia</option>
-                <option value="large">Duża</option>
-              </select>
+              <div class="select-row">
+                <label for="locker-select" class="label-create-package">Wybierz automat docelowy:</label>
+                <select id="locker-select" name="locker-select" required>
+                  <option value="" disabled selected>Najpierw wybierz miasto</option>
+                </select>
+              </div>
 
             </div>
+
               <div class="form-group--3 form-group">
-              <button type="submit" class="header__button">Nadaj paczkę</button>
-            </div>
+                <div class="package-dims-input">
+
+                  <div class="dims-prop dims-prop-width">
+                    <label for="package-width" class="label-create-package">Szerokość (cm):</label>
+                    <input type="number" id="package-width" name="package-width" min="1" step="0.1" required />
+                  </div>
+
+                  <div class="dims-prop dims-prop-height">
+                    <label for="package-height" class="label-create-package">Wysokość (cm):</label>
+                    <input type="number" id="package-height" name="package-height" min="1" step="0.1" required />
+                  </div>
+
+                  <div class="dims-prop dims-prop-depth">
+                    <label for="package-depth" class="label-create-package">Głębokość (cm):</label>
+                    <input type="number" id="package-depth" name="package-depth" min="1" step="0.1" required />
+                  </div>
+                </div>
+
+                <p class="view-create-package__hint" id="package-size-hint"></p>
+
+                <select id="package-size" name="package-size" required>
+                  <option value="" disabled selected>Wybierz rozmiar</option>
+                  <option value="small">Mała</option>
+                  <option value="medium">Średnia</option>
+                  <option value="large">Duża</option>
+                </select>
+               <button type="submit" class="header__button" id="create-package-btn">Nadaj paczkę</button>
+              </div>
         
           </form>
         </section>
@@ -236,69 +265,84 @@
         <!-- ========================= -->
         <!-- WIDOK: KURIER             -->
         <!-- ========================= -->
-        <section class="view hidden" id="view-kurier" data-view data-roles="KURIER">
-          <section class="view__header">
-            <h2 class="view__title">Paczki do obsługi</h2>
-          </section>
+        <section class="view hidden view-kurier" id="view-kurier" data-view data-roles="KURIER">
+   
 
           <section class="view__content">
-            <section class="paczki" id="kurier-paczki">
-              <div class="paczki__list" id="kurier-paczki-list"></div>
+            <section class="paczki__list" id="kurier-paczki-list">
+            
             </section>
 
             <section class="paczka-details hidden" id="kurier-paczka-details">
-              <h3 class="paczka-details__title" id="kurier-paczka-title"></h3>
+              <div class="view-kurier__paczka-details__box hidden" id="kurier-paczka-details_box">
+                <div class="view-kurier__paczka-details__box-general-info view-kurier__paczka-details__box-section">
+                 
+                  <p class="view-kurier__paczka-details__row">
+                    <span class="span-label">Status</span>
+                    <span class="span-value" id="kurier-status-value"></span>
+                  </p>
 
-              <div class="paczka-details__meta">
-                <div class="paczka-details__row">
-                  <span class="paczka-details__label">Status:</span>
-                  <span class="paczka-details__value" id="kurier-status-value"></span>
+                  <p class="view-kurier__paczka-details__row">
+                    <span class="span-label">Wymiary</span>
+                    <span class="span-value" id="kurier-dims-value"></span>
+                  </p>
+
+                  <p class="view-kurier__paczka-details__row">
+                    <span class="span-label">Nadawca</span>
+                    <span class="span-value" id="kurier-sender-value"></span>
+                  </p>
+
+                  <p class="view-kurier__paczka-details__row">
+                    <span class="span-label">Odbiorca</span>
+                    <span class="span-value" id="kurier-receiver-value"></span>
+                  </p>
+
                 </div>
 
-                <div class="paczka-details__row">
-                  <span class="paczka-details__label">Wymiary:</span>
-                  <span class="paczka-details__value" id="kurier-dims-value"></span>
-                </div>
+                <div class="view-kurier__paczka-details__box-locker-info view-kurier__paczka-details__box-section">
+                  <p class="view-kurier__paczka-details__row">
+                    <span class="span-label">Aktualny automat</span>
+                    <span class="span-value" id="kurier-aktualny-automat-value"></span>
+                  </p>
 
-                <div class="paczka-details__row">
-                  <span class="paczka-details__label">Nadawca:</span>
-                  <span class="paczka-details__value" id="kurier-sender-value"></span>
+                  <p class="view-kurier__paczka-details__row">
+                    <span class="span-label">Docelowy automat</span>
+                    <span class="span-value" id="kurier-docelowy-automat-value"></span>
+                  </p>
                 </div>
+                      <div class="view-kurier__paczka-details__box-actions view-kurier__paczka-details__box-section" id="kurier-actions">
 
-                <div class="paczka-details__row">
-                  <span class="paczka-details__label">Odbiorca:</span>
-                  <span class="paczka-details__value" id="kurier-receiver-value"></span>
+                  <div class="view-kurier__paczka-details__row hidden" id="kurier-skrytka-row">
+                    <span class="span-label">Skrytka docelowa</span>
+                    <span class="span-value" id="kurier-skrytka-value"></span>
+                  </div>
+
+                  <p class="view-kurier__paczka-details__hint" id="kurier-hint"></p>
+
+                  <div class="view-kurier__paczka-details__buttons">
+                    <button class="header__button" id="kurier-odebrana-btn" type="button">
+                      Rozpocznij transport
+                    </button>
+
+                    <button class="header__button" id="kurier-dostarcz-btn" type="button">
+                      Umieść w automacie
+                    </button>
+                  </div>
                 </div>
+                <div class="view-kurier__paczka-details__box-events view-kurier__paczka-details__box-section" id="kurier-paczka-zdarzenia"></div>
 
-                <div class="paczka-details__row">
-                  <span class="paczka-details__label">Aktualny automat:</span>
-                  <span class="paczka-details__value" id="kurier-aktualny-automat-value"></span>
-                </div>
-
-                <div class="paczka-details__row">
-                  <span class="paczka-details__label">Docelowy automat:</span>
-                  <span class="paczka-details__value" id="kurier-docelowy-automat-value"></span>
-                </div>
-
-                <div class="paczka-details__row hidden" id="kurier-skrytka-row">
-                  <span class="paczka-details__label">Skrytka docelowa:</span>
-                  <select class="paczka-details__select" id="kurier-skrytka-select"></select>
-                </div>
-
-                <p class="paczka-details__hint" id="kurier-hint"></p>
+          
               </div>
 
-              <div class="paczka-details__actions">
-                <button class="header__button" id="kurier-dostarcz-btn" type="button">
-                  Umieść w automacie
-                </button>
+              <div class="locker-display hidden" id="kurier-locker-display">
+                <h2 class="locker-display__locker-name" id="kurier-locker-name"></h2>
 
-                <button class="header__button" id="kurier-odebrana-btn" type="button">
-                  Rozpocznij transport
-                </button>
+                <div class="locker-display__grid"></div>
+
+
               </div>
 
-              <div class="paczka-details__events" id="kurier-paczka-zdarzenia"></div>
+
             </section>
           </section>
         </section>
@@ -312,7 +356,7 @@
             <h2 class="view__title"></h2>
           </section>
 
-          <section class="view__content">
+          <section class="view__content view__content--operator">
             <section class="operator-panel" id="operator-panel">
               <section class="operator-panel__header">
                 <h3 class="operator-panel__title">Paczki do zatwierdzenia</h3>

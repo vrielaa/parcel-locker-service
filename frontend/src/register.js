@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setDisabled(formEl, submitBtn, true)
-    displayMessageForSeconds("Rejestracja...", 2, "db-message")
+    // displayMessageForSeconds("Rejestracja...", 2, "db-message")
 
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {

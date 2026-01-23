@@ -270,7 +270,7 @@ export function initOperatorPanel() {
         return
       }
 
-      displayMessageForSeconds("Zatwierdzono paczkę.", 3, "db-message")
+      // displayMessageForSeconds("Zatwierdzono paczkę.", 3, "db-message")
 
       selectedId = null
       await loadPending()

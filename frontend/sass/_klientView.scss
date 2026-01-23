@@ -89,7 +89,7 @@
                         border-radius: 999px;
 
                         color: black;
-                        background-color: #d5a43a;
+                        background-color: $color-yellow;
 
                         text-align: center;
                         font-size: 1.1rem;
@@ -228,7 +228,7 @@
                     font-family: $font-primary;
                     text-transform: uppercase;
                     box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-                    background-color: #d5a43a;
+                    background-color: $color-yellow;
                     color: #333;
                 
 
@@ -378,13 +378,16 @@
     grid-column: 1/-1;
     grid-row: 1/-1;
 
+    font-family: Josefin Sans, sans-serif;
+ 
+
     &__form{
         grid-column: 3 / -3;
         grid-row: 2 / -2;
 
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: repeat(6, 1fr);
+        grid-template-rows: repeat(5, 1fr);
         padding: 6rem;
      
         border: 2px solid $color-grey-dark-1;
@@ -402,23 +405,60 @@
                 grid-row: 1/2;
             }
             &--2{
-                grid-row: 2/7;
-                gap: 1rem;
+                grid-row: 2/4;
+                display: flex;
+                justify-content: space-between;
+
+                .select-row{
+                    display: flex;
+                    flex-direction: column;
+                    width: 100%;
+
+                }
             }
             &--3{
-                grid-row: 7/8;
+                grid-row: 4/6;
+                display: flex;
+                justify-content: space-between;
+
+                #create-package-btn{
+                    width: fit-content;
+                    height: 4rem;
+                    border: 2px solid $color-quaternary;
+                    transition: all 0.3s;
+                    margin-top: 1rem;
+                    padding: 2px 1rem;
+                    cursor: pointer;
+                    font-family: $font-primary;
+                    text-transform: uppercase;
+                    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+                    background-color: $color-yellow;
+                    color: #333;
+                
+
+                    &:hover{
+                        border-radius: 2px;
+                        background-color: lch(51.44% 45.84 82.25);
+                        color: white;
+                
+                    }
+
+                    &:active{
+                        transform: translateY(2px);
+                    }
+                }
             }
 
   
 
             #city-select, #locker-select, #package-size{
-                font-size: 1rem;
-                width: 30%;
+                font-size: 1.3rem;
+                width: 60%;
+                font-family: $font-primary;
             }
 
             #city-select{
-                padding: 0.8rem 1.5rem;
-                font-family: $font-primary;
+               
                 border: 2px solid $color-grey-dark-1;
                 box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
                 background-color: $color-primary-light;
@@ -430,9 +470,7 @@
             }
 
             #locker-select{
-                padding: 0.8rem 1.5rem;
-                width: 40%;
-                font-family: $font-primary;
+                
                 border: 2px solid $color-grey-dark-1;
                 box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
                 background-color: $color-primary-light;
@@ -445,10 +483,8 @@
             .package-dims-input{
                 display: flex;
                 flex-direction: row;
-
-                :not(:last-child){
-                    margin-right: 1rem;
-                }
+                justify-content: space-between;
+                width: 100%;
             }
 
             .dims-prop{
@@ -459,8 +495,7 @@
             }
 
             #package-size{
-                padding: 0.8rem 1.5rem;
-                font-family: $font-primary;
+              
                 border: 2px solid $color-grey-dark-1;
                 box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
                 background-color: $color-primary-light;
@@ -475,7 +510,7 @@
 
             label{
                 font-size: 1.4rem;
-                font-family: $font-primary;
+                font-family: Josefin Sans, sans-serif;
                 text-transform: uppercase;
                 color: $color-primary-light;
                 width: 100%;
@@ -485,9 +520,9 @@
             
             input{
               
-                padding: 0.8rem 1.5rem;
+                padding: 1.3rem 1.5rem;
                 width: 100%;
-                font-size: 1.6rem;
+                font-size: 1.8rem;
                 font-family: $font-primary;
                 border: 2px solid $color-grey-dark-1;
                 box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
@@ -497,6 +532,11 @@
                     outline: none;
                     border-color: $color-primary;
                 }
+            }
+
+            select{
+                padding: 1rem 1.5rem;
+                font-size: 1.8rem;
             }
 
             &--button{

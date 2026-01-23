@@ -1,7 +1,6 @@
 import "../sass/main.scss"
 import { getElById } from "./utils.js"
 import { displayMessageForSeconds } from "./messages.js"
-import { API_BASE } from "./api.js"
 import { apiFetch, clearToken } from "./api.js"
 
 const form = getElById("change-password-form")
@@ -22,7 +21,7 @@ form.addEventListener("submit", async (e) => {
     return
   }
 
-  displayMessageForSeconds("Zapisuję...", 2, msgId)
+  // displayMessageForSeconds("Zapisuję...", 2, msgId)
 
   try {
     const res = await apiFetch("/auth/change-password", {
@@ -37,7 +36,7 @@ form.addEventListener("submit", async (e) => {
       return
     }
 
-    displayMessageForSeconds("Hasło zmienione. Zaloguj się ponownie.", 3, msgId)
+    // displayMessageForSeconds("Hasło zmienione. Zaloguj się ponownie.", 3, msgId)
 
     clearToken()
     localStorage.removeItem("rola")

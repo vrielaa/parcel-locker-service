@@ -10,20 +10,27 @@
 
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: repeat(8, 1fr);
+    position: relative;
 
 
-    // background-color: aqua;
+    
 
 
     .buttons-cities{
 
-        margin: 20px;
+        padding-top: 10px;
+        padding-bottom: 5px;
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
         justify-content: center;
         grid-column: 1 / -1;
         grid-row: 2 / 3;
+        position: absolute;
+        background-color: #ae7790;
+        z-index: 10;
+          
+
 
         &__city-button{
             background: none;
@@ -60,6 +67,9 @@
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
+        position: relative;
+        top: 10rem;
+
 
 
         &__locker-button{
@@ -68,10 +78,11 @@
             font-family: $font-primary;
             color: $color-grey-dark-1;
             margin-bottom: 10px;
-            width: 80%;
+            width: 60%;
             padding: 10px 15px;
             transition: all 0.3s;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: left;
 
             &:hover{
                 background-color: $color-quaternary;
@@ -92,12 +103,12 @@
 
     .locker-display{
 
-        grid-row: 4 / -1;
+        grid-row: 2 / -1;
         grid-column: 1 / -1;
         
         &__grid-container{
             display: grid;
-            gap: 1px;
+            gap: 3px;
 
             width: 100%;
             max-width: 900px;
@@ -110,9 +121,9 @@
             justify-content: center;
             align-items: center;
 
-            border: 2px solid #333;
+            border: 2px solid #943f5e;;
 
-
+            font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
             font-size: 11px;
             white-space: pre-line;
             text-align: center;
@@ -127,12 +138,52 @@
                 transform: scale(1.03);
                 box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             }
+
+
+            /* STATUSY */
+
+            &--status{
+                &-WOLNA {
+                    background-color: $color-yellow;
+                    color: #111;
+                }
+
+                &-ZAJETA {
+                    background-color: #000000;
+                    color: #fff;
+                }
+
+                &-USZKODZONA {
+                    background-color: #600202;
+                    color: #fff;
+                }
+
+            }
+      
         }
 
         &__locker-name{
             text-align: center;
             font-size: 2rem;
             margin-bottom: 10px;
+            color: $color-primary-light;
+        }
+
+        &__info{
+            grid-column: 1 / -1;
+            grid-row: 3 / 4;
+            text-align: center;
+            font-size: 1.4rem;
+            font-family: $font-primary;
+            text-transform: uppercase;
+            color: $color-primary-light;
+            margin: 0 20px;
+
+            &-title{
+                font-weight: bold;
+                margin-bottom: 10px;
+                font-size: 3rem;
+            }
         }
     }
 
@@ -147,6 +198,7 @@
         display: none;
     }
 
+
 }
 
 
@@ -154,7 +206,4 @@
 
 
 
-/* STATUSY */
-.status-WOLNA { background-color: #d4f8d4; }
-.status-ZAJETA { background-color: #ccc; }
-.status-USZKODZONA { background-color: #ff6b6b; color: #fff; }
+

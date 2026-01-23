@@ -1,5 +1,12 @@
 @use "base" as *;
 
+.view__content--operator{
+    grid-row:2 / -2;
+    grid-column: 3/ -3;
+
+    
+}
+
 .operator-panel{
     display: grid;
 
@@ -13,7 +20,8 @@
 
     color: $color-primary-light;
 
-    background-color: transparent;
+    background-color:#333;
+    border: 2px solid $color-grey-dark-1;
 
     &__header{
         display: flex;
@@ -100,7 +108,7 @@
 
         border: 2px solid $color-grey-dark-1;
 
-        background-color: rgba($color-primary, 0.08);
+        background-color: $color-quaternary;
     }
 
     &__message{

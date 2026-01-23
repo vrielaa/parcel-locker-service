@@ -1,6 +1,16 @@
+// src/features/kurier.js
 import { getElById } from "../utils.js"
-import { displayMessageForSeconds } from "../messages.js"
 import { apiFetch } from "../api.js"
+
+const ENDPOINTS = {
+  LIST: "/kurier/paczki",
+  POOL: "/kurier/paczki/pool",
+  EVENTS: (id) => `/paczki/${id}/zdarzenia`,
+  START_TRANSPORT: (id) => `/kurier/paczki/${id}/podejmij`,
+  PLACE_IN_LOCKER: (id) => `/kurier/paczki/${id}/umiesc-w-automacie`
+}
+
+const lockerSvgUrl = new URL("../../svg/parcel-locker.svg", import.meta.url).href
 
 const escapeHtml = (s) =>
   String(s ?? "")
@@ -19,390 +29,801 @@ const formatStatus = (s) => {
     W_DRODZE: "W drodze",
     W_AUTOMACIE: "W automacie",
     ODEBRANA: "Odebrana",
-    PRZETERMINOWANA: "Przeterminowana",
+    PRZETERMINOWANA: "Odesłana do nadawcy",
     ANULOWANA: "Anulowana"
   }
 
   return map[normalizeStatus(s)] || s || "-"
 }
 
-const fmtDims = (p) => {
-  const a = Number(p?.szerokosc_cm ?? 0)
-  const b = Number(p?.wysokosc_cm ?? 0)
-  const c = Number(p?.glebokosc_cm ?? 0)
-  if (!a || !b || !c) return "-"
-  return `${a}×${b}×${c} cm`
+const getPackageId = (p) => p?.paczka_id ?? p?.id ?? null
+
+const getDimsLabel = (p) => {
+  const w = p?.szerokosc_cm ?? p?.szerokosc ?? p?.width_cm ?? null
+  const h = p?.wysokosc_cm ?? p?.wysokosc ?? p?.height_cm ?? null
+  const d = p?.glebokosc_cm ?? p?.glebokosc ?? p?.depth_cm ?? null
+
+  if (w != null && h != null && d != null) return `${w}×${h}×${d} cm`
+
+  return p?.rozmiar_kod ?? p?.rozmiarKod ?? p?.rozmiar ?? p?.wymiary ?? p?.dims ?? "-"
 }
 
-const fmtAutomat = (nazwa, adres, id) => {
-  if (!nazwa && !adres) return "-"
-  const a = nazwa ? String(nazwa) : ""
-  const b = adres ? String(adres) : ""
-  const c = id ? ` (ID: ${id})` : ""
-  return `${a}${c}${b ? `, ${b}` : ""}`
+const getRequiredSizeCode = (p) =>
+  String(p?.rozmiar_kod ?? p?.rozmiarKod ?? p?.rozmiar ?? "")
+    .trim()
+    .toUpperCase() || null
+
+const sizeRank = (s) => {
+  const map = { XS: 0, S: 1, M: 2, L: 3, XL: 4 }
+  return map[String(s || "").trim().toUpperCase()] ?? -1
 }
 
-const renderEvents = (list) => {
-  const rows = Array.isArray(list) ? list : []
-  if (rows.length === 0) return `<div>-</div>`
+const getSenderLabel = (p) => {
+  const email = p?.nadawca_email ?? p?.nadawcaEmail ?? null
+  if (email) return email
 
-  return rows
-    .map((e) => {
-      const typ = escapeHtml(e?.typ ?? "-")
-      const opis = escapeHtml(e?.opis ?? "")
-      const czas = e?.czas ? new Date(e.czas).toLocaleString() : "-"
-      return `
-        <div class="paczka-details__event">
-          <div class="paczka-details__event-top">
-            <span class="paczka-details__event-type">${typ}</span>
-            <span class="paczka-details__event-time">${escapeHtml(czas)}</span>
-          </div>
-          ${opis ? `<div class="paczka-details__event-desc">${opis}</div>` : ""}
-        </div>
-      `
+  const id = p?.nadawca_id ?? p?.nadawcaId ?? null
+  if (id) return `nadawca #${id}`
+
+  return "-"
+}
+
+const getReceiverLabel = (p) => {
+  const email = p?.odbiorca_email ?? p?.odbiorcaEmail ?? null
+  if (email) return email
+
+  const id = p?.odbiorca_id ?? p?.odbiorcaId ?? null
+  if (id) return `odbiorca #${id}`
+
+  return "-"
+}
+
+const getCurrentLockerLabel = (p) =>
+  p?.automat_aktualny_nazwa ??
+  p?.automatAktualnyNazwa ??
+  p?.aktualny_automat ??
+  p?.aktualnyAutomat ??
+  p?.automat_aktualny ??
+  p?.automatAktualny ??
+  p?.automat?.nazwa ??
+  p?.automat?.name ??
+  "-"
+
+const getTargetLockerLabel = (p) =>
+  p?.docelowy_automat_nazwa ??
+  p?.docelowy_automatNazwa ??
+  p?.docelowyAutomatNazwa ??
+  p?.automat_docelowy_nazwa ??
+  p?.automatDocelowyNazwa ??
+  p?.docelowy_automat ??
+  p?.docelowyAutomat ??
+  p?.automat_docelowy ??
+  p?.automatDocelowy ??
+  p?.automat_docelowy?.nazwa ??
+  p?.automatDocelowy?.nazwa ??
+  "-"
+
+const resolveCurrentAutomatLabel = (p) => {
+  const direct = String(getCurrentLockerLabel(p) || "-")
+  if (direct !== "-") return direct
+
+  const s = normalizeStatus(p?.status)
+  if (s === "W_AUTOMACIE") return String(getTargetLockerLabel(p) || "-")
+
+  return "-"
+}
+
+const getTargetAutomatId = (p) =>
+  p?.docelowy_automat_id ??
+  p?.docelowyAutomatId ??
+  p?.automat_docelowy_id ??
+  p?.automatDocelowyId ??
+  p?.docelowy_automat?.automat_id ??
+  p?.automat_docelowy?.automat_id ??
+  p?.automat_docelowy?.id ??
+  null
+
+const ensureHistoryLabel = (eventsEl, labelId, labelText) => {
+  if (!eventsEl) return null
+
+  const existing = eventsEl.querySelector(`#${labelId}`)
+  if (existing) return existing
+
+  const label = document.createElement("p")
+  label.id = labelId
+  label.textContent = labelText
+
+  return label
+}
+
+const getGridHost = (lockerDisplayEl) => lockerDisplayEl?.querySelector(".locker-display__grid") ?? null
+
+const isSelectableLocker = (locker) => {
+  const s = String(locker?.status ?? "").trim().toUpperCase()
+  return s === "WOLNA" || s === "FREE" || s === "AVAILABLE"
+}
+
+const getLockerSizeCode = (locker) =>
+  String(locker?.rozmiar ?? locker?.rozmiar_kod ?? locker?.rozmiarKod ?? "")
+    .trim()
+    .toUpperCase() || null
+
+const createLockerGrid = ({ lockerDisplayEl, lockerNameEl, onSelectLocker }) => {
+  const gridHostEl = getGridHost(lockerDisplayEl)
+
+  let selectedLockerId = null
+
+  const clear = () => {
+    selectedLockerId = null
+    if (lockerNameEl) lockerNameEl.textContent = ""
+    if (gridHostEl) gridHostEl.innerHTML = ""
+    lockerDisplayEl?.classList.add("hidden")
+  }
+
+  const setTitle = (t) => {
+    if (lockerNameEl) lockerNameEl.textContent = String(t || "")
+  }
+
+  const setSelected = (id) => {
+    selectedLockerId = id != null ? String(id) : null
+    gridHostEl?.querySelectorAll("[data-skrytka-id]").forEach((el) => {
+      const isActive = selectedLockerId && el.dataset.skrytkaId === selectedLockerId
+      if (isActive) el.classList.add("is-active")
+      else el.classList.remove("is-active")
     })
-    .join("")
+  }
+
+  const render = (layout, { requiredSizeCode } = {}) => {
+    if (!gridHostEl) return
+    gridHostEl.innerHTML = ""
+
+    if (!Array.isArray(layout) || layout.length === 0) {
+      lockerDisplayEl?.classList.add("hidden")
+      return
+    }
+
+    const rows = layout[0]?.liczba_wierszy ?? 0
+    const cols = layout[0]?.liczba_kolumn ?? 0
+    if (!rows || !cols) {
+      lockerDisplayEl?.classList.add("hidden")
+      return
+    }
+
+    const UNIT_PX = 40
+
+    const gridContainer = document.createElement("div")
+    gridContainer.className = "locker-display__grid-container"
+    gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`
+    gridContainer.style.gridTemplateRows = `repeat(${rows}, ${UNIT_PX}px)`
+
+    layout.forEach((locker) => {
+      const id = locker?.skrytka_id ?? locker?.id ?? null
+      if (!id) return
+
+      const size = getLockerSizeCode(locker) ?? ""
+      const status = String(locker?.status ?? "").trim()
+
+      const el = document.createElement("button")
+      el.type = "button"
+      el.className = "locker-display__locker"
+      el.dataset.skrytkaId = String(id)
+
+      el.classList.add(`locker-display__locker--status-${status}`)
+      if (size) el.classList.add(`locker-display__locker--size-${size}`)
+
+      el.style.gridColumnStart = locker.kolumna
+      el.style.gridRowStart = locker.wiersz
+
+      if (String(size).toUpperCase() === "M") el.style.gridRowEnd = "span 2"
+
+      el.textContent = `${id}\n${size || ""}`
+
+      const selectable = isSelectableLocker(locker)
+      if (!selectable) el.disabled = true
+
+      el.addEventListener("click", () => {
+        if (!selectable) return
+
+        if (requiredSizeCode) {
+          const a = sizeRank(size)
+          const b = sizeRank(requiredSizeCode)
+          if (a >= 0 && b >= 0 && a < b) {
+            alert("Ta skrytka jest za mała dla tej paczki. Wybierz większą.")
+            return
+          }
+        }
+
+        setSelected(id)
+        if (typeof onSelectLocker === "function") onSelectLocker({ id: Number(id), size })
+      })
+
+      gridContainer.appendChild(el)
+    })
+
+    gridHostEl.appendChild(gridContainer)
+    lockerDisplayEl?.classList.remove("hidden")
+
+    if (selectedLockerId) setSelected(selectedLockerId)
+  }
+
+  return {
+    clear,
+    setTitle,
+    render,
+    setSelected,
+    getSelectedId: () => (selectedLockerId ? Number(selectedLockerId) : null)
+  }
 }
 
-const getId = (p) => p?.paczka_id ?? null
-const getTracking = (p) => p?.numer_tracking ?? "-"
-const getSenderEmail = (p) => p?.nadawca_email ?? "-"
-const getReceiverEmail = (p) => p?.odbiorca_email ?? "-"
+const createCourierDetailsView = ({
+  detailsWrapperEl,
+  detailsBoxEl,
 
-export function initKurierPanel() {
-  const listEl = getElById("kurier-paczki-list")
-  const detailsEl = getElById("kurier-paczka-details")
+  statusValueEl,
+  dimsValueEl,
+  senderValueEl,
+  receiverValueEl,
 
-  const titleEl = getElById("kurier-paczka-title")
-  const eventsEl = getElById("kurier-paczka-zdarzenia")
+  currentLockerValueEl,
+  targetLockerValueEl,
 
-  const statusEl = getElById("kurier-status-value")
-  const dimsEl = getElById("kurier-dims-value")
-  const senderEl = getElById("kurier-sender-value")
-  const receiverEl = getElById("kurier-receiver-value")
-  const aktualnyAutomatEl = getElById("kurier-aktualny-automat-value")
-  const docelowyAutomatEl = getElById("kurier-docelowy-automat-value")
+  skrytkaRowEl,
+  skrytkaValueEl,
 
-  const skrytkaRowEl = getElById("kurier-skrytka-row")
-  const skrytkaSelect = getElById("kurier-skrytka-select")
-  const hintEl = getElById("kurier-hint")
+  hintEl,
+  btnStartTransport,
+  btnPlaceInLocker,
 
-  const deliverBtn = getElById("kurier-dostarcz-btn")
-  const pickupBtn = getElById("kurier-odebrana-btn")
+  eventsEl,
 
-  if (!listEl || !detailsEl || !titleEl || !eventsEl || !deliverBtn || !pickupBtn) return
+  lockerDisplayEl,
+  lockerNameEl,
 
-  let all = []
-  let selectedId = null
-  let isLoading = false
-  let skrytki = []
+  actionsEl,
 
-  const showDetails = () => detailsEl.classList.remove("hidden")
-  const hideDetails = () => detailsEl.classList.add("hidden")
+  onAfterAction
+}) => {
+  let currentPackage = null
+  let selectedLockerId = null
 
-  const setHint = (t) => {
+  const grid = createLockerGrid({
+    lockerDisplayEl,
+    lockerNameEl,
+    onSelectLocker: ({ id }) => {
+      selectedLockerId = Number(id)
+      if (skrytkaValueEl) skrytkaValueEl.textContent = `#${selectedLockerId}`
+      skrytkaRowEl?.classList.remove("hidden")
+    }
+  })
+
+  const show = () => {
+    detailsWrapperEl?.classList.remove("hidden")
+    detailsBoxEl?.classList.remove("hidden")
+  }
+
+  const hide = () => {
+    detailsBoxEl?.classList.add("hidden")
+    detailsWrapperEl?.classList.add("hidden")
+  }
+
+  const setHint = (text) => {
     if (!hintEl) return
-    hintEl.textContent = t || ""
+    hintEl.textContent = text || ""
   }
 
-  const showSkrytkaRow = () => skrytkaRowEl && skrytkaRowEl.classList.remove("hidden")
-  const hideSkrytkaRow = () => skrytkaRowEl && skrytkaRowEl.classList.add("hidden")
+  const setEventsText = (text) => {
+    if (!eventsEl) return
 
-  const resetSelect = () => {
-    if (!skrytkaSelect) return
-    skrytkaSelect.replaceChildren()
-    skrytkaSelect.disabled = true
-    skrytki = []
+    const label = ensureHistoryLabel(eventsEl, "kurier-package-history-label", "Historia paczki")
+    eventsEl.replaceChildren()
+    if (label) eventsEl.appendChild(label)
+
+    const p = document.createElement("p")
+    p.textContent = text || ""
+    eventsEl.appendChild(p)
   }
 
-  const fillSelect = (rows) => {
-    if (!skrytkaSelect) return
-    resetSelect()
-
-    const list = Array.isArray(rows) ? rows : []
-    skrytki = list
-
-    const opt0 = document.createElement("option")
-    opt0.value = ""
-    opt0.textContent = list.length ? "Wybierz skrytkę..." : "Brak wolnych skrytek"
-    opt0.disabled = true
-    opt0.selected = true
-    skrytkaSelect.appendChild(opt0)
-
-    list.forEach((s) => {
-      const opt = document.createElement("option")
-      opt.value = String(s.skrytka_id)
-      opt.textContent = `#${s.skrytka_id} | ${s.rozmiar_kod} | r${s.wiersz} k${s.kolumna}`
-      skrytkaSelect.appendChild(opt)
+  const sortEventsNewestFirst = (list) => {
+    list.sort((a, b) => {
+      const ta = a?.czas ? new Date(a.czas).getTime() : 0
+      const tb = b?.czas ? new Date(b.czas).getTime() : 0
+      return tb - ta
     })
-
-    skrytkaSelect.disabled = list.length === 0
+    return list
   }
 
-  const clearDetails = () => {
-    titleEl.textContent = ""
-    statusEl && (statusEl.textContent = "")
-    dimsEl && (dimsEl.textContent = "")
-    senderEl && (senderEl.textContent = "")
-    receiverEl && (receiverEl.textContent = "")
-    aktualnyAutomatEl && (aktualnyAutomatEl.textContent = "")
-    docelowyAutomatEl && (docelowyAutomatEl.textContent = "")
-    eventsEl.innerHTML = ""
-    resetSelect()
-    hideSkrytkaRow()
-    setHint("")
-    deliverBtn.disabled = true
-    pickupBtn.disabled = true
-    hideDetails()
-  }
+  const renderEventHtml = (z, idx, total) => {
+    const typ = z?.typ ?? "-"
+    const czas = z?.czas ? new Date(z.czas).toLocaleString() : "-"
+    const withLine = idx !== total - 1
 
-  const loadEvents = async (id) => {
-    const res = await apiFetch(`/paczki/${id}/zdarzenia`)
-    const data = await res.json().catch(() => null)
-    if (!res.ok) return []
-    return Array.isArray(data?.zdarzenia) ? data.zdarzenia : []
-  }
-
-  const loadSkrytkiDocelowe = async (id) => {
-    const res = await apiFetch(`/kurier/paczki/${id}/skrytki-docelowe`)
-    const data = await res.json().catch(() => null)
-    if (!res.ok) return []
-    return Array.isArray(data?.skrytki) ? data.skrytki : []
-  }
-
-  const setDetails = async (p) => {
-    if (!p) {
-      clearDetails()
-      return
-    }
-
-    const id = getId(p)
-    const tracking = getTracking(p)
-    const st = normalizeStatus(p?.status)
-
-    titleEl.textContent = `#${id} | ${tracking}`
-    statusEl && (statusEl.textContent = formatStatus(p?.status))
-    dimsEl && (dimsEl.textContent = fmtDims(p))
-    senderEl && (senderEl.textContent = String(getSenderEmail(p)))
-    receiverEl && (receiverEl.textContent = String(getReceiverEmail(p)))
-
-    aktualnyAutomatEl &&
-      (aktualnyAutomatEl.textContent = fmtAutomat(p?.aktualny_automat_nazwa, p?.aktualny_automat_adres, p?.aktualny_automat_id))
-
-    docelowyAutomatEl &&
-      (docelowyAutomatEl.textContent = fmtAutomat(p?.docelowy_automat_nazwa, p?.docelowy_automat_adres, p?.docelowy_automat_id))
-
-    setHint("")
-    resetSelect()
-    hideSkrytkaRow()
-
-    deliverBtn.disabled = true
-    pickupBtn.disabled = true
-
-    showDetails()
-
-    const ev = await loadEvents(id).catch(() => [])
-    eventsEl.innerHTML = renderEvents(ev)
-
-    if (st === "NADANA") {
-      pickupBtn.disabled = false
-      deliverBtn.disabled = true
-      setHint("")
-      return
-    }
-
-    if (st === "W_DRODZE") {
-      pickupBtn.disabled = true
-
-      showSkrytkaRow()
-      const lockers = await loadSkrytkiDocelowe(id).catch(() => [])
-      fillSelect(lockers)
-
-      deliverBtn.disabled = true
-      if (lockers.length === 0) {
-        setHint("Brak wolnych skrytek pasujących do paczki w docelowym automacie.")
-      }
-      return
-    }
-
-    if (st === "W_AUTOMACIE") {
-      pickupBtn.disabled = true
-      deliverBtn.disabled = true
-      hideSkrytkaRow()
-      resetSelect()
-      setHint("Paczka czeka na odbiór klienta.")
-      return
-    }
-
-    deliverBtn.disabled = true
-    pickupBtn.disabled = true
-  }
-
-  const renderList = () => {
-    listEl.replaceChildren()
-
-    if (!Array.isArray(all) || all.length === 0) {
-      const p = document.createElement("p")
-      p.textContent = "Brak paczek do obsługi."
-      listEl.appendChild(p)
-      clearDetails()
-      return
-    }
-
-    all.forEach((p) => {
-      const id = String(getId(p))
-      const tracking = String(getTracking(p))
-      const st = formatStatus(p?.status)
-
-      const btn = document.createElement("button")
-      btn.type = "button"
-      btn.className = "paczki__item"
-      btn.dataset.paczkaId = id
-
-      btn.innerHTML = `
-        <div class="paczki__item-left">
-          <div class="paczki__item-title">${escapeHtml(tracking)}</div>
-          <div class="paczki__item-sub">${escapeHtml(getSenderEmail(p))} → ${escapeHtml(getReceiverEmail(p))}</div>
+    return `
+      <div class="paczka-event">
+        <div class="paczka-event__timeline">
+          <span class="paczka-event__dot"></span>
+          ${withLine ? `<span class="paczka-event__line"></span>` : ``}
         </div>
-        <div class="paczki__item-right">${escapeHtml(st)}</div>
-      `
 
-      if (selectedId && selectedId === id) btn.classList.add("is-active")
+        <div class="paczka-event__content">
+          <div class="paczka-event__top">
+            <span class="paczka-event__type">${escapeHtml(typ)}</span>
+            <span class="paczka-event__time">${escapeHtml(czas)}</span>
+          </div>
+        </div>
+      </div>
+    `
+  }
 
-      btn.addEventListener("click", async () => {
-        if (selectedId === id) {
-          selectedId = null
-          renderList()
-          clearDetails()
+  const renderEvents = (zdarzenia) => {
+    if (!eventsEl) return
+
+    const label = ensureHistoryLabel(eventsEl, "kurier-package-history-label", "Historia paczki")
+    eventsEl.replaceChildren()
+    if (label) eventsEl.appendChild(label)
+
+    const list = Array.isArray(zdarzenia) ? zdarzenia.slice() : []
+    if (list.length === 0) {
+      const p = document.createElement("p")
+      p.textContent = "Brak zdarzeń dla tej paczki."
+      eventsEl.appendChild(p)
+      return
+    }
+
+    sortEventsNewestFirst(list)
+
+    const wrapper = document.createElement("div")
+    wrapper.className = "paczka-events"
+    wrapper.innerHTML = list.map((z, idx) => renderEventHtml(z, idx, list.length)).join("")
+    eventsEl.appendChild(wrapper)
+  }
+
+  const loadEvents = async (p) => {
+    if (!p || !eventsEl) return
+
+    try {
+      setEventsText("Ładowanie zdarzeń...")
+
+      const paczkaId = getPackageId(p)
+      const res = await apiFetch(ENDPOINTS.EVENTS(paczkaId))
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setEventsText(data?.error || `Błąd pobierania zdarzeń (${res.status})`)
+        return
+      }
+
+      const zdarzenia = data?.zdarzenia ?? data?.rows ?? data
+      renderEvents(zdarzenia)
+    } catch (err) {
+      setEventsText(err?.message || "Nie udało się pobrać zdarzeń.")
+    }
+  }
+
+  const updateButtons = (p) => {
+    const s = normalizeStatus(p?.status)
+
+    const canStart = s === "NADANA"
+    const canPlace = s === "W_DRODZE"
+
+    if (btnStartTransport) {
+      btnStartTransport.disabled = !canStart
+      if (canStart) btnStartTransport.classList.remove("hidden")
+      else btnStartTransport.classList.add("hidden")
+    }
+
+    if (btnPlaceInLocker) {
+      btnPlaceInLocker.disabled = !canPlace
+      if (canPlace) btnPlaceInLocker.classList.remove("hidden")
+      else btnPlaceInLocker.classList.add("hidden")
+    }
+
+    if (actionsEl) {
+      if (canStart || canPlace) actionsEl.classList.remove("hidden")
+      else actionsEl.classList.add("hidden")
+    }
+
+    if (canPlace) setHint("Wybierz skrytkę na siatce automatu i umieść paczkę w automacie.")
+    else if (canStart) setHint("Rozpocznij transport paczki.")
+    else setHint("")
+  }
+
+  const clear = () => {
+    currentPackage = null
+    selectedLockerId = null
+
+    statusValueEl && (statusValueEl.textContent = "")
+    dimsValueEl && (dimsValueEl.textContent = "")
+    senderValueEl && (senderValueEl.textContent = "")
+    receiverValueEl && (receiverValueEl.textContent = "")
+
+    currentLockerValueEl && (currentLockerValueEl.textContent = "")
+    targetLockerValueEl && (targetLockerValueEl.textContent = "")
+
+    skrytkaValueEl && (skrytkaValueEl.textContent = "")
+    skrytkaRowEl?.classList.add("hidden")
+
+    setHint("")
+    if (eventsEl) eventsEl.replaceChildren()
+
+    grid.clear()
+
+    if (actionsEl) actionsEl.classList.add("hidden")
+  }
+
+  const loadTargetAutomatLayoutIfNeeded = async (p) => {
+    selectedLockerId = null
+    skrytkaValueEl && (skrytkaValueEl.textContent = "")
+    skrytkaRowEl?.classList.add("hidden")
+    grid.clear()
+
+    const s = normalizeStatus(p?.status)
+    if (s !== "W_DRODZE") return
+
+    const automatId = getTargetAutomatId(p)
+    if (!automatId) return
+
+    try {
+      const automatLabel = getTargetLockerLabel(p)
+      grid.setTitle(`Automat docelowy: ${automatLabel} (ID: ${automatId})`)
+
+      const res = await apiFetch(`/automaty/${automatId}`)
+      const layout = await res.json().catch(() => null)
+
+      if (!Array.isArray(layout) || layout.length === 0) {
+        grid.clear()
+        return
+      }
+
+      const requiredSizeCode = getRequiredSizeCode(p)
+      grid.render(layout, { requiredSizeCode })
+    } catch {
+      grid.clear()
+    }
+  }
+
+  const render = async (p) => {
+    if (!p) {
+      clear()
+      hide()
+      return
+    }
+
+    currentPackage = p
+
+    statusValueEl && (statusValueEl.textContent = formatStatus(p?.status))
+    dimsValueEl && (dimsValueEl.textContent = String(getDimsLabel(p) || "-"))
+    senderValueEl && (senderValueEl.textContent = String(getSenderLabel(p) || "-"))
+    receiverValueEl && (receiverValueEl.textContent = String(getReceiverLabel(p) || "-"))
+
+    currentLockerValueEl && (currentLockerValueEl.textContent = resolveCurrentAutomatLabel(p))
+    targetLockerValueEl && (targetLockerValueEl.textContent = String(getTargetLockerLabel(p) || "-"))
+
+    updateButtons(p)
+
+    eventsEl && setEventsText("Ładowanie zdarzeń...")
+    await loadEvents(p)
+
+    await loadTargetAutomatLayoutIfNeeded(p)
+
+    show()
+  }
+
+  const bindActionsOnce = () => {
+    if (btnStartTransport && btnStartTransport.dataset.bound !== "1") {
+      btnStartTransport.dataset.bound = "1"
+      btnStartTransport.type = "button"
+
+      btnStartTransport.addEventListener("click", async () => {
+        if (!currentPackage) return
+
+        const s = normalizeStatus(currentPackage?.status)
+        if (s !== "NADANA") return
+
+        const paczkaId = getPackageId(currentPackage)
+        if (!paczkaId) return
+
+        try {
+          btnStartTransport.disabled = true
+          const prevText = btnStartTransport.textContent
+          btnStartTransport.textContent = "Przetwarzanie..."
+
+          const res = await apiFetch(ENDPOINTS.START_TRANSPORT(paczkaId), { method: "POST" })
+          const data = await res.json().catch(() => null)
+
+          if (!res.ok) {
+            alert(data?.error || `Błąd rozpoczęcia transportu (${res.status})`)
+            btnStartTransport.textContent = prevText
+            btnStartTransport.disabled = false
+            return
+          }
+
+          alert("Transport rozpoczęty.")
+          if (typeof onAfterAction === "function") await onAfterAction(paczkaId)
+        } catch (err) {
+          alert(err?.message || "Nie udało się rozpocząć transportu.")
+        } finally {
+          btnStartTransport.disabled = false
+          btnStartTransport.textContent = "Rozpocznij transport"
+        }
+      })
+    }
+
+    if (btnPlaceInLocker && btnPlaceInLocker.dataset.bound !== "1") {
+      btnPlaceInLocker.dataset.bound = "1"
+      btnPlaceInLocker.type = "button"
+
+      btnPlaceInLocker.addEventListener("click", async () => {
+        if (!currentPackage) return
+
+        const s = normalizeStatus(currentPackage?.status)
+        if (s !== "W_DRODZE") return
+
+        const paczkaId = getPackageId(currentPackage)
+        if (!paczkaId) return
+
+        if (!selectedLockerId || !Number.isInteger(Number(selectedLockerId))) {
+          alert("Wybierz skrytkę na siatce automatu.")
           return
         }
 
-        selectedId = id
-        renderList()
-        await setDetails(p)
-      })
+        try {
+          btnPlaceInLocker.disabled = true
+          const prevText = btnPlaceInLocker.textContent
+          btnPlaceInLocker.textContent = "Przetwarzanie..."
 
-      listEl.appendChild(btn)
-    })
-  }
+          const res = await apiFetch(ENDPOINTS.PLACE_IN_LOCKER(paczkaId), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ skrytka_id: Number(selectedLockerId) })
+          })
 
-  const load = async () => {
-    if (isLoading) return
-    isLoading = true
+          const data = await res.json().catch(() => null)
 
-    try {
-      clearDetails()
-      displayMessageForSeconds("Ładowanie paczek kuriera...", 2, "db-message")
+          if (!res.ok) {
+            alert(data?.error || `Błąd umieszczenia w automacie (${res.status})`)
+            btnPlaceInLocker.textContent = prevText
+            btnPlaceInLocker.disabled = false
+            return
+          }
 
-      const res = await apiFetch("/kurier/paczki")
+          alert("Paczka umieszczona w automacie.")
 
-      console.log("Kurier paczki response:", res)
-      const data = await res.json().catch(() => null)
-      console.log("Kurier paczki data:", data)
+          if (currentPackage) {
+            currentPackage.status = "W_AUTOMACIE"
+            currentPackage.skrytka_id = Number(selectedLockerId)
 
-      if (!res.ok) {
-        all = []
-        renderList()
-        displayMessageForSeconds(data?.error || `Błąd (${res.status})`, 4, "db-message")
-        return
-      }
+            currentLockerValueEl && (currentLockerValueEl.textContent = resolveCurrentAutomatLabel(currentPackage))
+            targetLockerValueEl && (targetLockerValueEl.textContent = String(getTargetLockerLabel(currentPackage) || "-"))
 
-      all = Array.isArray(data?.paczki) ? data.paczki : []
-      renderList()
+            selectedLockerId = null
+            skrytkaValueEl && (skrytkaValueEl.textContent = "")
+            skrytkaRowEl?.classList.add("hidden")
 
-      if (selectedId) {
-        const picked = all.find((x) => String(getId(x)) === String(selectedId)) || null
-        if (picked) await setDetails(picked)
-        else {
-          selectedId = null
-          clearDetails()
+            grid.clear()
+            updateButtons(currentPackage)
+            setHint("")
+          }
+
+          if (typeof onAfterAction === "function") await onAfterAction(paczkaId)
+        } catch (err) {
+          alert(err?.message || "Nie udało się umieścić paczki w automacie.")
+        } finally {
+          btnPlaceInLocker.disabled = false
+          btnPlaceInLocker.textContent = "Umieść w automacie"
         }
-      }
-    } finally {
-      isLoading = false
+      })
     }
   }
 
-  const pickupSelected = async () => {
-    if (!selectedId) return
-    pickupBtn.disabled = true
-    setHint("")
+  bindActionsOnce()
 
-    try {
-      const res = await apiFetch(`/kurier/paczki/${selectedId}/podejmij`, { method: "POST" })    
-      const data = await res.json().catch(() => null)
+  return {
+    setPackage: (p) => render(p),
+    clearAndHide: () => render(null),
+    getPackage: () => currentPackage
+  }
+}
 
-      if (!res.ok) {
-        setHint(data?.error || `Błąd (${res.status})`)
-        pickupBtn.disabled = false
-        return
-      }
+const createCourierListView = ({ listEl, onSelectPackage }) => {
+  let packagesButtons = []
+  let selectedId = null
+  let lastPackages = []
 
-      displayMessageForSeconds("Rozpoczęto transport (W_DRODZE).", 3, "db-message")
-      selectedId = null
-      await load()
-    } catch (err) {
-      setHint(err?.message || "Nie udało się rozpocząć transportu.")
-      pickupBtn.disabled = false
-    }
+  const clearList = () => {
+    if (!listEl) return
+    listEl.innerHTML = ""
+    packagesButtons = []
   }
 
-  const deliverSelected = async () => {
-    if (!selectedId) return
+  const renderEmpty = (msg) => {
+    clearList()
+    if (!listEl) return
+    const p = document.createElement("p")
+    p.textContent = msg || "Brak paczek."
+    listEl.appendChild(p)
+  }
 
-    const skrytka_id = Number(skrytkaSelect?.value ?? 0)
-    if (!Number.isInteger(skrytka_id) || skrytka_id <= 0) {
-      setHint("Wybierz skrytkę docelową.")
+  const findById = (id) => lastPackages.find((p) => String(getPackageId(p)) === String(id)) || null
+
+  const selectById = (id) => {
+    const pkg = findById(id)
+    selectedId = pkg ? String(getPackageId(pkg)) : null
+
+    packagesButtons.forEach((b) => b.classList.remove("is-active"))
+
+    const activeBtn = packagesButtons.find((b) => b.dataset.paczkaId === String(selectedId))
+    if (activeBtn) activeBtn.classList.add("is-active")
+
+    if (typeof onSelectPackage === "function") onSelectPackage(pkg)
+  }
+
+  const clearSelection = () => {
+    selectedId = null
+    packagesButtons.forEach((b) => b.classList.remove("is-active"))
+    if (typeof onSelectPackage === "function") onSelectPackage(null)
+  }
+
+  const renderList = (packages) => {
+    lastPackages = Array.isArray(packages) ? packages : []
+    clearList()
+
+    if (!Array.isArray(packages) || packages.length === 0) {
+      renderEmpty("Brak paczek.")
       return
     }
 
-    deliverBtn.disabled = true
-    setHint("")
+    packagesButtons = packages.map((p) => {
+      const id = getPackageId(p)
+      const status = formatStatus(p?.status)
+      const sender = getSenderLabel(p)
+      const receiver = getReceiverLabel(p)
 
-    try {
-      const res = await apiFetch(`/kurier/paczki/${selectedId}/umiesc-w-automacie`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skrytka_id })
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.className = "view-klient__lista-paczek__buttons-button"
+      btn.dataset.paczkaId = String(id)
+
+      btn.innerHTML = `
+        <span class="view-klient__lista-paczek__buttons-button__mail">${escapeHtml(sender)} → ${escapeHtml(receiver)}</span>
+        <span class="view-klient__lista-paczek__buttons-button__status">${escapeHtml(status)}</span>
+        <img class="view-klient__lista-paczek__buttons-button__locker-svg" src="${lockerSvgUrl}" alt="Parcel Locker Icon" />
+      `
+
+      btn.addEventListener("click", () => {
+        const clickedId = String(getPackageId(p))
+        if (selectedId && clickedId === selectedId) {
+          clearSelection()
+          return
+        }
+        selectById(clickedId)
       })
 
-      const data = await res.json().catch(() => null)
+      listEl.appendChild(btn)
+      return btn
+    })
 
-      if (!res.ok) {
-        setHint(data?.error || `Błąd (${res.status})`)
-        deliverBtn.disabled = false
+    if (selectedId) selectById(selectedId)
+  }
+
+  const reload = async (opts = {}) => {
+    if (opts.selectedId !== undefined) selectedId = opts.selectedId ? String(opts.selectedId) : null
+
+    try {
+      const [resMine, resPool] = await Promise.all([apiFetch(ENDPOINTS.LIST), apiFetch(ENDPOINTS.POOL)])
+
+      const dataMine = await resMine.json().catch(() => null)
+      const dataPool = await resPool.json().catch(() => null)
+
+      if (!resMine.ok && !resPool.ok) {
+        const errMsg = dataMine?.error || dataPool?.error || `Błąd pobierania paczek`
+        renderEmpty(errMsg)
+        clearSelection()
         return
       }
 
-      displayMessageForSeconds("Umieszczono paczkę w automacie (W_AUTOMACIE).", 3, "db-message")
-      selectedId = null
-      await load()
+      const mine = (dataMine?.paczki ?? dataMine?.rows ?? dataMine) || []
+      const pool = (dataPool?.paczki ?? dataPool?.rows ?? dataPool) || []
+
+      const byId = new Map()
+      ;[...pool, ...mine].forEach((p) => {
+        const id = getPackageId(p)
+        if (id != null) byId.set(String(id), p)
+      })
+
+      const merged = Array.from(byId.values())
+      renderList(merged)
+
+      if (!selectedId) clearSelection()
     } catch (err) {
-      setHint(err?.message || "Nie udało się umieścić paczki.")
-      deliverBtn.disabled = false
+      renderEmpty(err?.message || "Nie udało się pobrać paczek.")
+      clearSelection()
     }
   }
 
-  if (listEl.dataset.bound !== "1") {
-    listEl.dataset.bound = "1"
-
-    pickupBtn.addEventListener("click", () => {
-      pickupSelected()
-    })
-
-    deliverBtn.addEventListener("click", () => {
-      deliverSelected()
-    })
-
-    skrytkaSelect &&
-      skrytkaSelect.addEventListener("change", () => {
-        const st = normalizeStatus(all.find((x) => String(getId(x)) === String(selectedId))?.status)
-        if (st !== "W_DRODZE") return
-
-        const v = Number(skrytkaSelect.value || 0)
-        deliverBtn.disabled = !(Number.isInteger(v) && v > 0)
-      })
+  return {
+    reload,
+    selectById,
+    clearSelection,
+    getSelectedId: () => selectedId,
+    getLastPackages: () => lastPackages
   }
+}
 
-  load()
+export function initKurierPanel() {
+  const role = (localStorage.getItem("rola") || "").toUpperCase()
+  if (role !== "KURIER") return
+
+  const listEl = getElById("kurier-paczki-list")
+  const detailsWrapperEl = getElById("kurier-paczka-details")
+  const detailsBoxEl = getElById("kurier-paczka-details_box")
+
+  const statusValueEl = getElById("kurier-status-value")
+  const dimsValueEl = getElById("kurier-dims-value")
+  const senderValueEl = getElById("kurier-sender-value")
+  const receiverValueEl = getElById("kurier-receiver-value")
+
+  const currentLockerValueEl = getElById("kurier-aktualny-automat-value")
+  const targetLockerValueEl = getElById("kurier-docelowy-automat-value")
+
+  const skrytkaRowEl = getElById("kurier-skrytka-row")
+  const skrytkaValueEl = getElById("kurier-skrytka-value")
+
+  const hintEl = getElById("kurier-hint")
+
+  const btnStartTransport = getElById("kurier-odebrana-btn")
+  const btnPlaceInLocker = getElById("kurier-dostarcz-btn")
+
+  const eventsEl = getElById("kurier-paczka-zdarzenia")
+
+  const lockerDisplayEl = getElById("kurier-locker-display")
+  const lockerNameEl = getElById("kurier-locker-name")
+
+  const actionsEl =
+    getElById("kurier-actions") ||
+    detailsBoxEl?.querySelector(".view-kurier__paczka-details__box-actions") ||
+    null
+
+  if (!listEl || !detailsWrapperEl || !detailsBoxEl) return
+
+  let listView = null
+
+  const detailsView = createCourierDetailsView({
+    detailsWrapperEl,
+    detailsBoxEl,
+
+    statusValueEl,
+    dimsValueEl,
+    senderValueEl,
+    receiverValueEl,
+
+    currentLockerValueEl,
+    targetLockerValueEl,
+
+    skrytkaRowEl,
+    skrytkaValueEl,
+
+    hintEl,
+    btnStartTransport,
+    btnPlaceInLocker,
+
+    eventsEl,
+
+    lockerDisplayEl,
+    lockerNameEl,
+
+    actionsEl,
+
+    onAfterAction: async (paczkaId) => {
+      await listView?.reload({ selectedId: String(paczkaId) })
+      listView?.selectById(String(paczkaId))
+    }
+  })
+
+  listView = createCourierListView({
+    listEl,
+    onSelectPackage: (p) => detailsView.setPackage(p)
+  })
+
+  detailsView.clearAndHide()
+  listView.reload()
 }

@@ -48,9 +48,15 @@
         grid-column: 8 / 9;
     }
 
-    &__button-clear-token{
-        grid-column: 8 / 9;
+    &__button-change-password{
+        grid-column: 7 / 8;
     }
+
+    &__button-account{
+        grid-column: 1 / 2;
+    }
+
+
 }
 
 

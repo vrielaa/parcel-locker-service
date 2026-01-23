@@ -416,7 +416,7 @@ const createPackagesListView = ({
   const setMessage = (text) => {
     if (!messageEl) return
     messageEl.textContent = text || ""
-    if (text) displayMessageForSeconds(text)
+    // if (text) displayMessageForSeconds(text)
   }
 
   const clearList = () => {

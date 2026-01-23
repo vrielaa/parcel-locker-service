@@ -4,6 +4,8 @@ $color-secondary: #fd707e;
 $color-tertiary: #ffab85;
 $color-quaternary: #943f5e;
 
+$color-yellow: #d5a43a;
+
 $color-dark:#7a3965;
 $color-darker: #50305c;
 $color-darkest: #2c1a3a;
@@ -49,10 +51,7 @@ html {
 
 body {
   color: $color-grey-dark-2;
-  background-image: linear-gradient(
-      to right bottom,
-      rgba($color-dark, 0.7),rgba($color-quaternary, 0.7), rgba($color-darker, 0.7)
-    );
+  background-color: #ae7790;
 
   font-size: 1.6rem; // wynikowy rozmiar z line-height
   font-family: $font-primary;
@@ -62,6 +61,8 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   min-height: 100vh;
+
+ 
   
 }
 
@@ -95,9 +96,7 @@ body {
       color: $color-grey-dark-1;
     }
 
-    .hidden{
-      display: none;
-    }
+   
 
 }
 
@@ -144,4 +143,9 @@ body {
     [sidebar-col-start full-start] 1rem [sidebar-col-end] repeat(8, [col-start] 1fr [col-end])
     [full-end]; // first column 8rem, 8 columns, each min min-content and max 14rem
 
+}
+
+
+.hidden{
+    display: none !important;
 }

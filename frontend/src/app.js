@@ -1,14 +1,14 @@
 import "../sass/main.scss"
 import { initAutomatsView } from "./features/automat.js"
 import { initPackagesView } from "./features/paczki.js"
+import { initKurierPanel } from "./features/kurier.js"
 import { initSendPackageView } from "./features/sendPackage.js"
+import { initOperatorPanel } from "./features/operatorPanel.js"
 import { initDbAdminControls } from "./features/dbAdmin.js"
 import { initLogout } from "./features/logout.js"
 import { clearToken } from "./authClient.js"
 import { addClass, removeClass, getElById } from "./utils.js"
 import { apiFetch } from "./api.js"
-import { initOperatorPanel } from "./features/operatorPanel.js"
-import { initKurierPanel } from "./features/kurier.js"
 
 async function main() {
   // ----------------------------
@@ -121,15 +121,15 @@ async function main() {
   const btnOperatorPanel = getElById("nav-operator-panel")
   const btnUsers = getElById("nav-users")
   const btnDevTools = getElById("nav-dev-tools")
-  const btnCreatePackage = getElById("nav-create-package")
+  const createPackageBtn = getElById("nav-create-package")
 
-  if (btnCreatePackage) btnCreatePackage.addEventListener("click", () => showView("view-create-package"))
   if (btnAutomaty) btnAutomaty.addEventListener("click", () => showView("view-automaty"))
   if (btnMyPackages) btnMyPackages.addEventListener("click", () => showView("view-klient"))
   if (btnCourierPackages) btnCourierPackages.addEventListener("click", () => showView("view-kurier"))
   if (btnOperatorPanel) btnOperatorPanel.addEventListener("click", () => showView("view-operator"))
   if (btnUsers) btnUsers.addEventListener("click", () => showView("view-users"))
   if (btnDevTools) btnDevTools.addEventListener("click", () => showView("view-dev"))
+  if (createPackageBtn) createPackageBtn.addEventListener("click", () => showView("view-create-package"))
 
 
 
@@ -140,9 +140,9 @@ async function main() {
   initDbAdminControls()
   initLogout()
   initPackagesView()
+  initKurierPanel()
   initSendPackageView()
   initOperatorPanel()
-  initKurierPanel()
 }
 
 main()

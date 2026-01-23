@@ -294,7 +294,7 @@ export function initSendPackageView() {
     if (!recipientEmail || !lockerId) return
 
     setFormDisabled(true)
-    displayMessageForSeconds("Nadawanie paczki...", 2, "db-message")
+    // displayMessageForSeconds("Nadawanie paczki...", 2, "db-message")
 
     try {
       const result = await createPackage({
@@ -305,7 +305,6 @@ export function initSendPackageView() {
         glebokosc_cm
       })
 
-      console.log("createPackage result:", result)
 
       if (!result.ok) {
         alert(result.error || "Nie udało się nadać paczki.")
