@@ -567,6 +567,36 @@ CREATE TRIGGER trg_close_oa_when_done
 AFTER UPDATE OF status ON parcel_locker.paczka
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.trg_close_oa_when_done();
+
+
+-- =====================================================
+-- Trigger: zapobieganie usunięciu ostatniego admina
+-- =====================================================
+
+
+
+CREATE OR REPLACE FUNCTION parcel_locker.trg_prevent_last_admin_delete_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF UPPER(COALESCE(OLD.rola, '')) = 'ADMIN' THEN
+    IF (SELECT COUNT(*) FROM parcel_locker.appuser WHERE UPPER(rola) = 'ADMIN') <= 1 THEN
+      RAISE EXCEPTION 'Nie można usunąć ostatniego admina.'
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
+
+  RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_prevent_last_admin_delete ON parcel_locker.appuser;
+
+CREATE TRIGGER trg_prevent_last_admin_delete
+BEFORE DELETE ON parcel_locker.appuser
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.trg_prevent_last_admin_delete_fn();
 set search_path to parcel_locker;
 -- VIEW z automatami + miasto
 CREATE OR REPLACE VIEW automaty_in_city AS

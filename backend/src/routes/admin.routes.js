@@ -8,6 +8,18 @@ const router = Router()
 
 const roleKey = (r) => String(r || "").toUpperCase().trim()
 
+const isDbBusinessRuleError = (err) => {
+  const code = String(err?.code || "")
+  if (code === "P0001") return true
+  if (code === "23514") return true
+  return false
+}
+
+const dbBusinessMessage = (err, fallback) => {
+  const msg = String(err?.message || "").trim()
+  return msg || fallback || "Operacja zablokowana przez regułę bazy danych."
+}
+
 router.get("/users", requireAuth, requireRoles("ADMIN"), async (req, res) => {
   try {
     const result = await query(
@@ -130,6 +142,11 @@ router.post("/users", requireAuth, requireRoles("ADMIN"), async (req, res) => {
       await client.query("ROLLBACK")
     } catch {}
     console.error(err)
+
+    if (isDbBusinessRuleError(err)) {
+      return res.status(409).json({ ok: false, error: dbBusinessMessage(err, "Create user blocked") })
+    }
+
     res.status(500).json({ ok: false, error: "Create user failed", message: err?.message || "Internal server error" })
   } finally {
     client.release()
@@ -180,6 +197,11 @@ router.delete("/users/:id", requireAuth, requireRoles("ADMIN"), async (req, res)
       await client.query("ROLLBACK")
     } catch {}
     console.error(err)
+
+    if (isDbBusinessRuleError(err)) {
+      return res.status(409).json({ ok: false, error: dbBusinessMessage(err, "Delete user blocked") })
+    }
+
     res.status(500).json({ ok: false, error: "Delete user failed", message: err?.message || "Internal server error" })
   } finally {
     client.release()
@@ -303,6 +325,11 @@ router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), a
       await client.query("ROLLBACK")
     } catch {}
     console.error(err)
+
+    if (isDbBusinessRuleError(err)) {
+      return res.status(409).json({ ok: false, error: dbBusinessMessage(err, "Operation blocked") })
+    }
+
     res.status(500).json({ ok: false, error: "Simulate pickup failed", message: err?.message || "Internal server error" })
   } finally {
     client.release()
