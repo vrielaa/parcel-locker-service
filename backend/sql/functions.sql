@@ -347,3 +347,47 @@ CREATE TRIGGER trg_close_oa_when_done
 AFTER UPDATE OF status ON parcel_locker.paczka
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.trg_close_oa_when_done();
+
+
+-- =====================================================
+-- Trigger: zapobieganie usunięciu ostatniego admina
+-- =====================================================
+
+
+
+CREATE OR REPLACE FUNCTION parcel_locker.prevent_delete_last_admin()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  admins_count INT;
+BEGIN
+  IF OLD.rola <> 'ADMIN' THEN
+    RETURN OLD;
+  END IF;
+
+  LOCK TABLE parcel_locker.appuser IN EXCLUSIVE MODE;
+
+  SELECT COUNT(*) INTO admins_count
+  FROM parcel_locker.appuser
+  WHERE rola = 'ADMIN';
+
+  IF admins_count <= 1 THEN
+    RAISE EXCEPTION 'Nie można usunąć ostatniego administratora';
+  END IF;
+
+  RETURN OLD;
+END;
+$$;
+
+------------------------------------------------------
+-- Trigger: trg_prevent_delete_last_admin
+------------------------------------------------------
+
+
+DROP TRIGGER IF EXISTS trg_prevent_delete_last_admin ON parcel_locker.appuser;
+
+CREATE TRIGGER trg_prevent_delete_last_admin
+BEFORE DELETE ON parcel_locker.appuser
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.prevent_delete_last_admin();
