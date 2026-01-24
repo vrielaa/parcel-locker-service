@@ -44,6 +44,7 @@ router.get("/paczki/pool", requireAuth, requireRoles("KURIER"), async (req, res)
         p.docelowy_automat_id,
         a.nazwa AS docelowy_automat_nazwa,
         a.adres AS docelowy_automat_adres,
+        parcel_locker.extract_city_from_address(a.adres) AS docelowy_automat_miasto,
 
         n.email AS nadawca_email,
         o.email AS odbiorca_email
