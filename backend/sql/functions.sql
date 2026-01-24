@@ -172,11 +172,10 @@ BEGIN
     --------------------------------------------------
     -- 4. KOLUMNA Z EKRANEM
     --------------------------------------------------
-    IF cols % 2 = 1 THEN
-        col_screen := (cols + 1) / 2;
-    ELSE
-        col_screen := cols - 1;
-    END IF;
+    SELECT ekran_w_kolumnie
+    INTO col_screen
+    FROM Automat
+    WHERE automat_id = p_automat_id;
 
     --------------------------------------------------
     -- 5. CZYŚCIMY STARE SKRYTKI

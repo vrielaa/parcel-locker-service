@@ -392,11 +392,10 @@ BEGIN
     --------------------------------------------------
     -- 4. KOLUMNA Z EKRANEM
     --------------------------------------------------
-    IF cols % 2 = 1 THEN
-        col_screen := (cols + 1) / 2;
-    ELSE
-        col_screen := cols - 1;
-    END IF;
+    SELECT ekran_w_kolumnie
+    INTO col_screen
+    FROM Automat
+    WHERE automat_id = p_automat_id;
 
     --------------------------------------------------
     -- 5. CZYŚCIMY STARE SKRYTKI
@@ -1997,10 +1996,3 @@ GRANT SELECT, INSERT ON TABLES TO parcel_klient;
 GRANT EXECUTE ON FUNCTION parcel_locker.extract_city_from_address(text)
 TO parcel_kurier, parcel_admin, parcel_operator;
 
-
--- znajdz wszystkie automaty w danym mieście
--- wykorzystuje funkcję extract_city_from_address do wyodrębnienia miasta z adresu
--- sa pomoca SELECT AS 
-SET search_path TO parcel_locker;
-SELECT * FROM Automat
-WHERE parcel_locker.extract_city_from_address(adres) = 'Kraków';
