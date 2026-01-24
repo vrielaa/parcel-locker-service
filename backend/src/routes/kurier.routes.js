@@ -108,7 +108,7 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
       `,
       [kurierId]
     )
-
+    console.log(result.rows)
     res.json({ ok: true, paczki: result.rows })
   } catch (err) {
     console.error(err)
