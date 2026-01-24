@@ -88,3 +88,9 @@ GRANT SELECT ON TABLES TO parcel_report;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA parcel_locker
 GRANT SELECT, INSERT ON TABLES TO parcel_klient;
+
+
+-- dostep do funkcji
+GRANT EXECUTE ON FUNCTION parcel_locker.extract_city_from_address(text)
+TO parcel_kurier, parcel_admin, parcel_operator;
+

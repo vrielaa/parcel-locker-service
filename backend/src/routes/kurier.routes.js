@@ -91,12 +91,12 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
         p.docelowy_automat_id,
         ad.nazwa AS docelowy_automat_nazwa,
         ad.adres AS docelowy_automat_adres,
-        extract_city_from_address(ad.adres) AS docelowy_automat_miasto,
+        parcel_locker.extract_city_from_address(ad.adres) AS docelowy_automat_miasto,
 
         p.automat_aktualny_id,
         aa.nazwa AS automat_aktualny_nazwa,
         aa.adres AS automat_aktualny_adres,
-        extract_city_from_address(aa.adres) AS automat_aktualny_miasto,
+        parcel_locker.extract_city_from_address(aa.adres) AS automat_aktualny_miasto,
 
         n.email AS nadawca_email,
         o.email AS odbiorca_email
