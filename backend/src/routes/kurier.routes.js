@@ -89,8 +89,14 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
         p.kurier_id,
 
         p.docelowy_automat_id,
-        a.nazwa AS docelowy_automat_nazwa,
-        a.adres AS docelowy_automat_adres,
+        ad.nazwa AS docelowy_automat_nazwa,
+        ad.adres AS docelowy_automat_adres,
+        parcel_locker.extract_city_from_address(ad.adres) AS docelowy_automat_miasto,
+
+        p.automat_aktualny_id,
+        aa.nazwa AS automat_aktualny_nazwa,
+        aa.adres AS automat_aktualny_adres,
+        parcel_locker.extract_city_from_address(aa.adres) AS automat_aktualny_miasto,
 
         n.email AS nadawca_email,
         o.email AS odbiorca_email
@@ -98,7 +104,8 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
       FROM parcel_locker.paczka p
       JOIN parcel_locker.klient n ON n.klient_id = p.nadawca_id
       JOIN parcel_locker.klient o ON o.klient_id = p.odbiorca_id
-      LEFT JOIN parcel_locker.automat a ON a.automat_id = p.docelowy_automat_id
+      LEFT JOIN parcel_locker.automat ad ON ad.automat_id = p.docelowy_automat_id
+      LEFT JOIN parcel_locker.automat aa ON aa.automat_id = p.automat_aktualny_id
 
       WHERE p.kurier_id = $1
         AND p.status IN ('W_DRODZE', 'W_AUTOMACIE')
@@ -114,6 +121,7 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
     res.status(500).json({ ok: false, error: "Get courier packages failed" })
   }
 })
+
 
 router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (req, res) => {
   const paczkaId = Number(req.params.id)
