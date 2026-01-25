@@ -388,5 +388,37 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
   }
 })
 
+router.put("/skrytki/:id/status", requireAuth, requireRoles("KURIER, ADMIN, OPERATOR"), async (req, res) => {
+  const skrytkaId = Number(req.params.id)
+ 
+  if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) {
+    return res.status(400).json({ ok: false, error: "Niepoprawne ID skrytki" })
+  } 
+
+
+  try {
+    const result = await query(
+      `
+      UPDATE parcel_locker.skrytka
+      SET status = 'USZKODZONA'
+      WHERE skrytka_id = $1
+      RETURNING skrytka_id, wiersz, kolumna, status, automat_id
+      `,
+      [skrytkaId]
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: "Skrytka nie istnieje" })
+    }
+
+    res.json({ ok: true, skrytka: result.rows[0] })
+  } catch (err) {
+    console.error(err)
+    const mapped = pgErrorToHttp(err)
+    return res.status(mapped.status).json({ ok: false, error: mapped.error })
+  }
+  
+})
+
 
 export default router

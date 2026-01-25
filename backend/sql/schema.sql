@@ -12,7 +12,7 @@ SET search_path TO parcel_locker;
 
 CREATE TABLE Automat (
     automat_id       SERIAL PRIMARY KEY,
-    nazwa            TEXT NOT NULL,
+    nazwa            TEXT NOT NULL UNIQUE,
     adres            TEXT NOT NULL,
     wspolrzedne_gps  TEXT,
     status           TEXT NOT NULL
