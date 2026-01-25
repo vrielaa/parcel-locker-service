@@ -337,23 +337,26 @@ router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), a
 })
 
 router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) => {
-  const nazwa = String(req.body?.nazwa || "").trim()
+
+  const kod = String(req.body?.kod || "").trim()
   const adres = String(req.body?.adres || "").trim()
   const miasto = String(req.body?.miasto || "").trim()
-  const kodPocztowy = String(req.body?.kod_pocztowy || "").trim()
+  const wspolrzedne = String(req.body?.wspolrzedne || "").trim()
+  const liczbaWierszy = Number(req.body?.liczbaWierszy)
+  const liczbaKolumn = Number(req.body?.liczbaKolumn)
 
-  if (!nazwa || !adres || !miasto || !kodPocztowy) {
-    return res.status(400).json({ ok: false, error: "Brak wymaganych pól." })
+  if (!kod || !adres || !miasto || !wspolrzedne || !Number.isInteger(liczbaWierszy) || liczbaWierszy <= 0 || !Number.isInteger(liczbaKolumn) || liczbaKolumn <= 0 || liczbaWierszy % 2 !== 0) {
+    return res.status(400).json({ ok: false, error: "Brak wymaganych pól lub niepoprawne wartości." })
   }
 
   try {
     const result = await query(
       `
-      INSERT INTO parcel_locker.automat(nazwa, adres, miasto, kod_pocztowy, status)
-      VALUES ($1, $2, $3, $4, 'AKTYWNY')
+      INSERT INTO parcel_locker.Automat(kod, nazwa, adres, wspolrzedne, status, liczba_wierszy, liczba_kolumn)
+      VALUES ($1, $2, $3 || ', ' || $4, $5, 'AKTYWNY', $6, $7)
       RETURNING automat_id
       `,
-      [nazwa, adres, miasto, kodPocztowy]
+      [kod, kod, adres, miasto, wspolrzedne, liczbaWierszy, liczbaKolumn]
     )
 
     res.status(201).json({ ok: true, automat: { automat_id: result.rows[0]?.automat_id } })
@@ -366,6 +369,7 @@ router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) =>
 
     res.status(500).json({ ok: false, error: "Create automat failed", message: err?.message || "Internal server error" })
   }
+
 })
 
 router.delete("/automaty/:id", requireAuth, requireRoles("ADMIN"), async (req, res) => {
