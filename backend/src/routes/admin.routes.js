@@ -451,7 +451,7 @@ router.put("/automaty/:automatId/lockers/:lockerId/mark-repaired", requireAuth, 
     const result = await query(
       `
       UPDATE parcel_locker.skrytka
-      SET status = 'USZKODZONA'
+      SET status = 'WOLNA'
       WHERE skrytka_id = $1 AND automat_id = $2
       `,
       [lockerId, automatId]
