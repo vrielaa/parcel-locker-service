@@ -388,7 +388,7 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
   }
 })
 
-router.put("/skrytki/:id/status", requireAuth, requireRoles("KURIER, ADMIN, OPERATOR"), async (req, res) => {
+router.put("/skrytki/:id/status", requireAuth, requireRoles("KURIER", "ADMIN", "OPERATOR"), async (req, res) => {
   const skrytkaId = Number(req.params.id)
  
   if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) {
