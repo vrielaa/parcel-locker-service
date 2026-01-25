@@ -404,27 +404,30 @@ router.delete("/automaty/:id", requireAuth, requireRoles("ADMIN"), async (req, r
 })
 
 router.get("/automaty/locker-faulty", requireAuth, requireRoles("ADMIN"), async (req, res) => {
+
   try {
     const result = await query(
       `
-      SELECT
-        s.skrytka_id,
-        s.automat_id,
-        s.wiersz,
-        s.kolumna,
-        s.status,
-        r.kod AS rozmiar,
-        a.status AS automat_status,
-        a.nazwa AS automat_nazwa,
-        a.adres AS automat_adres,
-        parcel_locker.extract_city_from_address(a.adres) AS automat_miasto
-      FROM parcel_locker.skrytka s
-      JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
-      JOIN parcel_locker.rozmiar r ON r.rozmiar_id = s.rozmiar_id
-      WHERE s.status = 'USZKODZONA'
-      ORDER BY s.automat_id, s.wiersz, s.kolumna
-      `
+        SELECT
+            a.automat_id,
+            a.nazwa,
+            a.adres,
+            parcel_locker.extract_city_from_address(a.adres) AS miasto,
+            COUNT(s.skrytka_id) AS faulty_lockers_count
+        FROM parcel_locker.automat a
+        JOIN parcel_locker.skrytka s ON s.automat_id = a.automat_id
+        WHERE s.status = 'USZKODZONA'
+        GROUP BY a.automat_id, a.nazwa, a.adres
+        HAVING COUNT(s.skrytka_id) > 0
+        ORDER BY faulty_lockers_count DESC, a.automat_id ASC
+        `,
+        []
     )
+
+    if (result.rowCount === 0) {
+      return res.json({ ok: true, lockers: [] })
+    }
+
 
     res.json({ ok: true, lockers: result.rows })
   } catch (err) {
