@@ -439,7 +439,7 @@ router.get("/automaty/locker-faulty", requireAuth, requireRoles("ADMIN"), async 
   }
 })
 
-router.put("/automaty/:automatId/lockers/:lockerId/mark-faulty", requireAuth, requireRoles("ADMIN"), async (req, res) => {
+router.put("/automaty/:automatId/lockers/:lockerId/mark-repaired", requireAuth, requireRoles("ADMIN"), async (req, res) => {
   const automatId = Number(req.params.automatId)
   const lockerId = Number(req.params.lockerId)
 
