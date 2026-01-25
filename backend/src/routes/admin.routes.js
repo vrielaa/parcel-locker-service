@@ -348,7 +348,7 @@ router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) =>
   if (!kod || !adres || !miasto || !wspolrzedne || !Number.isInteger(liczbaWierszy) || liczbaWierszy <= 0 || !Number.isInteger(liczbaKolumn) || liczbaKolumn <= 0 || liczbaWierszy % 2 !== 0) {
     return res.status(400).json({ ok: false, error: "Brak wymaganych pól lub niepoprawne wartości." })
   }
-    //ma byc "adres, miasto " np adres. to aleja a miasto krakow -> "aleja xxx, krakow"
+    
   try {
     const result = await query(
       `
@@ -413,7 +413,8 @@ router.get("/automaty/locker-faulty", requireAuth, requireRoles("ADMIN"), async 
             a.nazwa,
             a.adres,
             parcel_locker.extract_city_from_address(a.adres) AS miasto,
-            COUNT(s.skrytka_id) AS faulty_lockers_count
+            COUNT(s.skrytka_id) AS faulty_lockers_count,
+            ARRAY_AGG(s.skrytka_id) AS faulty_lockers_ids
         FROM parcel_locker.automat a
         JOIN parcel_locker.skrytka s ON s.automat_id = a.automat_id
         WHERE s.status = 'USZKODZONA'
@@ -435,6 +436,40 @@ router.get("/automaty/locker-faulty", requireAuth, requireRoles("ADMIN"), async 
   } catch (err) {
     console.error(err)
     res.status(500).json({ ok: false, error: "Get faulty lockers failed" })
+  }
+})
+
+router.put("/automaty/:automatId/lockers/:lockerId/mark-faulty", requireAuth, requireRoles("ADMIN"), async (req, res) => {
+  const automatId = Number(req.params.automatId)
+  const lockerId = Number(req.params.lockerId)
+
+  if (!Number.isInteger(automatId) || automatId <= 0 || !Number.isInteger(lockerId) || lockerId <= 0) {
+    return res.status(400).json({ ok: false, error: "Niepoprawne ID automatu lub skrytki." })
+  }
+
+  try {
+    const result = await query(
+      `
+      UPDATE parcel_locker.skrytka
+      SET status = 'USZKODZONA'
+      WHERE skrytka_id = $1 AND automat_id = $2
+      `,
+      [lockerId, automatId]
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: "Skrytka nie istnieje." })
+    }
+
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+
+    if (isDbBusinessRuleError(err)) {
+      return res.status(409).json({ ok: false, error: dbBusinessMessage(err, "Mark locker faulty blocked") })
+    }
+
+    res.status(500).json({ ok: false, error: "Mark locker faulty failed", message: err?.message || "Internal server error" })
   }
 })
 
