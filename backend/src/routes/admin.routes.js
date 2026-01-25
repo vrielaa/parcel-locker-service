@@ -336,4 +336,36 @@ router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), a
   }
 })
 
+router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) => {
+  const nazwa = String(req.body?.nazwa || "").trim()
+  const adres = String(req.body?.adres || "").trim()
+  const miasto = String(req.body?.miasto || "").trim()
+  const kodPocztowy = String(req.body?.kod_pocztowy || "").trim()
+
+  if (!nazwa || !adres || !miasto || !kodPocztowy) {
+    return res.status(400).json({ ok: false, error: "Brak wymaganych pól." })
+  }
+
+  try {
+    const result = await query(
+      `
+      INSERT INTO parcel_locker.automat(nazwa, adres, miasto, kod_pocztowy, status)
+      VALUES ($1, $2, $3, $4, 'AKTYWNY')
+      RETURNING automat_id
+      `,
+      [nazwa, adres, miasto, kodPocztowy]
+    )
+
+    res.status(201).json({ ok: true, automat: { automat_id: result.rows[0]?.automat_id } })
+  } catch (err) {
+    console.error(err)
+
+    if (isDbBusinessRuleError(err)) {
+      return res.status(409).json({ ok: false, error: dbBusinessMessage(err, "Create automat blocked") })
+    }
+
+    res.status(500).json({ ok: false, error: "Create automat failed", message: err?.message || "Internal server error" })
+  }
+})
+
 export default router

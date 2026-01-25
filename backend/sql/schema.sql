@@ -99,6 +99,8 @@ CREATE TABLE Pracownik (
 -- =====================================================
 
 CREATE TABLE ObslugaAutomatu (
+    obsluga_id  SERIAL PRIMARY KEY,
+
     kurier_id   INT NOT NULL
         REFERENCES Pracownik(pracownik_id)
         ON DELETE CASCADE,
@@ -110,10 +112,13 @@ CREATE TABLE ObslugaAutomatu (
     data_od     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     data_do     TIMESTAMP,
 
-    PRIMARY KEY (kurier_id, automat_id),
-
     CHECK (data_do IS NULL OR data_do >= data_od)
 );
+
+CREATE UNIQUE INDEX uq_obslugaautomatu_open_session
+ON ObslugaAutomatu (kurier_id, automat_id)
+WHERE data_do IS NULL;
+
 
 -- =====================================================
 -- PACZKA

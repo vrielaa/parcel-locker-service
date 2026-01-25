@@ -291,6 +291,7 @@ BEGIN
 END;
 $$;
 
+
 -- =====================================================
 -- Trigger: enforce_client_package_rules
 -- =====================================================
@@ -304,9 +305,45 @@ EXECUTE FUNCTION parcel_locker.enforce_client_package_rules();
 
 
 -- =====================================================
--- Trigger: zamykanie obsługi automatu po zakończeniu dostawy
+-- Trigger: otwieranie obsługi automatu przy starcie dostawy
 -- =====================================================
 
+CREATE OR REPLACE FUNCTION parcel_locker.trg_open_oa_when_transport_starts()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF TG_OP = 'UPDATE'
+     AND OLD.status IS DISTINCT FROM NEW.status
+     AND NEW.status = 'W_DRODZE'
+     AND NEW.kurier_id IS NOT NULL
+     AND NEW.docelowy_automat_id IS NOT NULL
+  THEN
+    INSERT INTO parcel_locker.obslugaautomatu (kurier_id, automat_id, data_od, data_do)
+    VALUES (NEW.kurier_id, NEW.docelowy_automat_id, CURRENT_TIMESTAMP, NULL)
+    ON CONFLICT DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+--- =====================================================
+-- Trigger: trg_open_oa_when_transport_starts
+-- =====================================================
+
+DROP TRIGGER IF EXISTS trg_open_oa_when_transport_starts ON parcel_locker.paczka;
+
+CREATE TRIGGER trg_open_oa_when_transport_starts
+AFTER UPDATE OF status ON parcel_locker.paczka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.trg_open_oa_when_transport_starts();
+
+
+-- =====================================================
+-- Trigger: zamykanie obsługi automatu po zakończeniu dostawy
+-- =====================================================
 CREATE OR REPLACE FUNCTION parcel_locker.trg_close_oa_when_done()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -316,25 +353,32 @@ BEGIN
      AND NEW.kurier_id IS NOT NULL
      AND NEW.docelowy_automat_id IS NOT NULL
      AND OLD.status IS DISTINCT FROM NEW.status
-     AND NEW.status IN ('ODEBRANA', 'PRZETERMINOWANA', 'ANULOWANA')
+     AND NEW.status IN ('W_AUTOMACIE','ODEBRANA','PRZETERMINOWANA','ANULOWANA')
   THEN
     UPDATE parcel_locker.obslugaautomatu oa
     SET data_do = CURRENT_TIMESTAMP
-    WHERE oa.kurier_id = NEW.kurier_id
-      AND oa.automat_id = NEW.docelowy_automat_id
-      AND oa.data_do IS NULL
-      AND NOT EXISTS (
-        SELECT 1
-        FROM parcel_locker.paczka p
-        WHERE p.kurier_id = NEW.kurier_id
-          AND p.docelowy_automat_id = NEW.docelowy_automat_id
-          AND p.status IN ('W_DRODZE', 'W_AUTOMACIE')
-      );
+    WHERE oa.obsluga_id = (
+      SELECT oa2.obsluga_id
+      FROM parcel_locker.obslugaautomatu oa2
+      WHERE oa2.kurier_id = NEW.kurier_id
+        AND oa2.automat_id = NEW.docelowy_automat_id
+        AND oa2.data_do IS NULL
+      ORDER BY oa2.data_od DESC
+      LIMIT 1
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM parcel_locker.paczka p
+      WHERE p.kurier_id = NEW.kurier_id
+        AND p.docelowy_automat_id = NEW.docelowy_automat_id
+        AND p.status IN ('W_DRODZE')
+    );
   END IF;
 
   RETURN NEW;
 END;
 $$;
+
     
 --====================================================
 -- Trigger: trg_close_oa_when_done
