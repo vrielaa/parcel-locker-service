@@ -352,11 +352,11 @@ router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) =>
   try {
     const result = await query(
       `
-      INSERT INTO parcel_locker.Automat(kod, nazwa, adres, wspolrzedne, status, liczba_wierszy, liczba_kolumn)
+      INSERT INTO parcel_locker.Automat(nazwa, adres, wspolrzedne, status, liczba_wierszy, liczba_kolumn)
       VALUES ($1, $2, $3 || ', ' || $4, $5, 'AKTYWNY', $6, $7)
       RETURNING automat_id
       `,
-      [kod, kod, adres, miasto, wspolrzedne, liczbaWierszy, liczbaKolumn]
+      [kod, adres, miasto, wspolrzedne, liczbaWierszy, liczbaKolumn]
     )
 
     res.status(201).json({ ok: true, automat: { automat_id: result.rows[0]?.automat_id } })
