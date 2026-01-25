@@ -368,4 +368,67 @@ router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) =>
   }
 })
 
+router.delete("/automaty/:id", requireAuth, requireRoles("ADMIN"), async (req, res) => {
+  const automatId = Number(req.params.id)
+  if (!Number.isInteger(automatId) || automatId <= 0) {
+    return res.status(400).json({ ok: false, error: "Niepoprawne ID automatu." })
+  }
+
+  try {
+    const result = await query(
+      `
+      DELETE FROM parcel_locker.automat
+      WHERE automat_id = $1
+      `,
+      [automatId]
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: "Automat nie istnieje." })
+    }
+
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+
+    if (isDbBusinessRuleError(err)) {
+      return res.status(409).json({ ok: false, error: dbBusinessMessage(err, "Delete automat blocked") })
+    }
+
+    res.status(500).json({ ok: false, error: "Delete automat failed", message: err?.message || "Internal server error" })
+  }
+})
+
+router.get("/automaty/locker-faulty", requireAuth, requireRoles("ADMIN"), async (req, res) => {
+  try {
+    const result = await query(
+      `
+      SELECT
+        s.skrytka_id,
+        s.automat_id,
+        s.wiersz,
+        s.kolumna,
+        s.status,
+        r.kod AS rozmiar,
+        a.status AS automat_status,
+        a.nazwa AS automat_nazwa,
+        a.adres AS automat_adres,
+        parcel_locker.extract_city_from_address(a.adres) AS automat_miasto
+      FROM parcel_locker.skrytka s
+      JOIN parcel_locker.automat a ON a.automat_id = s.automat_id
+      JOIN parcel_locker.rozmiar r ON r.rozmiar_id = s.rozmiar_id
+      WHERE s.status = 'USZKODZONA'
+      ORDER BY s.automat_id, s.wiersz, s.kolumna
+      `
+    )
+
+    res.json({ ok: true, lockers: result.rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ ok: false, error: "Get faulty lockers failed" })
+  }
+})
+
+
+
 export default router
