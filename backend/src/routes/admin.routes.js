@@ -348,12 +348,12 @@ router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) =>
   if (!kod || !adres || !miasto || !wspolrzedne || !Number.isInteger(liczbaWierszy) || liczbaWierszy <= 0 || !Number.isInteger(liczbaKolumn) || liczbaKolumn <= 0 || liczbaWierszy % 2 !== 0) {
     return res.status(400).json({ ok: false, error: "Brak wymaganych pól lub niepoprawne wartości." })
   }
-    
+    //ma byc "adres, miasto " np adres. to aleja a miasto krakow -> "aleja xxx, krakow"
   try {
     const result = await query(
       `
       INSERT INTO parcel_locker.Automat(nazwa, adres, wspolrzedne_gps, status, liczba_wierszy, liczba_kolumn)
-      VALUES ($1, $2, $3 || ', ' || $4, 'AKTYWNY', $5, $6)
+      VALUES ($1, $2 || ', ' || $3, $4, 'AKTYWNY', $5, $6)
       RETURNING automat_id
       `,
       [kod, adres, miasto, wspolrzedne, liczbaWierszy, liczbaKolumn]
