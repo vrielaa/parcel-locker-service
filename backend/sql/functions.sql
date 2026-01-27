@@ -420,3 +420,41 @@ CREATE TRIGGER trg_prevent_last_admin_delete
 BEFORE DELETE ON parcel_locker.appuser
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.trg_prevent_last_admin_delete_fn();
+
+
+-- =====================================================
+-- Trigger: automatyczne oznaczanie paczki jako PRZETERMINOWANA
+-- + dopisanie zdarzenia do historii (ZdarzeniePaczki)
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION parcel_locker.trg_mark_overdue_package_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.status = 'W_AUTOMACIE'
+     AND NEW.termin_odbioru IS NOT NULL
+     AND NEW.termin_odbioru < CURRENT_TIMESTAMP
+  THEN
+    NEW.status := 'PRZETERMINOWANA';
+
+    INSERT INTO parcel_locker.ZdarzeniePaczki (paczka_id, typ, czas)
+    SELECT NEW.paczka_id, 'PRZETERMINOWANA', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM parcel_locker.ZdarzeniePaczki z
+      WHERE z.paczka_id = NEW.paczka_id
+        AND z.typ = 'PRZETERMINOWANA'
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_mark_overdue_package ON parcel_locker.Paczka;
+
+CREATE TRIGGER trg_mark_overdue_package
+BEFORE INSERT OR UPDATE OF status, termin_odbioru ON parcel_locker.Paczka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.trg_mark_overdue_package_fn();

@@ -120,6 +120,19 @@ router.get("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
     const klientId = req.user.klientId
     if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
 
+      await query(
+        `
+        UPDATE parcel_locker.paczka
+        SET termin_odbioru = termin_odbioru
+        WHERE status = 'W_AUTOMACIE'
+          AND termin_odbioru IS NOT NULL
+          AND termin_odbioru < CURRENT_TIMESTAMP
+          AND odbiorca_id = $1
+        `,
+        [klientId]
+    )
+
+
     const result = await query(
       `
       SELECT
