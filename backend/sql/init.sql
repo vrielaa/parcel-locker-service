@@ -1972,15 +1972,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'parcel_klient') THEN
     CREATE ROLE parcel_klient LOGIN PASSWORD 'ParcelKlient2026!';
   END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'parcel_report') THEN
-    CREATE ROLE parcel_report LOGIN PASSWORD 'ParcelReport2026!';
-  END IF;
 END
 $$;
 
 -- schema access
-GRANT USAGE ON SCHEMA parcel_locker TO parcel_operator, parcel_kurier, parcel_klient, parcel_report;
+GRANT USAGE ON SCHEMA parcel_locker TO parcel_operator, parcel_kurier, parcel_klient;
 GRANT USAGE, CREATE ON SCHEMA parcel_locker TO parcel_admin;
 
 -- admin: full
@@ -2022,8 +2018,7 @@ TO parcel_klient;
 
 GRANT INSERT ON parcel_locker.ZdarzeniePaczki TO parcel_klient;
 
--- report: read-only na wszystko (albo tylko na widoki, jeśli wolisz)
-GRANT SELECT ON ALL TABLES IN SCHEMA parcel_locker TO parcel_report;
+
 
 -- sequences: dla ról robiących INSERT do tabel z SERIAL
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA parcel_locker TO parcel_operator, parcel_kurier, parcel_klient;
@@ -2035,8 +2030,6 @@ GRANT SELECT, INSERT, UPDATE ON TABLES TO parcel_operator;
 ALTER DEFAULT PRIVILEGES IN SCHEMA parcel_locker
 GRANT SELECT, INSERT, UPDATE ON TABLES TO parcel_kurier;
 
-ALTER DEFAULT PRIVILEGES IN SCHEMA parcel_locker
-GRANT SELECT ON TABLES TO parcel_report;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA parcel_locker
 GRANT SELECT, INSERT ON TABLES TO parcel_klient;

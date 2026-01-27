@@ -36,7 +36,7 @@ router.post("/register", async (req, res) => {
     const existingAppUser = await client.query(
       `
       SELECT app_user_id
-      FROM parcel_locker.appuser
+      FROM parcel_locker.AppUser
       WHERE email = $1
       LIMIT 1
       `,
@@ -96,7 +96,7 @@ router.post("/register", async (req, res) => {
 
     const insUser = await client.query(
       `
-      INSERT INTO parcel_locker.appuser (email, password_hash, rola, klient_id, must_change_password)
+      INSERT INTO parcel_locker.AppUser (email, password_hash, rola, klient_id, must_change_password)
       VALUES ($1, $2, 'KLIENT', $3, FALSE)
       RETURNING app_user_id, rola, klient_id, must_change_password
       `,
@@ -155,7 +155,7 @@ router.post("/login", async (req, res) => {
     const result = await query(
       `
       SELECT app_user_id, email, password_hash, rola, klient_id, pracownik_id, must_change_password
-      FROM parcel_locker.appuser
+      FROM parcel_locker.AppUser
       WHERE email = $1
       LIMIT 1
       `,
@@ -208,7 +208,7 @@ router.get("/me", requireAuth, async (req, res) => {
     const result = await query(
       `
       SELECT app_user_id, email, rola, klient_id, pracownik_id, must_change_password
-      FROM parcel_locker.appuser
+      FROM parcel_locker.AppUser
       WHERE app_user_id = $1
       `,
       [userId]
@@ -245,7 +245,7 @@ router.post("/change-password", requireAuth, async (req, res) => {
     const result = await query(
       `
       SELECT app_user_id, password_hash, must_change_password
-      FROM parcel_locker.appuser
+      FROM parcel_locker.AppUser
       WHERE app_user_id = $1
       LIMIT 1
       `,
@@ -262,7 +262,7 @@ router.post("/change-password", requireAuth, async (req, res) => {
 
     await query(
       `
-      UPDATE parcel_locker.appuser
+      UPDATE parcel_locker.AppUser
       SET password_hash = $1, must_change_password = FALSE
       WHERE app_user_id = $2
       `,
