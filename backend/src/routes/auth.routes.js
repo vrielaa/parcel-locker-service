@@ -270,7 +270,7 @@ router.post("/change-password", requireAuth, async (req, res) => {
     res.json({ ok: true })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ ok: false, error: "Change password failed", details: err.message, result, newHash })
+    res.status(500).json({ ok: false, error: "Change password failed", details: err.message })
   }
 })
 
