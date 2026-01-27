@@ -425,7 +425,7 @@ router.get("/automaty/locker-faulty", requireAuth, requireRoles("ADMIN"), async 
         []
     )
 
-    console.log(result.rows)
+    
 
     if (result.rowCount === 0) {
       return res.json({ ok: true, lockers: [] })
