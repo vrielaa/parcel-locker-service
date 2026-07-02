@@ -458,3 +458,31 @@ CREATE TRIGGER trg_mark_overdue_package
 BEFORE INSERT OR UPDATE OF status, termin_odbioru ON parcel_locker.Paczka
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.trg_mark_overdue_package_fn();
+
+-- =====================================================
+-- Trigger: blokada zmiany statusu skrytki ZAJETA -> USZKODZONA
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION parcel_locker.trg_block_zajeta_to_uszkodzona_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF UPPER(COALESCE(OLD.status, '')) = 'ZAJETA'
+     AND UPPER(COALESCE(NEW.status, '')) = 'USZKODZONA'
+  THEN
+    RAISE EXCEPTION 'Nie można zmienić statusu skrytki z ZAJETA na USZKODZONA.'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_block_zajeta_to_uszkodzona ON parcel_locker.skrytka;
+
+CREATE TRIGGER trg_block_zajeta_to_uszkodzona
+BEFORE UPDATE OF status ON parcel_locker.skrytka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.trg_block_zajeta_to_uszkodzona_fn();
+

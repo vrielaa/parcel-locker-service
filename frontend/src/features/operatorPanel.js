@@ -89,7 +89,7 @@ export function initOperatorPanel() {
 
   const setMessage = (t) => {
     msgEl.textContent = t || ""
-    if (t) displayMessageForSeconds(t, 2, "db-message")
+    // if (t) displayMessageForSeconds(t, 2, "db-message")
   }
 
   const showDetails = () => detailsBox.classList.remove("hidden")

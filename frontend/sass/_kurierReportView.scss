@@ -1,0 +1,292 @@
+@use "base" as *;
+
+#view-report-problem{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    background-color: rgba(0, 0, 0, 0.05);
+    width: 100%;
+    min-height: 100vh;
+    overflow-y: scroll;
+
+       #report-go-back{
+            margin-right: auto;
+            font-size: 1.6rem;
+            padding: 8px 15px;
+            background-color: #f4e8d6;
+            /* border: 2px solid #54483a; */
+            font-family: Impact, Haettenschweiler, Arial Narrow Bold, sans-serif;
+            text-transform: uppercase;
+            color: #54483a;
+            cursor: pointer;
+            transition: all .3s;
+
+            &:hover{
+                background-color: #54483a;
+                color: #f4e8d6;
+            }
+
+            &:active{
+                transform: translateY(2px);
+            }
+        }
+
+
+    .view-report-problem__content{
+     
+        width: 80%;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #333;
+        border: 2px solid $color-quaternary;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        
+   
+    
+  
+        margin-bottom: 20rem;
+        margin-top: 40rem;
+    }
+
+ 
+    
+    .view-report-problem__title{
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 24px;
+        color: $color-primary-light;
+    }
+    
+    .view-report-problem__form{
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 15px;
+        height: 80%;
+
+        .form-group{
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+        justify-content: space-between;
+        height: 100%;
+
+            #report-locker-select-city{
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: $color-main-background;
+
+            &:focus{
+            outline: none;
+            border-color: $color-primary;
+            }
+        }
+    }
+    
+    .label-report-problem{
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: $color-primary-light;
+        text-transform: uppercase;
+    }
+    
+    .report-locker-list{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 4px;
+        background-color: $color-main-background;
+    }
+    
+    .report-locker-list__item{
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        background-color: #f9f9f9;
+        transition: background-color 0.3s, border-color 0.3s;
+    
+        &:hover{
+        background-color: #e6f7ff;
+        border-color: #91d5ff;
+        }
+    
+        &.selected{
+        background-color: #bae7ff;
+        border-color: #1890ff;
+        }
+    }
+    
+    .report-problem__selected{
+        background-color: $color-main-background;
+        padding: 10px;
+        border: 1px solid $color-quaternary;
+
+    
+        &-row{
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    
+        &:last-child{
+            margin-bottom: 0;
+        }
+        }
+    
+        &-label{
+        font-weight: bold;
+        color: $color-primary-light;
+        text-transform: uppercase;
+
+        }
+    
+        &-value{
+        color: $color-primary-light;
+        }
+    }
+
+    #report-description{
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        resize: vertical;
+        background-color: $color-main-background;
+
+        &:focus{
+        outline: none;
+        border-color: $color-primary;
+        }
+    }
+    
+    #report-submit{
+       width: fit-content;
+        height: 4rem;
+        border: 2px solid #943f5e;
+        transition: all .3s;
+        margin-top: 1rem;
+        padding: 2px 1rem;
+        cursor: pointer;
+        font-family: Impact, Haettenschweiler, Arial Narrow Bold, sans-serif;
+        text-transform: uppercase;
+        box-shadow: 2px 2px 5px #0003;
+        background-color: #d5a43a;
+        color: #333;
+
+        &:hover{
+            background-color: #943f5e;
+            color: #f4e8d6;
+        }
+
+        &:active{
+            transform: translateY(2px);
+        }
+        &:disabled{
+            background-color: $color-grey-light-1;
+            border-color: $color-grey-dark-1;
+            color: $color-grey-dark-2;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+    }
+
+
+
+}
+
+
+
+                
+}
+
+    //   <section class="view hidden view-report-problem" id="view-report-problem" data-view data-roles="KURIER, ADMIN, OPERATOR">
+    //       <section class="view-report-problem__content">
+    //         <button type="button" id="report-go-back" class="hidden">Wróć</button>
+
+    //         <h2 class="view-report-problem__title">Raportowanie problemów z automatami</h2>
+
+    //         <form class="view-report-problem__form" id="report-problem-form">
+    //           <div class="form-group form-group--full-width">
+    //             <label for="report-locker-select-city" class="label-report-problem">Wybierz miasto:</label>
+
+    //             <select id="report-locker-select-city" name="city" required>
+    //               <option value="" disabled selected>Wybierz miasto</option>
+    //             </select>
+    //           </div>
+
+    //           <div class="form-group form-group--full-width">
+    //             <p class="label-report-problem">Wybierz automat:</p>
+    //             <div class="report-locker-list" id="report-locker-list"></div>
+    //           </div>
+
+    //           <div class="form-group form-group--full-width">
+    //             <p class="label-report-problem">Wybierz skrytkę do oznaczenia jako uszkodzoną:</p>
+
+    //           <div class="locker-display hidden" id="report-locker-display">
+    //             <h2 class="locker-display__locker-name" id="report-locker-name"></h2>
+
+    //             <div class="locker-display__grid" id="report-locker-grid"></div>
+
+    //             <div class="locker-display__info" id="report-locker-info">
+    //               <p class="locker-display__info-title">Legenda</p>
+    //               <div class="locker-display__info__legend-box">
+
+    //                 <div class="locker-display__info__legend-box--free locker-display__info__legend-box-item">
+    //                   <div class="locker-display__info__legend-box--free__color"></div>
+    //                   <span class="locker-display__label">Wolna</span>
+    //                 </div>
+                    
+    //                 <div class="locker-display__info__legend-box--occupied locker-display__info__legend-box-item">
+    //                   <div class="locker-display__info__legend-box--occupied__color"></div>
+    //                   <span class="locker-display__label">Zajęta</span>
+    //                 </div>
+
+    //                 <div class="locker-display__info__legend-box--out-of-order locker-display__info__legend-box-item">
+    //                   <div class="locker-display__info__legend-box--out-of-order__color"></div>
+    //                   <span class="locker-display__label">Uszkodzona</span>
+    //                 </div>
+                  
+    //             </div>
+    //           </div>
+
+    //           </div>
+
+    //           <div class="form-group form-group--full-width">
+    //             <p class="label-report-problem">Wybrana skrytka:</p>
+
+    //             <div class="report-problem__selected">
+    //               <p class="report-problem__selected-row">
+    //                 <span class="report-problem__selected-label">Automat:</span>
+    //                 <span class="report-problem__selected-value" id="report-selected-automat">—</span>
+    //               </p>
+
+    //               <p class="report-problem__selected-row">
+    //                 <span class="report-problem__selected-label">Skrytka:</span>
+    //                 <span class="report-problem__selected-value" id="report-selected-locker">—</span>
+    //               </p>
+    //             </div>
+
+    //             <input type="hidden" id="report-automat-id" name="automat_id" required />
+    //             <input type="hidden" id="report-locker-id" name="skrytka_id" required />
+    //           </div>
+
+    //           <div class="form-group form-group--full-width">
+    //             <label for="report-description" class="label-report-problem">Opis problemu:</label>
+    //             <textarea id="report-description" name="description" rows="4" required></textarea>
+    //           </div>
+
+    //           <div class="form-group form-group--full-width">
+    //             <button type="submit" class="btn" id="report-submit" disabled>Oznacz skrytkę jako uszkodzoną</button>
+    //           </div>
+    //         </form>
+    //       </section>
+    //     </section>

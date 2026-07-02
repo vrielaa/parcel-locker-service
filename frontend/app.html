@@ -52,7 +52,7 @@
       <!-- ========================= -->
       <section class="sidebar">
         <nav class="sidebar__nav">
-          <button class="sidebar__button hidden" id="get-automaty">Lista automatów</button>
+          <button class="sidebar__button hidden" id="get-automaty" data-roles="ADMIN,KURIER,OPERATOR">Lista automatów</button>
 
           <button class="sidebar__button hidden" id="nav-my-packages" data-roles="KLIENT">
             Moje paczki
@@ -66,17 +66,22 @@
             Paczki do obsługi
           </button>
 
+          <button class="sidebar__button hidden" id="nav-courier-report" data-roles="KURIER, ADMIN, OPERATOR">
+            Raportowanie problemów
+          </button>
+
           <button class="sidebar__button hidden" id="nav-operator-panel" data-roles="ADMIN,OPERATOR">
             Panel operatora
           </button>
 
-          <button class="sidebar__button hidden" id="nav-users" data-roles="ADMIN">
+          <button class="sidebar__button hidden" id="nav-admin-users" data-roles="ADMIN">
             Zarządzanie użytkownikami
           </button>
 
-          <button class="sidebar__button hidden" id="nav-dev-tools" data-roles="ADMIN" data-dev="true">
-            Narzędzia dev
+          <button class="sidebar__button hidden" id="nav-admin-automaty" data-roles="ADMIN" >
+            Zarządzanie automatami
           </button>
+
         </nav>
       </section>
 
@@ -112,19 +117,19 @@
               <p class="locker-display__info-title">Legenda</p>
               <div class="locker-display__info__legend-box">
 
-                <div class="locker-display__info__legend-box--free">
-                  <div class="legend-box__color legend-box__color--free"></div>
-                  <span class="legend-box__label">Wolna</span>
+                <div class="locker-display__info__legend-box--free locker-display__info__legend-box-item">
+                  <div class="locker-display__info__legend-box--free__color"></div>
+                  <span class="locker-display__label">Wolna</span>
                 </div>
                 
-                <div class="locker-display__info__legend-box--occupied">
-                  <div class="legend-box__color legend-box__color--occupied"></div>
-                  <span class="legend-box__label">Zajęta</span>
+                <div class="locker-display__info__legend-box--occupied locker-display__info__legend-box-item">
+                  <div class="locker-display__info__legend-box--occupied__color"></div>
+                  <span class="locker-display__label">Zajęta</span>
                 </div>
 
-                <div class="locker-display__info__legend-box--out-of-order">
-                  <div class="legend-box__color legend-box__color--out-of-order"></div>
-                  <span class="legend-box__label">Uszkodzona</span>
+                <div class="locker-display__info__legend-box--out-of-order locker-display__info__legend-box-item">
+                  <div class="locker-display__info__legend-box--out-of-order__color"></div>
+                  <span class="locker-display__label">Uszkodzona</span>
                 </div>
 
               </div>
@@ -161,6 +166,10 @@
                     <p class="view-klient__paczka-details__box-general-info--sender">
                       <span class="span-sender-label span-label" id="sender-label"></span>
                       <span class="span-sender-value span-value" id="sender-value"></span>
+                    </p>
+                    <p class="view-klient__paczka-details__box-general-info--receiver">
+                      <span class="span-receiver-label span-label" id="receiver-label"></span>
+                      <span class="span-receiver-value span-value" id="receiver-value"></span>
                     </p>
 
                     <p class="view-klient__paczka-details__box-general-info--parcel-number">
@@ -222,9 +231,12 @@
 
               <div class="select-row">
                 <label for="locker-select" class="label-create-package">Wybierz automat docelowy:</label>
+                <input id="locker-search" list="locker-suggestions" placeholder="Wpisz kod automatu aby wyszukać" />
+                <datalist id="locker-suggestions"></datalist>
                 <select id="locker-select" name="locker-select" required>
                   <option value="" disabled selected>Najpierw wybierz miasto</option>
                 </select>
+                
               </div>
 
             </div>
@@ -269,9 +281,22 @@
    
 
           <section class="view__content">
-            <section class="paczki__list" id="kurier-paczki-list">
-            
-            </section>
+            <div class="paczki-list-box">
+             <div class="kurier-filters" id="kurier-filters">
+                <div class="kurier-filters__row">
+                  <label class="kurier-filters__label" for="kurier-city-filter">Miasto docelowe:</label>
+
+                  <select class="kurier-filters__select" id="kurier-city-filter" name="kurier-city-filter">
+                    <option value="" selected>Wszystkie miasta</option>
+                  </select>
+
+                  <button class="kurier-filters__clear btn btn--small" id="kurier-city-filter-clear" type="button">
+                    Wyczyść
+                  </button>
+                </div>
+            </div>
+            <section class="paczki__list" id="kurier-paczki-list"></section>
+            </div>
 
             <section class="paczka-details hidden" id="kurier-paczka-details">
               <div class="view-kurier__paczka-details__box hidden" id="kurier-paczka-details_box">
@@ -338,6 +363,28 @@
                 <h2 class="locker-display__locker-name" id="kurier-locker-name"></h2>
 
                 <div class="locker-display__grid"></div>
+                  <div class="locker-display__info" id="locker-info">
+                  <p class="locker-display__info-title">Legenda</p>
+                  <div class="locker-display__info__legend-box">
+
+                <div class="locker-display__info__legend-box--free locker-display__info__legend-box-item">
+                  <div class="locker-display__info__legend-box--free__color"></div>
+                  <span class="locker-display__label">Wolna</span>
+                </div>
+                
+                <div class="locker-display__info__legend-box--occupied locker-display__info__legend-box-item">
+                  <div class="locker-display__info__legend-box--occupied__color"></div>
+                  <span class="locker-display__label">Zajęta</span>
+                </div>
+
+                <div class="locker-display__info__legend-box--out-of-order locker-display__info__legend-box-item">
+                  <div class="locker-display__info__legend-box--out-of-order__color"></div>
+                  <span class="locker-display__label">Uszkodzona</span>
+                </div>
+
+              </div>
+
+              </div>
 
 
               </div>
@@ -346,6 +393,90 @@
             </section>
           </section>
         </section>
+
+        <section class="view hidden view-report-problem" id="view-report-problem" data-view data-roles="KURIER, ADMIN, OPERATOR">
+          <section class="view-report-problem__content">
+            <button type="button" id="report-go-back" class="hidden">Wróć</button>
+
+            <h2 class="view-report-problem__title">Raportowanie problemów z automatami</h2>
+
+            <form class="view-report-problem__form" id="report-problem-form">
+              <div class="form-group form-group--full-width">
+                <label for="report-locker-select-city" class="label-report-problem">Wybierz miasto:</label>
+
+                <select id="report-locker-select-city" name="city" required>
+                  <option value="" disabled selected>Wybierz miasto</option>
+                </select>
+              </div>
+
+              <div class="form-group form-group--full-width">
+                <p class="label-report-problem">Wybierz automat:</p>
+                <div class="report-locker-list" id="report-locker-list"></div>
+              </div>
+
+              <div class="form-group form-group--full-width">
+                <p class="label-report-problem">Wybierz skrytkę do oznaczenia jako uszkodzoną:</p>
+
+              <div class="locker-display hidden" id="report-locker-display">
+                <h2 class="locker-display__locker-name" id="report-locker-name"></h2>
+
+                <div class="locker-display__grid" id="report-locker-grid"></div>
+
+                <div class="locker-display__info" id="report-locker-info">
+                  <p class="locker-display__info-title">Legenda</p>
+                  <div class="locker-display__info__legend-box">
+
+                    <div class="locker-display__info__legend-box--free locker-display__info__legend-box-item">
+                      <div class="locker-display__info__legend-box--free__color"></div>
+                      <span class="locker-display__label">Wolna</span>
+                    </div>
+                    
+                    <div class="locker-display__info__legend-box--occupied locker-display__info__legend-box-item">
+                      <div class="locker-display__info__legend-box--occupied__color"></div>
+                      <span class="locker-display__label">Zajęta</span>
+                    </div>
+
+                    <div class="locker-display__info__legend-box--out-of-order locker-display__info__legend-box-item">
+                      <div class="locker-display__info__legend-box--out-of-order__color"></div>
+                      <span class="locker-display__label">Uszkodzona</span>
+                    </div>
+                  
+                </div>
+              </div>
+
+              </div>
+
+              <div class="form-group form-group--full-width">
+                <p class="label-report-problem">Wybrana skrytka:</p>
+
+                <div class="report-problem__selected">
+                  <p class="report-problem__selected-row">
+                    <span class="report-problem__selected-label">Automat:</span>
+                    <span class="report-problem__selected-value" id="report-selected-automat">—</span>
+                  </p>
+
+                  <p class="report-problem__selected-row">
+                    <span class="report-problem__selected-label">Skrytka:</span>
+                    <span class="report-problem__selected-value" id="report-selected-locker">—</span>
+                  </p>
+                </div>
+
+                <input type="hidden" id="report-automat-id" name="automat_id" required />
+                <input type="hidden" id="report-locker-id" name="skrytka_id" required />
+              </div>
+
+              <div class="form-group form-group--full-width">
+                <label for="report-description" class="label-report-problem">Opis problemu:</label>
+                <textarea id="report-description" name="description" rows="4" required></textarea>
+              </div>
+
+              <div class="form-group form-group--full-width">
+                <button type="submit" class="btn" id="report-submit" disabled>Oznacz skrytkę jako uszkodzoną</button>
+              </div>
+            </form>
+          </section>
+        </section>
+
 
 
         <!-- ========================= -->
@@ -357,6 +488,7 @@
           </section>
 
           <section class="view__content view__content--operator">
+
             <section class="operator-panel" id="operator-panel">
               <section class="operator-panel__header">
                 <h3 class="operator-panel__title">Paczki do zatwierdzenia</h3>
@@ -435,9 +567,162 @@
                 </section>
               </section>
             </section>
+
           </section>
         </section>
 
+        <section class="view hidden" id="view_admin" data-view data-roles="ADMIN">
+            
+          <section class="view__content--admin">
+              <section class="admin-users" id="admin-users-view">
+                <div class="admin-users__actions">
+                  <button class="btn" id="admin-users-btn-refresh" type="button">Zobacz aktualnych użytkowników</button>
+
+                  <button class="btn" id="admin-users-btn-add-client" type="button">Dodaj klienta</button>
+                  <button class="btn" id="admin-users-btn-add-courier" type="button">Dodaj kuriera</button>
+                  <button class="btn" id="admin-users-btn-add-operator" type="button">Dodaj operatora</button>
+                  <button class="btn" id="admin-users-btn-add-admin" type="button">Dodaj admina</button>
+                </div>
+
+                <div class="admin-users__form hidden" id="admin-users-form-box">
+                  <h3 class="admin-users__form-title" id="admin-users-form-title"></h3>
+
+                  <form class="admin-users__form--form" id="admin-users-form">
+                    <input id="admin-users-form-role" type="hidden" />
+
+                    <div class="admin-users__form--form-row form-row">
+                      <label for="admin-users-first-name">Imię</label>
+                      <input id="admin-users-first-name" type="text" autocomplete="off" />
+                    </div>
+
+                    <div class="admin-users__form--form-row form-row">
+                      <label for="admin-users-last-name">Nazwisko</label>
+                      <input id="admin-users-last-name" type="text" autocomplete="off" />
+                    </div>
+
+                    <div class="admin-users__form--form-row form-row">
+                      <label for="admin-users-email">Email</label>
+                      <input id="admin-users-email" type="email" autocomplete="off" />
+                    </div>
+
+                    <div class="admin-users__form--form-row form-row">
+                      <label for="admin-users-phone">Telefon</label>
+                      <input id="admin-users-phone" type="tel" autocomplete="off" />
+                    </div>
+
+                    <div class="admin-users__form--form-row form-row">
+                      <label for="admin-users-password">Hasło startowe</label>
+                      <input id="admin-users-password" type="password" autocomplete="off" />
+                    </div>
+
+                    <div class="admin-users__form--form-actions">
+                      <button class="btn" type="submit">Zapisz</button>
+                      <button class="btn" id="admin-users-form-cancel" type="button">Anuluj</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="admin-users__lists" id="admin-users-lists">
+                  <div class="admin-users__lists__group admin-users__lists__group--clients">
+                    <h3>Klienci</h3>
+                    <div class="admin-users__list" id="admin-users-list-kli"></div>
+                  </div>
+
+                  <div class="admin-users__lists__group admin-users__lists__group--operators">
+                    <h3>Operatorzy</h3>
+                    <div class="admin-users__list" id="admin-users-list-opr"></div>
+                  </div>
+
+                  <div class="admin-users__lists__group admin-users__lists__group--couriers">
+                    <h3>Kurierzy</h3>
+                    <div class="admin-users__list" id="admin-users-list-kur"></div>
+                  </div>
+
+                  <div class="admin-users__lists__group admin-users__lists__group--admins">
+                    <h3>Admini</h3>
+                    <div class="admin-users__list" id="admin-users-list-adm"></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="admin-client hidden" id="admin-client-view">
+                <div class="admin-client__header">
+                  <button class="btn" id="admin-client-back" type="button">← Wróć</button>
+                  <h3 id="admin-client-title"></h3>
+                </div>
+
+                <div class="admin-client__tabs">
+                  <button class="btn" id="admin-client-tab-sent" type="button">Nadane przez niego</button>
+                  <button class="btn" id="admin-client-tab-received" type="button">Do niego wysłane</button>
+                </div>
+
+                <div class="admin-client__list" id="admin-client-packages"></div>
+              </section>
+
+              <section class="admin-automaty hidden" id="admin-automaty-view">
+                <div class="admin-automaty__header">
+                  <button class="btn" id="admin-automaty-back" type="button">← Wróć</button>
+                  <h3 id="admin-automaty-title">Zarządzanie automatami</h3>
+                </div>
+
+                <div class="admin-automaty__actions">
+                  <button class="btn" id="admin-automaty-btn-add" type="button">Dodaj nowy automat</button>
+                  <button class="btn" id="admin-automaty-btn-faulty" type="button">Zobacz automaty z awariami</button>
+                  <button class="btn" id="admin-automaty-btn-all" type="button">Zobacz wszystkie automaty</button>
+                </div>
+
+                <div class="admin-automaty__cities hidden" id="admin-automaty-cities"></div>
+
+                <div class="admin-automaty__city-list hidden" id="admin-automaty-city-list"></div>
+
+
+                <div class="admin-automaty__form hidden" id="admin-automaty-form-box">
+                  <h3 class="admin-automaty__form-title" id="admin-automaty-form-title">Dodaj nowy automat</h3>
+
+                  <form class="admin-automaty__form--form" id="admin-automaty-form">
+                    <div class="admin-automaty__form--form-row form-row">
+                      <label for="admin-automaty-name">Kod automatu</label>
+                      <input id="admin-automaty-name" type="text" autocomplete="off" required />
+                    </div>
+
+                    <div class="admin-automaty__form--form-row form-row">
+                      <label for="admin-automaty-city">Miasto</label>
+                      <input id="admin-automaty-city" type="text" autocomplete="off" required />
+                    </div>
+
+                    <div class="admin-automaty__form--form-row form-row">
+                      <label for="admin-automaty-address">Adres</label>
+                      <input id="admin-automaty-address" type="text" autocomplete="off" required />
+                    </div>
+
+                    <div class="admin-automaty__form--form-row form-row">
+                      <label for="admin-automaty-num-lockers-total">Wspolrzedne GPS</label>
+                      <input id="admin-automaty-gps-coords" type="text" placeholder="szerokość, długość" autocomplete="off" required />
+                    </div>
+
+                    <div class="admin-automaty__form--form-row form-row">
+                      <label for="admin-automaty-num-columns">Liczba kolumn</label>
+                      <input id="admin-automaty-num-columns" type="number" min="1" autocomplete="off" required />
+                    </div>
+
+                    <div class="admin-automaty__form--form-row form-row">
+                      <label for="admin-automaty-num-rows">Liczba rzędów (musi być parzysta)</label>
+                      <input id="admin-automaty-num-rows" type="number" min="1" autocomplete="off" required />
+                    </div>
+
+                    <div class="admin-automaty__form--form-actions">
+                      <button class="btn" type="submit">Zapisz</button>
+                      <button class="btn" id="admin-automaty-form-cancel" type="button">Anuluj</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="admin-automaty__list hidden" id="admin-automaty-list"></div>
+
+            </section>
+          </section>
+        </section>
+         
       </main>
     </div>
 

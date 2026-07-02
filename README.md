@@ -1,0 +1,355 @@
+# Parcel Locker Service
+
+Webowa aplikacja bazodanowa symulująca system obsługi automatów paczkowych. Projekt składa się z frontendu statycznego, backendu REST API oraz bazy PostgreSQL ze schematem `parcel_locker`.
+
+## Spis Treści
+
+- [Opis](#opis)
+- [Stack Technologiczny](#stack-technologiczny)
+- [Architektura](#architektura)
+- [Funkcjonalności](#funkcjonalności)
+- [Wymagania](#wymagania)
+- [Konfiguracja Lokalna](#konfiguracja-lokalna)
+- [Baza Danych](#baza-danych)
+- [Konta Testowe](#konta-testowe)
+- [Uruchamianie](#uruchamianie)
+- [API](#api)
+- [Struktura Projektu](#struktura-projektu)
+- [Deployment](#deployment)
+- [Uwagi Po Analizie](#uwagi-po-analizie)
+
+## Opis
+
+Celem aplikacji jest odwzorowanie uproszczonego procesu logistycznego dla automatów paczkowych:
+
+- klient zakłada konto, wybiera automat docelowy i nadaje paczkę,
+- operator zatwierdza oczekujące paczki,
+- kurier podejmuje paczki, przewozi je i umieszcza w odpowiednich skrytkach,
+- klient śledzi swoje paczki, historię zdarzeń i może przedłużyć termin odbioru,
+- administrator zarządza użytkownikami, automatami oraz uszkodzonymi skrytkami.
+
+System ma role aplikacyjne, tokeny JWT, widoki dopasowane do roli użytkownika oraz logikę integralności danych wymuszaną także po stronie PostgreSQL.
+
+## Stack Technologiczny
+
+Frontend:
+
+- HTML + JavaScript ES Modules
+- Vite
+- SCSS/Sass
+- Firebase Hosting
+
+Backend:
+
+- Node.js
+- Express
+- PostgreSQL przez `pg`
+- JWT przez `jsonwebtoken`
+- haszowanie haseł przez `bcrypt`
+- `dotenv`, `cors`
+
+Baza danych:
+
+- PostgreSQL
+- schemat `parcel_locker`
+- funkcje PL/pgSQL
+- triggery
+- widoki SQL
+- role bazodanowe w osobnym pliku `roles.sql`
+
+## Architektura
+
+```text
+frontend/
+  HTML + JS + SCSS
+  API_BASE = /api
+        |
+        v
+backend/
+  Express REST API pod /api
+        |
+        v
+PostgreSQL
+  schema parcel_locker
+  tabele, widoki, funkcje, triggery
+```
+
+W produkcji Firebase Hosting serwuje pliki z `frontend/dist`, a ścieżki `/api/**` są przepisywane do usługi Cloud Run `parcel-locker-service` w regionie `europe-central2`.
+
+## Funkcjonalności
+
+- rejestracja i logowanie klientów,
+- logowanie użytkowników testowych dla ról `ADMIN`, `OPERATOR`, `KURIER`,
+- wymuszona zmiana hasła dla kont tworzonych przez administratora,
+- lista miast i automatów,
+- podgląd układu skrytek w automacie,
+- nadawanie paczki przez klienta,
+- zatwierdzanie paczek przez operatora,
+- podejmowanie paczek przez kuriera,
+- wybór wolnej skrytki pasującej do wymiarów paczki,
+- umieszczanie paczki w automacie,
+- historia zdarzeń paczki,
+- przedłużanie terminu odbioru,
+- oznaczanie skrytek jako uszkodzone,
+- obsługa uszkodzonych skrytek przez administratora,
+- zarządzanie użytkownikami i automatami przez administratora,
+- administracyjne czyszczenie i inicjalizacja schematu bazy.
+
+## Wymagania
+
+- Node.js 18+,
+- npm,
+- PostgreSQL 14+,
+- opcjonalnie Firebase CLI do deploymentu hostingu.
+
+## Konfiguracja Lokalna
+
+Zainstaluj zależności w katalogu głównym oraz w obu częściach aplikacji:
+
+```bash
+npm install
+npm --prefix backend install
+npm --prefix frontend install
+```
+
+Utwórz plik `backend/.env`:
+
+```env
+PORT=8080
+
+DB_HOST=localhost
+DB_USER=postgres
+DB_PASS=postgres
+DB_NAME=parcel_locker
+
+JWT_SECRET=local-dev-secret-change-me
+```
+
+Dla Google Cloud SQL backend obsługuje też zmienną:
+
+```env
+INSTANCE_CONNECTION_NAME=project:region:instance
+```
+
+Jeżeli `INSTANCE_CONNECTION_NAME` jest ustawione, backend użyje socketa `/cloudsql/<INSTANCE_CONNECTION_NAME>` zamiast `DB_HOST`.
+
+## Baza Danych
+
+Utwórz bazę:
+
+```bash
+createdb parcel_locker
+```
+
+Zainicjalizuj schemat w kolejności używanej przez backend:
+
+```bash
+psql -d parcel_locker -f backend/sql/schema.sql
+psql -d parcel_locker -f backend/sql/functions.sql
+psql -d parcel_locker -f backend/sql/data.sql
+psql -d parcel_locker -f backend/sql/view.sql
+```
+
+Opcjonalnie dodaj role bazodanowe i uprawnienia:
+
+```bash
+psql -d parcel_locker -f backend/sql/roles.sql
+```
+
+Uwaga: `schema.sql` usuwa i tworzy schemat `parcel_locker` od nowa, więc kasuje dane w tym schemacie.
+
+Backend ma też endpointy administracyjne:
+
+- `POST /api/db/init` - uruchamia `schema.sql`, `functions.sql`, `data.sql`, `view.sql`,
+- `POST /api/db/clear` - usuwa schemat `parcel_locker`,
+- `GET /api/db/test` - sprawdza połączenie z bazą.
+
+Te endpointy wymagają zalogowanego użytkownika z rolą `ADMIN` albo `OPERATOR`.
+
+## Konta Testowe
+
+Seed w `backend/sql/data.sql` tworzy konta:
+
+| Rola | Email | Hasło |
+| --- | --- | --- |
+| ADMIN | `admin@test.pl` | `admin123` |
+| OPERATOR | `operator@test.pl` | `operator123` |
+| KURIER | `kurier@test.pl` | `kurier123` |
+| KURIER | `kurier2@test.pl` | `kurier123` |
+
+Konto klienta można utworzyć przez formularz rejestracji.
+
+## Uruchamianie
+
+Backend:
+
+```bash
+npm start --prefix backend
+```
+
+Domyślnie API działa na:
+
+```text
+http://localhost:8080
+```
+
+Frontend:
+
+```bash
+npm run dev --prefix frontend
+```
+
+Domyślnie Vite otwiera:
+
+```text
+http://localhost:5173/login.html
+```
+
+Można też uruchomić backend i frontend jedną komendą:
+
+```bash
+npm run dev
+```
+
+Uwaga lokalna: frontend używa `API_BASE = "/api"`. W produkcji działa to przez rewrite Firebase. W lokalnym Vite nie ma obecnie skonfigurowanego proxy do backendu, więc pełny lokalny przepływ wymaga proxy/rewrite z `/api` na `http://localhost:8080/api` albo uruchomienia aplikacji za warstwą, która zapewnia takie mapowanie.
+
+## API
+
+Wszystkie endpointy backendu są pod prefiksem `/api`.
+
+### Publiczne
+
+- `GET /api/miasta` - lista miast z automatami,
+- `GET /api/automaty?miasto=<miasto>` - automaty w mieście,
+- `GET /api/automaty/:id` - szczegóły automatu i skrytek.
+
+### Auth
+
+- `POST /api/auth/register` - rejestracja klienta,
+- `POST /api/auth/login` - logowanie,
+- `GET /api/auth/me` - dane zalogowanego użytkownika,
+- `POST /api/auth/change-password` - zmiana hasła.
+
+Autoryzacja odbywa się nagłówkiem:
+
+```http
+Authorization: Bearer <token>
+```
+
+### Klient
+
+- `POST /api/me/paczki` - nadanie paczki,
+- `GET /api/me/paczki` - paczki zalogowanego klienta,
+- `POST /api/paczki/:id/przedluzenia` - przedłużenie terminu odbioru,
+- `GET /api/paczki/:id/zdarzenia` - historia paczki.
+
+### Operator
+
+- `GET /api/operator/paczki/pending` - paczki oczekujące na zatwierdzenie,
+- `GET /api/operator/paczki/:id/skrytki` - dostępne skrytki dla paczki,
+- `POST /api/operator/paczki/:id/approve` - zatwierdzenie paczki,
+- `POST /api/paczki` - utworzenie paczki przez operatora,
+- `PUT /api/automaty/:id/status` - zmiana statusu automatu,
+- `PUT /api/skrytki/:id/status` - zmiana statusu skrytki.
+
+### Kurier
+
+- `GET /api/kurier/paczki/pool` - pula paczek do podjęcia,
+- `GET /api/kurier/paczki` - paczki przypisane do kuriera,
+- `POST /api/kurier/paczki/:id/podejmij` - rozpoczęcie transportu,
+- `GET /api/kurier/paczki/:id/skrytki-docelowe` - wolne pasujące skrytki w automacie docelowym,
+- `POST /api/kurier/paczki/:id/umiesc-w-automacie` - umieszczenie paczki w skrytce,
+- `PUT /api/kurier/skrytki/:id/status` - oznaczenie skrytki jako uszkodzonej.
+
+### Admin
+
+- `GET /api/admin/users` - lista użytkowników,
+- `POST /api/admin/users` - dodanie użytkownika,
+- `DELETE /api/admin/users/:id` - usunięcie użytkownika,
+- `GET /api/admin/clients/:id/paczki?mode=sent|received` - paczki klienta,
+- `POST /api/admin/paczki/:id/simulate-pickup` - symulacja odbioru paczki,
+- `POST /api/admin/automaty` - dodanie automatu,
+- `DELETE /api/admin/automaty/:id` - usunięcie automatu,
+- `GET /api/admin/automaty/locker-faulty` - automaty z uszkodzonymi skrytkami,
+- `PUT /api/admin/automaty/:automatId/lockers/:lockerId/mark-repaired` - naprawa skrytki.
+
+## Struktura Projektu
+
+```text
+.
+├── backend/
+│   ├── package.json
+│   ├── sql/
+│   │   ├── schema.sql
+│   │   ├── functions.sql
+│   │   ├── data.sql
+│   │   ├── view.sql
+│   │   ├── roles.sql
+│   │   └── init.sql
+│   └── src/
+│       ├── server.js
+│       ├── db.js
+│       ├── dbAdmin.js
+│       ├── utils.js
+│       ├── middleware/
+│       └── routes/
+├── frontend/
+│   ├── index.html
+│   ├── login.html
+│   ├── register.html
+│   ├── app.html
+│   ├── change-password.html
+│   ├── src/
+│   │   ├── api.js
+│   │   ├── app.js
+│   │   └── features/
+│   └── sass/
+├── locker-data/
+│   ├── csv_by_city/
+│   ├── csv_wojewodzkie/
+│   └── *.py
+├── firebase.json
+└── package.json
+```
+
+Najważniejsze pliki:
+
+- `backend/src/server.js` - start Expressa i podpięcie `/api`,
+- `backend/src/db.js` - konfiguracja poola PostgreSQL i `search_path=parcel_locker,public`,
+- `backend/src/routes/*.routes.js` - endpointy REST,
+- `backend/sql/schema.sql` - tabele i relacje,
+- `backend/sql/functions.sql` - funkcje i triggery,
+- `backend/sql/data.sql` - dane startowe,
+- `backend/sql/view.sql` - widoki dla frontendu,
+- `frontend/src/api.js` - klient HTTP i obsługa JWT,
+- `frontend/src/app.js` - inicjalizacja widoków zależnych od roli,
+- `frontend/src/features/` - moduły funkcjonalne UI.
+
+## Deployment
+
+Build frontendu:
+
+```bash
+npm --prefix frontend run build
+```
+
+Build i deploy Firebase Hosting:
+
+```bash
+npm run firebase-deploy
+```
+
+Konfiguracja `firebase.json`:
+
+- publikuje `frontend/dist`,
+- przekierowuje `/` do `/login.html`,
+- mapuje `/api/**` na Cloud Run service `parcel-locker-service` w regionie `europe-central2`.
+
+## Uwagi Po Analizie
+
+- Projekt jest rozdzielony na trzy warstwy: statyczny frontend, Express API i PostgreSQL.
+- Uprawnienia aplikacyjne są sprawdzane przez JWT oraz middleware `requireRoles`.
+- Baza nie jest tylko magazynem danych: triggery pilnują m.in. generowania układu skrytek, dopasowania paczki do skrytki, statusów i reguł biznesowych.
+- `backend/sql/init.sql` wygląda jak monolityczny plik inicjalizacyjny, ale kod backendu używa osobno `schema.sql`, `functions.sql`, `data.sql` i `view.sql`.
+- W repo jest dużo danych pomocniczych w `locker-data/`, w tym CSV z lokalizacjami automatów i skrypty do generowania insertów.
+- Lokalny dev frontend/backend wymaga dopracowania proxy dla `/api`, jeśli aplikacja ma działać bez Firebase/Cloud Run rewrite.

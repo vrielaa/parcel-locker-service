@@ -26,10 +26,14 @@ form.addEventListener("submit", async (e) => {
   try {
     const res = await apiFetch("/auth/change-password", {
       method: "POST",
-      body: JSON.stringify({ current_password, new_password })
+      body: JSON.stringify({ current_password, new_password }),
+      headers: {
+        "Content-Type": "application/json"
+      }
     })
 
     const data = await res.json()
+    console.log("change-password response:", data)
 
     if (!res.ok || !data.ok) {
       displayMessageForSeconds("Błąd: " + (data.error || "Nieznany błąd"), 5, msgId)

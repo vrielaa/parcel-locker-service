@@ -38,6 +38,11 @@
             color: $color-primary;
         }   
 
+        @media (max-width: 1600px){ 
+            font-size: 1.02rem;
+            
+        }
+
     }
     
-    }
+}

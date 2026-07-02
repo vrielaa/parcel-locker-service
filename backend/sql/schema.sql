@@ -199,6 +199,7 @@ CREATE TABLE ZdarzeniePaczki (
 -- APP USER (LOGOWANIE DO APLIKACJI)
 -- =====================================================
 
+
 CREATE TABLE AppUser (
     app_user_id     SERIAL PRIMARY KEY,
     email           TEXT UNIQUE NOT NULL,
@@ -207,15 +208,15 @@ CREATE TABLE AppUser (
     rola            TEXT NOT NULL
         CHECK (rola IN ('ADMIN','KURIER','KLIENT','OPERATOR')),
 
-    klient_id       INT
+    klient_id       INT UNIQUE
         REFERENCES Klient(klient_id)
         ON DELETE CASCADE,
 
-    pracownik_id    INT
+    pracownik_id    INT UNIQUE
         REFERENCES Pracownik(pracownik_id)
         ON DELETE CASCADE,
 
-    must_change_password BOOLEAN 
+    must_change_password BOOLEAN
         NOT NULL DEFAULT TRUE,
 
     CHECK (
@@ -223,3 +224,4 @@ CREATE TABLE AppUser (
         (rola IN ('ADMIN','KURIER','OPERATOR') AND pracownik_id IS NOT NULL AND klient_id IS NULL)
     )
 );
+

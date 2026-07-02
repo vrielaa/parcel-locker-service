@@ -1,16 +1,16 @@
-//api.js
-import { displayMessageForSeconds } from "./messages.js"
-
 export const API_BASE = "/api"
 
 export const getToken = () => localStorage.getItem("token")
 export const setToken = (t) => localStorage.setItem("token", t)
+
 export const clearToken = () => {
   localStorage.removeItem("token")
   localStorage.removeItem("rola")
 }
 
-export const redirectToLogin = () => {
+export const redirectToLogin = (reason = "") => {
+  console.warn("[redirectToLogin]", reason)
+  console.trace()
   window.location.href = "/login.html"
 }
 
@@ -32,67 +32,61 @@ export const apiFetch = async (path, options = {}) => {
     ...options,
     headers: {
       ...(options.headers || {}),
-      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
   })
 
-  if (res.status === 401 || res.status === 403) {
-    clearToken()
-    redirectToLogin()
-    throw new Error("AUTH_REQUIRED")
+  if (res.status === 401) {
+    const data = await safeJson(res)
+    const err = new Error("AUTH_REQUIRED")
+    err.status = 401
+    err.data = data
+    err.path = path
+    throw err
+  }
+
+  if (res.status === 403) {
+    const data = await safeJson(res)
+    const err = new Error("FORBIDDEN")
+    err.status = 403
+    err.data = data
+    err.path = path
+    throw err
   }
 
   return res
 }
 
-export async function callApi(path, options = {}, messageOutputId = "db-message") {
-  displayMessageForSeconds("Ładowanie...", 2, messageOutputId)
-
+export async function callApi(path, options = {}) {
   try {
     const res = await apiFetch(path, options)
     const data = await safeJson(res)
 
-    if (!res.ok) {
-      const msg = data?.error || `HTTP ${res.status}`
-      displayMessageForSeconds("Błąd: " + msg, 5, messageOutputId)
-      return null
-    }
+    if (!res.ok) return null
 
-    displayMessageForSeconds("Sukces: " + JSON.stringify(data ?? { ok: true }), 5, messageOutputId)
     return data ?? { ok: true }
   } catch (err) {
-    if (err?.message === "AUTH_REQUIRED") return null
-
-    displayMessageForSeconds("Błąd: " + err.message, 5, messageOutputId)
     return null
   }
 }
 
 export const authGuard = async () => {
   const token = getToken()
-
-  if (!token) {
-    redirectToLogin()
-    return null
-  }
+  if (!token) return null
 
   try {
     const res = await apiFetch("/auth/me", { method: "GET" })
-    const data = await safeJson(res)
+    const data = await res.json().catch(() => null)
 
-    if (!res.ok || !data?.ok) {
-      clearToken()
-      redirectToLogin()
-      return null
-    }
+    if (!res.ok || !data?.ok || !data?.user) return null
 
     return data.user
   } catch (err) {
-    if (err?.message === "AUTH_REQUIRED") return null
+    if (err?.status === 401 || err?.message === "AUTH_REQUIRED") {
+      clearToken()
+      return null
+    }
 
-    clearToken()
-    redirectToLogin()
     return null
   }
 }

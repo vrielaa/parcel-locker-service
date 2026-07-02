@@ -34,25 +34,58 @@ const getPickupDeadline = (p) =>
   p.termin_odbioru ?? p.odbior_do ?? p.terminOdbioru ?? p.odbiorDo ?? null
 
 const getReceiverLabel = (p) => {
-  const email = p?.odbiorca_email ?? p?.odbiorcaEmail ?? null
+  const email = p?.odbiorca_email ?? null
   if (email) return email
 
-  const id = p?.odbiorca_id ?? p?.odbiorcaId ?? null
+  const id = p?.odbiorca_id ?? null
   if (id) return `odbiorca #${id}`
 
   return "-"
 }
-
-
-const isAfterDeadline = (p) => {
+const parsePickupDeadline = (p) => {
   const raw = getPickupDeadline(p)
-  if (!raw) return false
+  if (!raw) return null
 
   const d = new Date(raw)
-  if (Number.isNaN(d.getTime())) return false
+  if (Number.isNaN(d.getTime())) return null
 
-  return Date.now() > d.getTime()
+  return d
 }
+
+const isAfterDeadline = (p, now = new Date()) => {
+  const d = parsePickupDeadline(p)
+  if (!d) return false
+  return now.getTime() > d.getTime()
+}
+
+const formatPickupDeadline = (p) => {
+  const d = parsePickupDeadline(p)
+  if (!d) return "-"
+  return d.toLocaleString()
+}
+
+const getJwtPayload = () => {
+  const token = localStorage.getItem("token") || localStorage.getItem("access_token") || ""
+
+  const parts = String(token).split(".")
+  if (parts.length !== 3) return null
+
+  try {
+    const b64 = parts[1].replaceAll("-", "+").replaceAll("_", "/")
+    const pad = "=".repeat((4 - (b64.length % 4)) % 4)
+    return JSON.parse(atob(b64 + pad))
+  } catch {
+    return null
+  }
+}
+
+  const getMyClientId = () => {
+
+    const p = getJwtPayload()
+    const id = p?.klientId ?? null;
+    
+    return Number(id);
+  }
 
 const getPackageId = (p) => p?.paczka_id ?? p?.id ?? null
 
@@ -65,6 +98,8 @@ const getSenderLabel = (p) => {
 
   return "-"
 }
+
+
 
 const getTracking = (p) => p?.numer_tracking ?? p?.tracking ?? p?.numer ?? "-"
 
@@ -94,13 +129,6 @@ const isArrivedStatus = (p) => {
 
 const isInLocker = (p) => normalizeStatus(p?.status) === "W_AUTOMACIE"
 
-const formatPickupDeadline = (p) => {
-  const raw = getPickupDeadline(p)
-  if (!raw) return "-"
-  const d = new Date(raw)
-  if (Number.isNaN(d.getTime())) return "-"
-  return d.toLocaleString()
-}
 
 const createPackagesDetailsView = ({
   detailsBoxElement,
@@ -110,6 +138,9 @@ const createPackagesDetailsView = ({
 
   senderLabelEl,
   senderValueEl,
+
+  receiverLabelEl,
+  receiverValueEl,
 
   parcelNumberLabelEl,
   parcelNumberValueEl,
@@ -161,7 +192,13 @@ const createPackagesDetailsView = ({
     eventsElement.appendChild(p)
   }
 
-  const normalizeEvents = (zdarzenia) => (Array.isArray(zdarzenia) ? zdarzenia.slice() : [])
+  const normalizeEvents = (zdarzenia) =>
+    (Array.isArray(zdarzenia) ? zdarzenia.slice() : []).map((e) =>
+      e && typeof e === "object" && typeof e.typ === "string"
+        ? { ...e, typ: e.typ.replaceAll("_", " ") }
+        : e
+    )
+
 
   const sortEventsNewestFirst = (list) => {
     list.sort((a, b) => {
@@ -246,12 +283,16 @@ const createPackagesDetailsView = ({
 
     const role = normalizeRole()
     const status = normalizeStatus(p?.status)
+    const myId = getMyClientId()
+
+    const isMeReceiver = Number(p?.odbiorca_id ?? null) === myId
 
     const canExtend =
       role === "KLIENT" &&
       status === "W_AUTOMACIE" &&
-      !!p
-      // && !isAfterDeadline(p)
+      !!p &&
+      isMeReceiver 
+      && !isAfterDeadline(p)
 
     if (canExtend) {
       extendBtn.classList.remove("hidden")
@@ -266,6 +307,9 @@ const createPackagesDetailsView = ({
   const clear = () => {
     senderLabelEl && (senderLabelEl.textContent = "")
     senderValueEl && (senderValueEl.textContent = "")
+
+    receiverLabelEl && (receiverLabelEl.textContent = "")
+    receiverValueEl && (receiverValueEl.textContent = "")
 
     parcelNumberLabelEl && (parcelNumberLabelEl.textContent = "")
     parcelNumberValueEl && (parcelNumberValueEl.textContent = "")
@@ -302,6 +346,9 @@ const createPackagesDetailsView = ({
 
     senderLabelEl && (senderLabelEl.textContent = "Nadawca:")
     senderValueEl && (senderValueEl.textContent = String(getSenderLabel(p) || "-"))
+
+    receiverLabelEl && (receiverLabelEl.textContent = "Odbiorca:")
+    receiverValueEl && (receiverValueEl.textContent = String(getReceiverLabel(p) || "-"))
 
     parcelNumberLabelEl && (parcelNumberLabelEl.textContent = "Numer tracking:")
     parcelNumberValueEl && (parcelNumberValueEl.textContent = String(getTracking(p) || "-"))
@@ -435,28 +482,9 @@ const createPackagesListView = ({
     if (mode === "BY_ME") btnSentByMe.classList.add("is-active")
   }
 
-  const getJwtPayload = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("access_token") || ""
 
-    const parts = String(token).split(".")
-    if (parts.length !== 3) return null
 
-    try {
-      const b64 = parts[1].replaceAll("-", "+").replaceAll("_", "/")
-      const pad = "=".repeat((4 - (b64.length % 4)) % 4)
-      return JSON.parse(atob(b64 + pad))
-    } catch {
-      return null
-    }
-  }
 
-  const getMyClientId = () => {
-
-    const p = getJwtPayload()
-    const id = p?.klientId ?? null;
-    
-    return Number(id);
-  }
 
   const splitPackages = (packages) => {
     const list = Array.isArray(packages) ? packages : []
@@ -646,6 +674,9 @@ export function initPackagesView() {
   const senderLabelEl = getElById("sender-label") ?? null
   const senderValueEl = getElById("sender-value") ?? null
 
+  const receiverLabelEl = getElById("receiver-label") ?? null
+  const receiverValueEl = getElById("receiver-value") ?? null
+
   const parcelNumberLabelEl = getElById("parcel-number-label") ?? null
   const parcelNumberValueEl = getElById("parcel-number-value") ?? null
 
@@ -680,6 +711,9 @@ export function initPackagesView() {
 
     senderLabelEl,
     senderValueEl,
+
+    receiverLabelEl,
+    receiverValueEl,
 
     parcelNumberLabelEl,
     parcelNumberValueEl,

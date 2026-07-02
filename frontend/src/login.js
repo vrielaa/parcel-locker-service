@@ -11,8 +11,7 @@ const submitBtn = getElById("login-button")
 const loginErrorEl = getElById("login-error")
 
 if (localStorage.getItem("token") || localStorage.getItem("access_token")) {
-  // Nie rób auto-redirect, bo nie da się przelogować na inną rolę.
-  // Opcjonalnie: możesz tu wyświetlić komunikat "Masz aktywną sesję" i przycisk "Wyloguj".
+  
 }
 
 

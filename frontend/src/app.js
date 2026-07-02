@@ -5,17 +5,20 @@ import { initKurierPanel } from "./features/kurier.js"
 import { initSendPackageView } from "./features/sendPackage.js"
 import { initOperatorPanel } from "./features/operatorPanel.js"
 import { initDbAdminControls } from "./features/dbAdmin.js"
+import { initAdminUsersView } from "./features/adminPanel.js"
+import { initAdminAutomatyPanel } from "./features/adminAutomaty.js"
+import { initKurierReport } from "./features/kurierReport.js"
 import { initLogout } from "./features/logout.js"
-import { clearToken } from "./authClient.js"
 import { addClass, removeClass, getElById } from "./utils.js"
-import { apiFetch } from "./api.js"
+import { apiFetch, clearToken } from "./api.js"
 
 async function main() {
-  // ----------------------------
-  // NAV: buttons + basic redirects
-  // ----------------------------
   const logoutBtn = getElById("logout-button")
   const changePasswordBtn = getElById("change-password-button")
+
+  const goLogin = () => {
+    window.location.href = "/login.html"
+  }
 
   if (changePasswordBtn) {
     changePasswordBtn.addEventListener("click", () => {
@@ -26,27 +29,32 @@ async function main() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       clearToken()
-      window.location.href = "/login.html"
+      goLogin()
     })
   }
 
-  // ----------------------------
-  // AUTH: token required
-  // ----------------------------
-  if (!localStorage.getItem("token")) {
-    window.location.href = "/login.html"
+  const token = localStorage.getItem("token")
+  if (!token) {
+    goLogin()
     return
   }
 
-  // ----------------------------
-  // AUTH: load /auth/me once
-  // ----------------------------
-  const resMe = await apiFetch("/auth/me")
-  const me = await resMe.json()
+  let me = null
+  let authErr = null
+
+  try {
+    const resMe = await apiFetch("/auth/me", { method: "GET" })
+    me = await resMe.json().catch(() => null)
+  } catch (err) {
+    authErr = err
+    me = null
+  }
 
   if (!me?.ok || !me?.user) {
-    clearToken()
-    window.location.href = "/login.html"
+    if (authErr?.status === 401 || authErr?.message === "AUTH_REQUIRED") {
+      clearToken()
+    }
+    goLogin()
     return
   }
 
@@ -55,16 +63,19 @@ async function main() {
     return
   }
 
-  localStorage.setItem("rola", me.user.rola)
+  localStorage.setItem("rola", String(me.user.rola || "").trim().toUpperCase())
 
-  // ----------------------------
-  // ROLE UI + DEV UI
-  // ----------------------------
-  const showDevTools =
-    import.meta.env.VITE_SHOW_DEV_TOOLS === "true" ||
-    import.meta.env.VITE_SHOW_DEV_TOOLS === "1"
+  
 
   const role = (me.user.rola || "").toUpperCase()
+
+  const myAccountEmailEl = getElById("account-button");
+
+
+  if (myAccountEmailEl) {
+    myAccountEmailEl.textContent = me.user.email;
+    
+  }
 
   document.querySelectorAll("[data-roles]:not([data-view])").forEach((el) => {
     const allowed = (el.getAttribute("data-roles") || "")
@@ -86,7 +97,7 @@ async function main() {
   })
 
   const btnAutomaty = getElById("get-automaty")
-  if (btnAutomaty) removeClass(btnAutomaty, "hidden")
+  // if (btnAutomaty) removeClass(btnAutomaty, "hidden")
 
   const views = Array.from(document.querySelectorAll("[data-view]"))
 
@@ -97,7 +108,6 @@ async function main() {
       .filter(Boolean)
 
     if (allowed.length === 0) return true
-
     return allowed.includes(role)
   }
 
@@ -106,12 +116,9 @@ async function main() {
   }
 
   const showView = (viewId) => {
-   
     const el = getElById(viewId)
     if (!el) return
- 
     if (!canSeeView(el, role)) return
-
     hideAllViews()
     removeClass(el, "hidden")
   }
@@ -119,30 +126,56 @@ async function main() {
   const btnMyPackages = getElById("nav-my-packages")
   const btnCourierPackages = getElById("nav-courier-packages")
   const btnOperatorPanel = getElById("nav-operator-panel")
-  const btnUsers = getElById("nav-users")
-  const btnDevTools = getElById("nav-dev-tools")
   const createPackageBtn = getElById("nav-create-package")
+  const btnAdminUsers = getElById("nav-admin-users")
+  const btnAdminAutomaty = getElById("nav-admin-automaty")
+  const btnKurierReport = getElById("nav-courier-report")
 
   if (btnAutomaty) btnAutomaty.addEventListener("click", () => showView("view-automaty"))
   if (btnMyPackages) btnMyPackages.addEventListener("click", () => showView("view-klient"))
   if (btnCourierPackages) btnCourierPackages.addEventListener("click", () => showView("view-kurier"))
   if (btnOperatorPanel) btnOperatorPanel.addEventListener("click", () => showView("view-operator"))
-  if (btnUsers) btnUsers.addEventListener("click", () => showView("view-users"))
-  if (btnDevTools) btnDevTools.addEventListener("click", () => showView("view-dev"))
   if (createPackageBtn) createPackageBtn.addEventListener("click", () => showView("view-create-package"))
+  if (btnKurierReport) btnKurierReport.addEventListener("click", () => showView("view-report-problem"))
 
+  if (btnAdminUsers) {
+    btnAdminUsers.addEventListener("click", () => {
+      showView("view_admin")
 
+      const usersViewEl = getElById("admin-users-view")
+      const automatyViewEl = getElById("admin-automaty-view")
+      const clientViewEl = getElById("admin-client-view")
 
-  // ----------------------------
-  // FEATURES INIT
-  // ----------------------------
+      if (usersViewEl) removeClass(usersViewEl, "hidden")
+      if (automatyViewEl) addClass(automatyViewEl, "hidden")
+      if (clientViewEl) addClass(clientViewEl, "hidden")
+    })
+  }
+
+  if (btnAdminAutomaty) {
+    btnAdminAutomaty.addEventListener("click", () => {
+      showView("view_admin")
+
+      const usersViewEl = getElById("admin-users-view")
+      const automatyViewEl = getElById("admin-automaty-view")
+      const clientViewEl = getElById("admin-client-view")
+
+      if (usersViewEl) addClass(usersViewEl, "hidden")
+      if (clientViewEl) addClass(clientViewEl, "hidden")
+      if (automatyViewEl) removeClass(automatyViewEl, "hidden")
+    })
+  }
+
   initAutomatsView()
   initDbAdminControls()
   initLogout()
   initPackagesView()
   initKurierPanel()
+  initKurierReport()
   initSendPackageView()
   initOperatorPanel()
+  initAdminUsersView()
+  initAdminAutomatyPanel()
 }
 
 main()

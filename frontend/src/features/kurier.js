@@ -1,4 +1,3 @@
-// src/features/kurier.js
 import { getElById } from "../utils.js"
 import { apiFetch } from "../api.js"
 
@@ -103,6 +102,71 @@ const getTargetLockerLabel = (p) =>
   p?.automatDocelowy?.nazwa ??
   "-"
 
+const getTargetAutomatCityDirect = (p) =>
+  p?.docelowy_automat_miasto ??
+  p?.docelowyAutomatMiasto ??
+  p?.docelowy_automat_city ??
+  p?.docelowyAutomatCity ??
+  p?.automat_docelowy_miasto ??
+  p?.automatDocelowyMiasto ??
+  p?.automat_docelowy_city ??
+  p?.automatDocelowyCity ??
+  p?.docelowy_automat?.miasto ??
+  p?.docelowy_automat?.city ??
+  p?.automat_docelowy?.miasto ??
+  p?.automat_docelowy?.city ??
+  null
+
+const getTargetAutomatAddress = (p) =>
+  p?.docelowy_automat_adres ??
+  p?.docelowyAutomatAdres ??
+  p?.automat_docelowy_adres ??
+  p?.automatDocelowyAdres ??
+  p?.docelowy_automat?.adres ??
+  p?.docelowy_automat?.address ??
+  p?.automat_docelowy?.adres ??
+  p?.automat_docelowy?.address ??
+  null
+
+const inferCityFromAddress = (addr) => {
+  const s = String(addr || "").trim()
+  if (!s) return ""
+
+  const parts = s
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+
+  if (!parts.length) return ""
+
+  const lettersOnly = parts.find((p) => /[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]/.test(p) && !/\d/.test(p))
+  if (lettersOnly) return lettersOnly
+
+  const last = parts[parts.length - 1].replace(/\d{2}-\d{3}/g, "").trim()
+  if (last && /[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]/.test(last)) return last
+
+  return ""
+}
+
+const getTargetCityLabel = (p) => {
+  const direct = String(getTargetAutomatCityDirect(p) || "").trim()
+  if (direct) return direct
+
+  const inferred = inferCityFromAddress(getTargetAutomatAddress(p))
+  if (inferred) return inferred
+
+  return ""
+}
+
+const normalizeText = (s) =>
+  String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+
 const resolveCurrentAutomatLabel = (p) => {
   const direct = String(getCurrentLockerLabel(p) || "-")
   if (direct !== "-") return direct
@@ -140,7 +204,7 @@ const getGridHost = (lockerDisplayEl) => lockerDisplayEl?.querySelector(".locker
 
 const isSelectableLocker = (locker) => {
   const s = String(locker?.status ?? "").trim().toUpperCase()
-  return s === "WOLNA" || s === "FREE" || s === "AVAILABLE"
+  return s === "WOLNA" 
 }
 
 const getLockerSizeCode = (locker) =>
@@ -624,10 +688,14 @@ const createCourierDetailsView = ({
   }
 }
 
-const createCourierListView = ({ listEl, onSelectPackage }) => {
+const createCourierListView = ({ listEl, cityFilterEl, cityClearEl, onSelectPackage }) => {
   let packagesButtons = []
   let selectedId = null
-  let lastPackages = []
+
+  let allPackages = []
+  let visiblePackages = []
+
+  let selectedCity = ""
 
   const clearList = () => {
     if (!listEl) return
@@ -643,7 +711,9 @@ const createCourierListView = ({ listEl, onSelectPackage }) => {
     listEl.appendChild(p)
   }
 
-  const findById = (id) => lastPackages.find((p) => String(getPackageId(p)) === String(id)) || null
+  const findById = (id) => allPackages.find((p) => String(getPackageId(p)) === String(id)) || null
+
+  const isVisibleId = (id) => visiblePackages.some((p) => String(getPackageId(p)) === String(id))
 
   const selectById = (id) => {
     const pkg = findById(id)
@@ -663,8 +733,16 @@ const createCourierListView = ({ listEl, onSelectPackage }) => {
     if (typeof onSelectPackage === "function") onSelectPackage(null)
   }
 
+  const applyCityFilter = (list) => {
+    const city = String(selectedCity || "").trim()
+    if (!city) return list
+
+    const want = normalizeText(city)
+    return list.filter((p) => normalizeText(getTargetCityLabel(p)) === want)
+  }
+
   const renderList = (packages) => {
-    lastPackages = Array.isArray(packages) ? packages : []
+    visiblePackages = Array.isArray(packages) ? packages : []
     clearList()
 
     if (!Array.isArray(packages) || packages.length === 0) {
@@ -702,20 +780,96 @@ const createCourierListView = ({ listEl, onSelectPackage }) => {
       return btn
     })
 
-    if (selectedId) selectById(selectedId)
+    if (selectedId) {
+      if (isVisibleId(selectedId)) selectById(selectedId)
+      else clearSelection()
+    }
+  }
+
+  const rerenderWithCurrentFilter = () => {
+    const filtered = applyCityFilter(allPackages)
+    renderList(filtered)
+  }
+
+  const setCityOptions = (miasta) => {
+    if (!cityFilterEl) return
+
+    const prev = String(selectedCity || cityFilterEl.value || "").trim()
+
+    cityFilterEl.replaceChildren()
+
+    const optAll = document.createElement("option")
+    optAll.value = ""
+    optAll.textContent = "Wszystkie miasta"
+    cityFilterEl.appendChild(optAll)
+
+    const list = Array.isArray(miasta) ? miasta.slice() : []
+    list
+      .map((m) => String(m || "").trim())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "pl"))
+      .forEach((miasto) => {
+        const opt = document.createElement("option")
+        opt.value = miasto
+        opt.textContent = miasto
+        cityFilterEl.appendChild(opt)
+      })
+
+    if (prev) {
+      const match = Array.from(cityFilterEl.options).find((o) => normalizeText(o.value) === normalizeText(prev))
+      if (match) {
+        selectedCity = match.value
+        cityFilterEl.value = match.value
+      } else {
+        selectedCity = ""
+        cityFilterEl.value = ""
+      }
+    } else {
+      selectedCity = ""
+      cityFilterEl.value = ""
+    }
+  }
+
+  const bindFiltersOnce = () => {
+    if (cityFilterEl && cityFilterEl.dataset.bound !== "1") {
+      cityFilterEl.dataset.bound = "1"
+      cityFilterEl.addEventListener("change", () => {
+        selectedCity = String(cityFilterEl.value || "").trim()
+        rerenderWithCurrentFilter()
+      })
+    }
+
+    if (cityClearEl && cityClearEl.dataset.bound !== "1") {
+      cityClearEl.dataset.bound = "1"
+      cityClearEl.type = "button"
+      cityClearEl.addEventListener("click", () => {
+        selectedCity = ""
+        if (cityFilterEl) cityFilterEl.value = ""
+        rerenderWithCurrentFilter()
+      })
+    }
   }
 
   const reload = async (opts = {}) => {
     if (opts.selectedId !== undefined) selectedId = opts.selectedId ? String(opts.selectedId) : null
 
     try {
-      const [resMine, resPool] = await Promise.all([apiFetch(ENDPOINTS.LIST), apiFetch(ENDPOINTS.POOL)])
+      const tasks = [apiFetch(ENDPOINTS.LIST), apiFetch(ENDPOINTS.POOL)]
+      if (cityFilterEl) tasks.push(apiFetch(`/miasta`))
+
+      const [resMine, resPool, resCities] = await Promise.all(tasks)
 
       const dataMine = await resMine.json().catch(() => null)
       const dataPool = await resPool.json().catch(() => null)
 
+      if (resCities) {
+        const miasta = await resCities.json().catch(() => [])
+        if (resCities.ok) setCityOptions(miasta)
+      }
+
       if (!resMine.ok && !resPool.ok) {
         const errMsg = dataMine?.error || dataPool?.error || `Błąd pobierania paczek`
+        allPackages = []
         renderEmpty(errMsg)
         clearSelection()
         return
@@ -730,24 +884,30 @@ const createCourierListView = ({ listEl, onSelectPackage }) => {
         if (id != null) byId.set(String(id), p)
       })
 
-      const merged = Array.from(byId.values())
-      renderList(merged)
+      allPackages = Array.from(byId.values())
+
+      rerenderWithCurrentFilter()
 
       if (!selectedId) clearSelection()
+      else if (!isVisibleId(selectedId)) clearSelection()
     } catch (err) {
+      allPackages = []
       renderEmpty(err?.message || "Nie udało się pobrać paczek.")
       clearSelection()
     }
   }
+
+  bindFiltersOnce()
 
   return {
     reload,
     selectById,
     clearSelection,
     getSelectedId: () => selectedId,
-    getLastPackages: () => lastPackages
+    getLastPackages: () => allPackages
   }
 }
+
 
 export function initKurierPanel() {
   const role = (localStorage.getItem("rola") || "").toUpperCase()
@@ -777,6 +937,9 @@ export function initKurierPanel() {
 
   const lockerDisplayEl = getElById("kurier-locker-display")
   const lockerNameEl = getElById("kurier-locker-name")
+
+  const cityFilterEl = getElById("kurier-city-filter")
+  const cityClearEl = getElById("kurier-city-filter-clear")
 
   const actionsEl =
     getElById("kurier-actions") ||
@@ -821,6 +984,8 @@ export function initKurierPanel() {
 
   listView = createCourierListView({
     listEl,
+    cityFilterEl,
+    cityClearEl,
     onSelectPackage: (p) => detailsView.setPackage(p)
   })
 

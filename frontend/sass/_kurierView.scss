@@ -16,22 +16,88 @@
         min-height: 0;
 
 
-       
+       .paczki-list-box{
+            grid-column: 1/4;
+            border: 2px solid $color-quaternary;
+            overflow-y: scroll;
+            grid-row: 1 / -1;
+
+            .kurier-filters{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem;
+                background-color: #ae7790;
+
+                &__row{
+                    display: flex;
+                    gap: 1rem;
+                    align-items: center;
+                    flex-direction: column;
+
+
+                }
+
+                &__label{
+                    font-size: 1.4rem;
+                    text-transform: uppercase;
+                    color: $color-quaternary;
+                }
+
+                &__select{
+                    border: 2px solid #54483a;
+                    box-shadow: 2px 2px 5px #0000001a;
+                    background-color: #f4e8d6;
+                    font-size: 1.3rem;
+                    width: 30rem;
+                    font-family: Impact, Haettenschweiler, Arial Narrow Bold, sans-serif;
+                    padding: 0.5rem 1rem;
+                }
+
+                &__clear{
+                    padding: 0.5rem 1rem;
+                    font-size: 1.2rem;
+                    border: 2px solid $color-quaternary;
+                    background-color: $color-yellow;
+                    cursor: pointer;
+                    text-transform: uppercase;
+                    font-family: $font-primary;
+                    transition: all 0.3s;
+
+                    &:hover{
+                        background-color: lch(51.44% 45.84 82.25);
+                        color: white;
+                    }
+
+                    &:active{
+                        transform: translateY(2px);
+                    }
+                }
+
+
+
+
+
+               
+            }
+       }
 
         .paczki__list{
-            grid-column: 1/4;
+            width: 100%;
 
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             align-items: center;
             min-height: 100vh;
-            overflow-y: auto;
+            height: 100%;
+        
             overflow-x: hidden;
             gap: 1.5rem;
             padding: 2rem 0;
             margin-bottom: 20rem;
-            border: 2px solid $color-quaternary;
+            
 
             .paczki__item{
                 display: grid;
@@ -120,7 +186,7 @@
 
         .paczka-details{
             grid-column: 4 / -1;
-            grid-row: 1 / 8;
+            grid-row: 1 / -1;
             height: 100%;
 
             color: white;
@@ -140,12 +206,45 @@
 
             .view-kurier__paczka-details{
        
+                &__row{
+                    display: flex;
+                    flex-direction: column;
+                  
+                }
+
+
+                &__buttons{
+                    #kurier-dostarcz-btn, #kurier-odebrana-btn{
+                        padding: .5rem 1rem;
+                        font-size: 1.2rem;
+                        border: 2px solid #943f5e;
+                        background-color: #d5a43a;
+                        cursor: pointer;
+                        text-transform: uppercase;
+                        font-family: Impact, Haettenschweiler, Arial Narrow Bold, sans-serif;
+                        transition: all .3s;
+                
+
+                    &:hover{
+                        background-color: #943f5e;
+                        color: #f4e8d6;
+
+                
+                    }
+
+                    &:active{
+                        transform: translateY(2px);
+                    }
+                }
+
+                }
 
                 &__box{
                     display: grid;
                     grid-template-columns: repeat(6, 1fr);
                     grid-template-rows: auto auto auto 1fr;
                     margin: 15rem auto;
+                    margin-bottom: 2rem;
 
                     width: 75%;
                     height: auto;
@@ -158,6 +257,8 @@
                             padding: 2rem;
                             gap: 1rem;
                             border-bottom: 1px solid #ffffff;
+
+
                         }
 
                         &-general-info{
@@ -192,35 +293,7 @@
                                 grid-row: 4 / -1;
                             }
 
-                            #przedluz-btn{
-                                grid-column: 1 / -1;
-                                grid-row: 3 / 4;
 
-                                width: fit-content;
-                                height: 4rem;
-                                border: 2px solid $color-quaternary;
-                                transition: all 0.3s;
-                                margin-top: 1rem;
-                                padding: 2px 1rem;
-                                cursor: pointer;
-                                font-family: $font-primary;
-                                text-transform: uppercase;
-                                box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-                                background-color: $color-yellow;
-                                color: #333;
-                            
-
-                                &:hover{
-                                    border-radius: 2px;
-                                    background-color: lch(51.44% 45.84 82.25);
-                                    color: white;
-                            
-                                }
-
-                                &:active{
-                                    transform: translateY(2px);
-                                }
-                            }
                     
                     
                         }
@@ -354,6 +427,7 @@
 
                         .span-value{
                         font-size: 1.6rem;
+                        font-family: monospace;
                         
 
                     }
@@ -368,5 +442,7 @@
 
 }
 
-
+#kurier-locker-display{
+    margin-bottom: 60rem;
+}
 

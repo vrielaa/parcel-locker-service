@@ -199,6 +199,7 @@ CREATE TABLE ZdarzeniePaczki (
 -- APP USER (LOGOWANIE DO APLIKACJI)
 -- =====================================================
 
+
 CREATE TABLE AppUser (
     app_user_id     SERIAL PRIMARY KEY,
     email           TEXT UNIQUE NOT NULL,
@@ -207,15 +208,15 @@ CREATE TABLE AppUser (
     rola            TEXT NOT NULL
         CHECK (rola IN ('ADMIN','KURIER','KLIENT','OPERATOR')),
 
-    klient_id       INT
+    klient_id       INT UNIQUE
         REFERENCES Klient(klient_id)
         ON DELETE CASCADE,
 
-    pracownik_id    INT
+    pracownik_id    INT UNIQUE
         REFERENCES Pracownik(pracownik_id)
         ON DELETE CASCADE,
 
-    must_change_password BOOLEAN 
+    must_change_password BOOLEAN
         NOT NULL DEFAULT TRUE,
 
     CHECK (
@@ -223,6 +224,7 @@ CREATE TABLE AppUser (
         (rola IN ('ADMIN','KURIER','OPERATOR') AND pracownik_id IS NOT NULL AND klient_id IS NULL)
     )
 );
+
 SET search_path TO parcel_locker;
 
 -- =====================================================
@@ -645,6 +647,72 @@ CREATE TRIGGER trg_prevent_last_admin_delete
 BEFORE DELETE ON parcel_locker.appuser
 FOR EACH ROW
 EXECUTE FUNCTION parcel_locker.trg_prevent_last_admin_delete_fn();
+
+
+-- =====================================================
+-- Trigger: automatyczne oznaczanie paczki jako PRZETERMINOWANA
+-- + dopisanie zdarzenia do historii (ZdarzeniePaczki)
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION parcel_locker.trg_mark_overdue_package_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.status = 'W_AUTOMACIE'
+     AND NEW.termin_odbioru IS NOT NULL
+     AND NEW.termin_odbioru < CURRENT_TIMESTAMP
+  THEN
+    NEW.status := 'PRZETERMINOWANA';
+
+    INSERT INTO parcel_locker.ZdarzeniePaczki (paczka_id, typ, czas)
+    SELECT NEW.paczka_id, 'PRZETERMINOWANA', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM parcel_locker.ZdarzeniePaczki z
+      WHERE z.paczka_id = NEW.paczka_id
+        AND z.typ = 'PRZETERMINOWANA'
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_mark_overdue_package ON parcel_locker.Paczka;
+
+CREATE TRIGGER trg_mark_overdue_package
+BEFORE INSERT OR UPDATE OF status, termin_odbioru ON parcel_locker.Paczka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.trg_mark_overdue_package_fn();
+
+-- =====================================================
+-- Trigger: blokada zmiany statusu skrytki ZAJETA -> USZKODZONA
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION parcel_locker.trg_block_zajeta_to_uszkodzona_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF UPPER(COALESCE(OLD.status, '')) = 'ZAJETA'
+     AND UPPER(COALESCE(NEW.status, '')) = 'USZKODZONA'
+  THEN
+    RAISE EXCEPTION 'Nie można zmienić statusu skrytki z ZAJETA na USZKODZONA.'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_block_zajeta_to_uszkodzona ON parcel_locker.skrytka;
+
+CREATE TRIGGER trg_block_zajeta_to_uszkodzona
+BEFORE UPDATE OF status ON parcel_locker.skrytka
+FOR EACH ROW
+EXECUTE FUNCTION parcel_locker.trg_block_zajeta_to_uszkodzona_fn();
+
 set search_path to parcel_locker;
 -- VIEW z automatami + miasto
 CREATE OR REPLACE VIEW automaty_in_city AS
@@ -2039,10 +2107,3 @@ GRANT SELECT, INSERT ON TABLES TO parcel_klient;
 GRANT EXECUTE ON FUNCTION parcel_locker.extract_city_from_address(text)
 TO parcel_kurier, parcel_admin, parcel_operator;
 
-
--- znajdz wszystkie automaty w danym mieście
--- wykorzystuje funkcję extract_city_from_address do wyodrębnienia miasta z adresu
--- sa pomoca SELECT AS 
-SET search_path TO parcel_locker;
-SELECT * FROM Automat
-WHERE parcel_locker.extract_city_from_address(adres) = 'Kraków';
