@@ -14,14 +14,20 @@ export function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, getJwtSecret())
-    req.user = payload
+    req.user = {
+      ...payload,
+      role: payload.role ?? payload.rola,
+      rola: payload.rola ?? payload.role,
+      clientId: payload.clientId ?? payload.klientId,
+      employeeId: payload.employeeId ?? payload.pracownikId
+    }
 
     logInfo("AUTH ok", {
       path: req.originalUrl,
       ip: req.ip,
       token: maskToken(token),
-      userId: payload.userId,
-      rola: payload.rola
+      appUserId: req.user.appUserId,
+      role: req.user.role
     })
 
     next()

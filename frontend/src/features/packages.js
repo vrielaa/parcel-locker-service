@@ -192,8 +192,8 @@ const createPackagesDetailsView = ({
     eventsElement.appendChild(p)
   }
 
-  const normalizeEvents = (zdarzenia) =>
-    (Array.isArray(zdarzenia) ? zdarzenia.slice() : []).map((e) =>
+  const normalizeEvents = (eventsPayload) =>
+    (Array.isArray(eventsPayload) ? eventsPayload.slice() : []).map((e) =>
       e && typeof e === "object" && typeof e.typ === "string"
         ? { ...e, typ: e.typ.replaceAll("_", " ") }
         : e
@@ -231,7 +231,7 @@ const createPackagesDetailsView = ({
     `
   }
 
-  const renderEvents = (zdarzenia) => {
+  const renderEvents = (eventsPayload) => {
     if (!eventsElement) return
 
     const label = ensureHistoryLabel()
@@ -239,19 +239,19 @@ const createPackagesDetailsView = ({
 
     if (label) eventsElement.appendChild(label)
 
-    const list = normalizeEvents(zdarzenia)
-    if (list.length === 0) {
+    const events = normalizeEvents(eventsPayload)
+    if (events.length === 0) {
       const p = document.createElement("p")
       p.textContent = "Brak zdarzeń dla tej paczki."
       eventsElement.appendChild(p)
       return
     }
 
-    sortEventsNewestFirst(list)
+    sortEventsNewestFirst(events)
 
     const wrapper = document.createElement("div")
     wrapper.className = "paczka-events"
-    wrapper.innerHTML = list.map((z, idx) => renderEventHtml(z, idx, list.length)).join("")
+    wrapper.innerHTML = events.map((event, idx) => renderEventHtml(event, idx, events.length)).join("")
 
     eventsElement.appendChild(wrapper)
   }
@@ -262,8 +262,8 @@ const createPackagesDetailsView = ({
     try {
       setEventsText("Ładowanie zdarzeń...")
 
-      const paczkaId = getPackageId(p)
-      const res = await apiFetch(`/paczki/${paczkaId}/zdarzenia`)
+      const packageId = getPackageId(p)
+      const res = await apiFetch(`/paczki/${packageId}/zdarzenia`)
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
@@ -271,8 +271,8 @@ const createPackagesDetailsView = ({
         return
       }
 
-      const zdarzenia = data?.zdarzenia ?? data?.rows ?? data
-      renderEvents(zdarzenia)
+      const events = data?.zdarzenia ?? data?.rows ?? data
+      renderEvents(events)
     } catch (err) {
       setEventsText(err?.message || "Nie udało się pobrać zdarzeń.")
     }
@@ -401,20 +401,20 @@ const createPackagesDetailsView = ({
     extendBtn.addEventListener("click", async () => {
       if (!currentPackage) return
 
-      const paczkaId = getPackageId(currentPackage)
-      if (!paczkaId) return
+      const packageId = getPackageId(currentPackage)
+      if (!packageId) return
 
-      const ile_godzin = 24
+      const extensionHours = 24
 
       try {
         extendBtn.disabled = true
         const prevText = extendBtn.textContent
         extendBtn.textContent = "Przedłużanie..."
 
-        const res = await apiFetch(`/paczki/${paczkaId}/przedluzenia`, {
+        const res = await apiFetch(`/paczki/${packageId}/przedluzenia`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ile_godzin })
+          body: JSON.stringify({ ile_godzin: extensionHours })
         })
 
         const data = await res.json().catch(() => null)
@@ -427,7 +427,7 @@ const createPackagesDetailsView = ({
         }
 
         alert("Paczka została pomyślnie przedłużona.")
-        if (typeof onAfterExtend === "function") await onAfterExtend(paczkaId)
+        if (typeof onAfterExtend === "function") await onAfterExtend(packageId)
       } catch (err) {
         alert(err?.message || "Nie udało się przedłużyć paczki.")
       } finally {
@@ -499,16 +499,16 @@ const createPackagesListView = ({
     const isPending = (p) => normalizeStatus(p?.status) === "CZEKA_NA_ZATWIERDZENIE"
 
 
-    packagesFromMe = list.filter((p) => Number(p?.nadawca_id ?? null) === myId)
+    packagesFromMe = list.filter((packageItem) => Number(packageItem?.nadawca_id ?? null) === myId)
 
 
-    packagesToMe = list.filter((p) => {
-      const odb = Number(p?.odbiorca_id ?? null)
-      const nad = Number(p?.nadawca_id ?? null)
+    packagesToMe = list.filter((packageItem) => {
+      const receiverId = Number(packageItem?.odbiorca_id ?? null)
+      const senderId = Number(packageItem?.nadawca_id ?? null)
 
-      if (odb !== myId) return false
-      if (nad === myId) return false
-      if (isPending(p)) return false
+      if (receiverId !== myId) return false
+      if (senderId === myId) return false
+      if (isPending(packageItem)) return false
 
       return true
     })
@@ -525,7 +525,7 @@ const createPackagesListView = ({
 
     packagesButtons.forEach((b) => b.classList.remove("is-active"))
 
-    const activeBtn = packagesButtons.find((b) => b.dataset.paczkaId === String(selectedId))
+    const activeBtn = packagesButtons.find((button) => button.dataset.packageId === String(selectedId))
     if (activeBtn) activeBtn.classList.add("is-active")
 
     if (typeof onSelectPackage === "function") onSelectPackage(pkg)
@@ -555,7 +555,7 @@ const createPackagesListView = ({
       const btn = document.createElement("button")
       btn.type = "button"
       btn.className = "view-klient__lista-paczek__buttons-button"
-      btn.dataset.paczkaId = String(id)
+      btn.dataset.packageId = String(id)
 
       btn.innerHTML = `
         <span class="view-klient__lista-paczek__buttons-button__mail">${escapeHtml(who)}</span>
@@ -732,9 +732,9 @@ export function initPackagesView() {
     deadlineLabelEl,
     deadlineValueEl,
 
-    onAfterExtend: async (paczkaId) => {
-      await listView?.reload({ mode: "TO_ME", selectedId: String(paczkaId) })
-      listView?.selectById(String(paczkaId))
+    onAfterExtend: async (packageId) => {
+      await listView?.reload({ mode: "TO_ME", selectedId: String(packageId) })
+      listView?.selectById(String(packageId))
     }
   })
 

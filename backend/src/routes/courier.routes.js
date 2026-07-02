@@ -70,8 +70,8 @@ router.get("/paczki/pool", requireAuth, requireRoles("KURIER"), async (req, res)
 
 router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
   try {
-    const kurierId = req.user?.pracownikId
-    if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+    const courierId = req.user?.employeeId
+    if (!courierId) return res.status(403).json({ ok: false, error: "Brak employeeId w tokenie" })
 
     const result = await query(
       `
@@ -107,7 +107,7 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
 
       ORDER BY p.data_nadania DESC
       `,
-      [kurierId]
+      [courierId]
     )
    
     res.json({ ok: true, paczki: result.rows })
@@ -118,45 +118,45 @@ router.get("/paczki", requireAuth, requireRoles("KURIER"), async (req, res) => {
 })
 
 router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (req, res) => {
-  const paczkaId = Number(req.params.id)
-  const kurierId = req.user?.pracownikId
+  const packageId = Number(req.params.id)
+  const courierId = req.user?.employeeId
 
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki" })
-  if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+  if (!Number.isInteger(packageId) || packageId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki" })
+  if (!courierId) return res.status(403).json({ ok: false, error: "Brak employeeId w tokenie" })
 
   const client = await pool.connect()
 
   try {
     await client.query("BEGIN")
 
-    const p = await client.query(
+    const packageResult = await client.query(
       `
       SELECT paczka_id, status, docelowy_automat_id, kurier_id
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
       `,
-      [paczkaId]
+      [packageId]
     )
 
-    if (p.rowCount === 0) {
+    if (packageResult.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
     }
 
-    const pr = p.rows[0]
+    const packageRow = packageResult.rows[0]
 
-    if (String(pr.status || "").toUpperCase() !== "NADANA") {
+    if (String(packageRow.status || "").toUpperCase() !== "NADANA") {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Transport można rozpocząć tylko dla statusu NADANA" })
     }
 
-    if (pr.kurier_id != null && Number(pr.kurier_id) !== Number(kurierId)) {
+    if (packageRow.kurier_id != null && Number(packageRow.kurier_id) !== Number(courierId)) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Ta paczka została już podjęta przez innego kuriera" })
     }
 
-    const upd = await client.query(
+    const updatedPackage = await client.query(
       `
       UPDATE parcel_locker.paczka
       SET
@@ -167,10 +167,10 @@ router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (
         AND (kurier_id IS NULL OR kurier_id = $2)
       RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru, docelowy_automat_id, kurier_id
       `,
-      [paczkaId, kurierId]
+      [packageId, courierId]
     )
 
-    if (upd.rowCount === 0) {
+    if (updatedPackage.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Nie udało się podjąć paczki (możliwy konflikt)" })
     }
@@ -180,11 +180,11 @@ router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (
       INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
       VALUES ($1, 'W_DRODZE', 'Kurier rozpoczął transport')
       `,
-      [paczkaId]
+      [packageId]
     )
 
     await client.query("COMMIT")
-    res.json({ ok: true, paczka: upd.rows[0] })
+    res.json({ ok: true, paczka: updatedPackage.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
     console.error(err)
@@ -196,11 +196,11 @@ router.post("/paczki/:id/podejmij", requireAuth, requireRoles("KURIER"), async (
 
 router.get("/paczki/:id/skrytki-docelowe", requireAuth, requireRoles("KURIER"), async (req, res) => {
   try {
-    const kurierId = req.user?.pracownikId
-    const paczkaId = Number(req.params.id)
+    const courierId = req.user?.employeeId
+    const packageId = Number(req.params.id)
 
-    if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
-    if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+    if (!courierId) return res.status(403).json({ ok: false, error: "Brak employeeId w tokenie" })
+    if (!Number.isInteger(packageId) || packageId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
 
     const allowed = await query(
       `
@@ -211,7 +211,7 @@ router.get("/paczki/:id/skrytki-docelowe", requireAuth, requireRoles("KURIER"), 
         AND p.kurier_id = $2
       LIMIT 1
       `,
-      [paczkaId, kurierId]
+      [packageId, courierId]
     )
 
     if (allowed.rowCount === 0) return res.status(403).json({ ok: false, error: "Brak dostępu do tej paczki (nie jest Twoja lub nie jest w transporcie)." })
@@ -260,7 +260,7 @@ router.get("/paczki/:id/skrytki-docelowe", requireAuth, requireRoles("KURIER"), 
         AND (SELECT p3 FROM p) <= l3
       ORDER BY rozmiar_kod, wiersz, kolumna
       `,
-      [paczkaId]
+      [packageId]
     )
 
     res.json({ ok: true, skrytki: result.rows })
@@ -271,47 +271,47 @@ router.get("/paczki/:id/skrytki-docelowe", requireAuth, requireRoles("KURIER"), 
 })
 
 router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"), async (req, res) => {
-  const paczkaId = Number(req.params.id)
-  const kurierId = req.user?.pracownikId
-  const skrytkaId = Number(req.body?.skrytka_id)
+  const packageId = Number(req.params.id)
+  const courierId = req.user?.employeeId
+  const lockerId = Number(req.body?.skrytka_id)
 
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki" })
-  if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne skrytka_id" })
-  if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+  if (!Number.isInteger(packageId) || packageId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki" })
+  if (!Number.isInteger(lockerId) || lockerId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne skrytka_id" })
+  if (!courierId) return res.status(403).json({ ok: false, error: "Brak employeeId w tokenie" })
 
   const client = await pool.connect()
 
   try {
     await client.query("BEGIN")
 
-    const p = await client.query(
+    const packageResult = await client.query(
       `
       SELECT paczka_id, status, skrytka_id, docelowy_automat_id, kurier_id
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
       `,
-      [paczkaId]
+      [packageId]
     )
 
-    if (p.rowCount === 0) {
+    if (packageResult.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
     }
 
-    const pr = p.rows[0]
+    const packageRow = packageResult.rows[0]
 
-    if (Number(pr.kurier_id ?? 0) !== Number(kurierId)) {
+    if (Number(packageRow.kurier_id ?? 0) !== Number(courierId)) {
       await client.query("ROLLBACK")
       return res.status(403).json({ ok: false, error: "Brak dostępu: ta paczka nie jest przypisana do Ciebie" })
     }
 
-    if (String(pr.status || "").toUpperCase() !== "W_DRODZE" || pr.skrytka_id != null) {
+    if (String(packageRow.status || "").toUpperCase() !== "W_DRODZE" || packageRow.skrytka_id != null) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Paczka nie jest w transporcie" })
     }
 
-    const s = await client.query(
+    const lockerResult = await client.query(
       `
       SELECT s.skrytka_id, s.status, s.automat_id, a.nazwa AS automat_nazwa
       FROM parcel_locker.skrytka s
@@ -319,26 +319,26 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
       WHERE s.skrytka_id = $1
       FOR UPDATE
       `,
-      [skrytkaId]
+      [lockerId]
     )
 
-    if (s.rowCount === 0) {
+    if (lockerResult.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(404).json({ ok: false, error: "Skrytka nie istnieje" })
     }
 
-    const sr = s.rows[0]
-    if (String(sr.status || "").toUpperCase() !== "WOLNA") {
+    const lockerRow = lockerResult.rows[0]
+    if (String(lockerRow.status || "").toUpperCase() !== "WOLNA") {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Skrytka nie jest wolna" })
     }
 
-    if (Number(sr.automat_id) !== Number(pr.docelowy_automat_id)) {
+    if (Number(lockerRow.automat_id) !== Number(packageRow.docelowy_automat_id)) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Skrytka nie należy do docelowego automatu." })
     }
 
-    const upd = await client.query(
+    const updatedPackage = await client.query(
       `
       UPDATE parcel_locker.paczka
       SET
@@ -351,10 +351,10 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
         AND skrytka_id IS NULL
       RETURNING paczka_id, numer_tracking, status, skrytka_id, data_nadania, termin_odbioru, data_odbioru, kurier_id
       `,
-      [paczkaId, skrytkaId, kurierId]
+      [packageId, lockerId, courierId]
     )
 
-    if (upd.rowCount === 0) {
+    if (updatedPackage.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Nie udało się umieścić paczki (możliwy konflikt)" })
     }
@@ -365,7 +365,7 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
       SET status = 'ZAJETA'
       WHERE skrytka_id = $1
       `,
-      [skrytkaId]
+      [lockerId]
     )
 
     await client.query(
@@ -373,11 +373,11 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
       INSERT INTO parcel_locker.zdarzeniepaczki (paczka_id, typ, opis)
       VALUES ($1, 'W_AUTOMACIE', $2)
       `,
-      [paczkaId, `Umieszczona w automacie ${sr.automat_nazwa} (ID: ${sr.automat_id}), skrytka ${skrytkaId}`]
+      [packageId, `Umieszczona w automacie ${lockerRow.automat_nazwa} (ID: ${lockerRow.automat_id}), skrytka ${lockerId}`]
     )
 
     await client.query("COMMIT")
-    res.json({ ok: true, paczka: upd.rows[0] })
+    res.json({ ok: true, paczka: updatedPackage.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
 
@@ -389,9 +389,9 @@ router.post("/paczki/:id/umiesc-w-automacie", requireAuth, requireRoles("KURIER"
 })
 
 router.put("/skrytki/:id/status", requireAuth, requireRoles("KURIER", "ADMIN", "OPERATOR"), async (req, res) => {
-  const skrytkaId = Number(req.params.id)
+  const lockerId = Number(req.params.id)
  
-  if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) {
+  if (!Number.isInteger(lockerId) || lockerId <= 0) {
     return res.status(400).json({ ok: false, error: "Niepoprawne ID skrytki" })
   } 
 
@@ -404,7 +404,7 @@ router.put("/skrytki/:id/status", requireAuth, requireRoles("KURIER", "ADMIN", "
       WHERE skrytka_id = $1
       RETURNING skrytka_id, wiersz, kolumna, status, automat_id
       `,
-      [skrytkaId]
+      [lockerId]
     )
 
     if (result.rowCount === 0) {

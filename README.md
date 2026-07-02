@@ -409,7 +409,7 @@ Authorization: Bearer <token>
 - `POST /api/admin/automaty` - dodanie automatu,
 - `DELETE /api/admin/automaty/:id` - usunięcie automatu,
 - `GET /api/admin/automaty/locker-faulty` - automaty z uszkodzonymi skrytkami,
-- `PUT /api/admin/automaty/:automatId/lockers/:lockerId/mark-repaired` - naprawa skrytki.
+- `PUT /api/admin/automaty/:parcelLockerId/lockers/:lockerId/mark-repaired` - naprawa skrytki.
 
 ## Struktura Projektu
 
@@ -427,7 +427,7 @@ Authorization: Bearer <token>
 │   └── src/
 │       ├── server.js
 │       ├── db.js
-│       ├── dbAdmin.js
+│       ├── databaseAdmin.js
 │       ├── utils.js
 │       ├── middleware/
 │       └── routes/

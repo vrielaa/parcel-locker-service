@@ -43,8 +43,8 @@ router.get("/paczki/pending", requireAuth, requireRoles("ADMIN", "OPERATOR"), as
 
 router.get("/paczki/:id/skrytki", requireAuth, requireRoles("ADMIN", "OPERATOR"), async (req, res) => {
   try {
-    const paczkaId = Number(req.params.id)
-    if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+    const packageId = Number(req.params.id)
+    if (!Number.isInteger(packageId) || packageId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
 
     const result = await query(
       `
@@ -90,7 +90,7 @@ router.get("/paczki/:id/skrytki", requireAuth, requireRoles("ADMIN", "OPERATOR")
         AND (SELECT p3 FROM p) <= l3
       ORDER BY rozmiar_kod, wiersz, kolumna
       `,
-      [paczkaId]
+      [packageId]
     )
 
     res.json({ ok: true, skrytki: result.rows })
@@ -103,36 +103,36 @@ router.get("/paczki/:id/skrytki", requireAuth, requireRoles("ADMIN", "OPERATOR")
 
 
 router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"), async (req, res) => {
-  const paczkaId = Number(req.params.id)
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+  const packageId = Number(req.params.id)
+  if (!Number.isInteger(packageId) || packageId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
 
   const client = await pool.connect()
 
   try {
     await client.query("BEGIN")
 
-    const p = await client.query(
+    const packageResult = await client.query(
       `
       SELECT paczka_id, status
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
       `,
-      [paczkaId]
+      [packageId]
     )
 
-    if (p.rowCount === 0) {
+    if (packageResult.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(404).json({ ok: false, error: "Paczka nie istnieje." })
     }
 
-    const pr = p.rows[0]
-    if (String(pr.status || "").toUpperCase() !== "CZEKA_NA_ZATWIERDZENIE") {
+    const packageRow = packageResult.rows[0]
+    if (String(packageRow.status || "").toUpperCase() !== "CZEKA_NA_ZATWIERDZENIE") {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Nie można zatwierdzić w tym statusie." })
     }
 
-    const upd = await client.query(
+    const updatedPackage = await client.query(
       `
       UPDATE parcel_locker.paczka
       SET status = 'NADANA'
@@ -140,7 +140,7 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
         AND status = 'CZEKA_NA_ZATWIERDZENIE'
       RETURNING paczka_id, status
       `,
-      [paczkaId]
+      [packageId]
     )
 
     await client.query(
@@ -148,11 +148,11 @@ router.post("/paczki/:id/approve", requireAuth, requireRoles("ADMIN", "OPERATOR"
       INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
       VALUES ($1, 'NADANA', 'Paczka została zatwierdzona przez operatora')
       `,
-      [paczkaId]
+      [packageId]
     )
 
     await client.query("COMMIT")
-    res.json({ ok: true, paczka: upd.rows[0] })
+    res.json({ ok: true, paczka: updatedPackage.rows[0] })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
     res.status(500).json({ ok: false, error: "Approve failed", message: err?.message || "Internal server error" })

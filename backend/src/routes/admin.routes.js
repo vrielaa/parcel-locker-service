@@ -6,7 +6,7 @@ import { requireRoles } from "../middleware/requireRoles.js"
 
 const router = Router()
 
-const roleKey = (r) => String(r || "").toUpperCase().trim()
+const roleKey = (role) => String(role || "").toUpperCase().trim()
 
 const isDbBusinessRuleError = (err) => {
   const code = String(err?.code || "")
@@ -54,13 +54,13 @@ router.get("/users", requireAuth, requireRoles("ADMIN"), async (req, res) => {
 
 router.post("/users", requireAuth, requireRoles("ADMIN"), async (req, res) => {
   const role = roleKey(req.body?.role)
-  const imie = String(req.body?.imie || "").trim()
-  const nazwisko = String(req.body?.nazwisko || "").trim()
+  const firstName = String(req.body?.imie || "").trim()
+  const lastName = String(req.body?.nazwisko || "").trim()
   const email = String(req.body?.email || "").trim().toLowerCase()
-  const telefon = String(req.body?.telefon || "").trim()
+  const phone = String(req.body?.telefon || "").trim()
   const password = String(req.body?.password || "").trim()
 
-  if (!role || !imie || !nazwisko || !email || !password) {
+  if (!role || !firstName || !lastName || !email || !password) {
     return res.status(400).json({ ok: false, error: "Brak wymaganych pól." })
   }
 
@@ -91,52 +91,52 @@ router.post("/users", requireAuth, requireRoles("ADMIN"), async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10)
 
     if (role === "KLIENT") {
-      const k = await client.query(
+      const createdClient = await client.query(
         `
         INSERT INTO parcel_locker.klient(imie, nazwisko, email, telefon)
         VALUES ($1, $2, $3, $4)
         RETURNING klient_id
         `,
-        [imie, nazwisko, email, telefon || null]
+        [firstName, lastName, email, phone || null]
       )
 
-      const klientId = k.rows[0]?.klient_id
+      const clientId = createdClient.rows[0]?.klient_id
 
-      const au = await client.query(
+      const createdUser = await client.query(
         `
         INSERT INTO parcel_locker.appuser(email, password_hash, rola, klient_id, pracownik_id, must_change_password)
         VALUES ($1, $2, 'KLIENT', $3, NULL, TRUE)
         RETURNING app_user_id
         `,
-        [email, passwordHash, klientId]
+        [email, passwordHash, clientId]
       )
 
       await client.query("COMMIT")
-      return res.status(201).json({ ok: true, user: { app_user_id: au.rows[0]?.app_user_id } })
+      return res.status(201).json({ ok: true, user: { app_user_id: createdUser.rows[0]?.app_user_id } })
     }
 
-    const p = await client.query(
+    const createdEmployee = await client.query(
       `
       INSERT INTO parcel_locker.pracownik(imie, nazwisko, email, telefon, rola)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING pracownik_id
       `,
-      [imie, nazwisko, email, telefon || null, role]
+      [firstName, lastName, email, phone || null, role]
     )
 
-    const pracownikId = p.rows[0]?.pracownik_id
+    const employeeId = createdEmployee.rows[0]?.pracownik_id
 
-    const au = await client.query(
+    const createdUser = await client.query(
       `
       INSERT INTO parcel_locker.appuser(email, password_hash, rola, klient_id, pracownik_id, must_change_password)
       VALUES ($1, $2, $3, NULL, $4, TRUE)
       RETURNING app_user_id
       `,
-      [email, passwordHash, role, pracownikId]
+      [email, passwordHash, role, employeeId]
     )
 
     await client.query("COMMIT")
-    res.status(201).json({ ok: true, user: { app_user_id: au.rows[0]?.app_user_id } })
+    res.status(201).json({ ok: true, user: { app_user_id: createdUser.rows[0]?.app_user_id } })
   } catch (err) {
     try {
       await client.query("ROLLBACK")
@@ -164,7 +164,7 @@ router.delete("/users/:id", requireAuth, requireRoles("ADMIN"), async (req, res)
   try {
     await client.query("BEGIN")
 
-    const r = await client.query(
+    const userResult = await client.query(
       `
       SELECT app_user_id, rola, klient_id, pracownik_id
       FROM parcel_locker.appuser
@@ -174,18 +174,18 @@ router.delete("/users/:id", requireAuth, requireRoles("ADMIN"), async (req, res)
       [appUserId]
     )
 
-    if (r.rowCount === 0) {
+    if (userResult.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(404).json({ ok: false, error: "Użytkownik nie istnieje." })
     }
 
-    const u = r.rows[0]
-    const rola = roleKey(u?.rola)
+    const user = userResult.rows[0]
+    const role = roleKey(user?.rola)
 
-    if (rola === "KLIENT" && u?.klient_id) {
-      await client.query(`DELETE FROM parcel_locker.klient WHERE klient_id = $1`, [u.klient_id])
-    } else if (u?.pracownik_id) {
-      await client.query(`DELETE FROM parcel_locker.pracownik WHERE pracownik_id = $1`, [u.pracownik_id])
+    if (role === "KLIENT" && user?.klient_id) {
+      await client.query(`DELETE FROM parcel_locker.klient WHERE klient_id = $1`, [user.klient_id])
+    } else if (user?.pracownik_id) {
+      await client.query(`DELETE FROM parcel_locker.pracownik WHERE pracownik_id = $1`, [user.pracownik_id])
     } else {
       await client.query(`DELETE FROM parcel_locker.appuser WHERE app_user_id = $1`, [appUserId])
     }
@@ -209,8 +209,8 @@ router.delete("/users/:id", requireAuth, requireRoles("ADMIN"), async (req, res)
 })
 
 router.get("/clients/:id/paczki", requireAuth, requireRoles("ADMIN"), async (req, res) => {
-  const klientId = Number(req.params.id)
-  if (!Number.isInteger(klientId) || klientId <= 0) {
+  const clientId = Number(req.params.id)
+  if (!Number.isInteger(clientId) || clientId <= 0) {
     return res.status(400).json({ ok: false, error: "Niepoprawne ID klienta." })
   }
 
@@ -218,18 +218,18 @@ router.get("/clients/:id/paczki", requireAuth, requireRoles("ADMIN"), async (req
   const isSent = mode !== "received"
 
   try {
-    const c = await query(
+    const clientResult = await query(
       `
       SELECT klient_id, email
       FROM parcel_locker.klient
       WHERE klient_id = $1
       `,
-      [klientId]
+      [clientId]
     )
 
-    if (c.rowCount === 0) return res.status(404).json({ ok: false, error: "Klient nie istnieje." })
+    if (clientResult.rowCount === 0) return res.status(404).json({ ok: false, error: "Klient nie istnieje." })
 
-    const paczki = await query(
+    const packagesResult = await query(
       `
       SELECT
         p.paczka_id,
@@ -245,10 +245,10 @@ router.get("/clients/:id/paczki", requireAuth, requireRoles("ADMIN"), async (req
       WHERE ${isSent ? "p.nadawca_id = $1" : "p.odbiorca_id = $1"}
       ORDER BY p.data_nadania DESC
       `,
-      [klientId]
+      [clientId]
     )
 
-    res.json({ ok: true, client: c.rows[0], paczki: paczki.rows })
+    res.json({ ok: true, client: clientResult.rows[0], paczki: packagesResult.rows })
   } catch (err) {
     console.error(err)
     res.status(500).json({ ok: false, error: "Get client packages failed" })
@@ -256,8 +256,8 @@ router.get("/clients/:id/paczki", requireAuth, requireRoles("ADMIN"), async (req
 })
 
 router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), async (req, res) => {
-  const paczkaId = Number(req.params.id)
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
+  const packageId = Number(req.params.id)
+  if (!Number.isInteger(packageId) || packageId <= 0) {
     return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
   }
 
@@ -266,23 +266,23 @@ router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), a
   try {
     await client.query("BEGIN")
 
-    const p = await client.query(
+    const packageResult = await client.query(
       `
       SELECT paczka_id, status, skrytka_id
       FROM parcel_locker.paczka
       WHERE paczka_id = $1
       FOR UPDATE
       `,
-      [paczkaId]
+      [packageId]
     )
 
-    if (p.rowCount === 0) {
+    if (packageResult.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(404).json({ ok: false, error: "Paczka nie istnieje." })
     }
 
-    const row = p.rows[0]
-    const status = String(row?.status || "").toUpperCase()
+    const packageRow = packageResult.rows[0]
+    const status = String(packageRow?.status || "").toUpperCase()
 
     if (status !== "W_AUTOMACIE") {
       await client.query("ROLLBACK")
@@ -296,17 +296,17 @@ router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), a
           data_odbioru = CURRENT_TIMESTAMP
       WHERE paczka_id = $1
       `,
-      [paczkaId]
+      [packageId]
     )
 
-    if (row?.skrytka_id) {
+    if (packageRow?.skrytka_id) {
       await client.query(
         `
         UPDATE parcel_locker.skrytka
         SET status = 'WOLNA'
         WHERE skrytka_id = $1
         `,
-        [row.skrytka_id]
+        [packageRow.skrytka_id]
       )
     }
 
@@ -315,7 +315,7 @@ router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), a
       INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
       VALUES ($1, 'ODEBRANA', 'Paczka odebrana (symulacja admina)')
       `,
-      [paczkaId]
+      [packageId]
     )
 
     await client.query("COMMIT")
@@ -338,14 +338,14 @@ router.post("/paczki/:id/simulate-pickup", requireAuth, requireRoles("ADMIN"), a
 
 router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) => {
 
-  const kod = String(req.body?.kod || "").trim()
-  const adres = String(req.body?.adres || "").trim()
-  const miasto = String(req.body?.miasto || "").trim()
-  const wspolrzedne = String(req.body?.wspolrzedne || "").trim()
-  const liczbaWierszy = Number(req.body?.liczbaWierszy)
-  const liczbaKolumn = Number(req.body?.liczbaKolumn)
+  const code = String(req.body?.kod || "").trim()
+  const address = String(req.body?.adres || "").trim()
+  const city = String(req.body?.miasto || "").trim()
+  const gpsCoordinates = String(req.body?.wspolrzedne || "").trim()
+  const rowCount = Number(req.body?.liczbaWierszy)
+  const columnCount = Number(req.body?.liczbaKolumn)
 
-  if (!kod || !adres || !miasto || !wspolrzedne || !Number.isInteger(liczbaWierszy) || liczbaWierszy <= 0 || !Number.isInteger(liczbaKolumn) || liczbaKolumn <= 0 || liczbaWierszy % 2 !== 0) {
+  if (!code || !address || !city || !gpsCoordinates || !Number.isInteger(rowCount) || rowCount <= 0 || !Number.isInteger(columnCount) || columnCount <= 0 || rowCount % 2 !== 0) {
     return res.status(400).json({ ok: false, error: "Brak wymaganych pól lub niepoprawne wartości." })
   }
     
@@ -356,7 +356,7 @@ router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) =>
       VALUES ($1, $2 || ', ' || $3, $4, 'AKTYWNY', $5, $6)
       RETURNING automat_id
       `,
-      [kod, adres, miasto, wspolrzedne, liczbaWierszy, liczbaKolumn]
+      [code, address, city, gpsCoordinates, rowCount, columnCount]
     )
 
     res.status(201).json({ ok: true, automat: { automat_id: result.rows[0]?.automat_id } })
@@ -373,8 +373,8 @@ router.post("/automaty", requireAuth, requireRoles("ADMIN"), async (req, res) =>
 })
 
 router.delete("/automaty/:id", requireAuth, requireRoles("ADMIN"), async (req, res) => {
-  const automatId = Number(req.params.id)
-  if (!Number.isInteger(automatId) || automatId <= 0) {
+  const parcelLockerId = Number(req.params.id)
+  if (!Number.isInteger(parcelLockerId) || parcelLockerId <= 0) {
     return res.status(400).json({ ok: false, error: "Niepoprawne ID automatu." })
   }
 
@@ -384,7 +384,7 @@ router.delete("/automaty/:id", requireAuth, requireRoles("ADMIN"), async (req, r
       DELETE FROM parcel_locker.automat
       WHERE automat_id = $1
       `,
-      [automatId]
+      [parcelLockerId]
     )
 
     if (result.rowCount === 0) {
@@ -439,11 +439,11 @@ router.get("/automaty/locker-faulty", requireAuth, requireRoles("ADMIN"), async 
   }
 })
 
-router.put("/automaty/:automatId/lockers/:lockerId/mark-repaired", requireAuth, requireRoles("ADMIN"), async (req, res) => {
-  const automatId = Number(req.params.automatId)
+router.put("/automaty/:parcelLockerId/lockers/:lockerId/mark-repaired", requireAuth, requireRoles("ADMIN"), async (req, res) => {
+  const parcelLockerId = Number(req.params.parcelLockerId)
   const lockerId = Number(req.params.lockerId)
 
-  if (!Number.isInteger(automatId) || automatId <= 0 || !Number.isInteger(lockerId) || lockerId <= 0) {
+  if (!Number.isInteger(parcelLockerId) || parcelLockerId <= 0 || !Number.isInteger(lockerId) || lockerId <= 0) {
     return res.status(400).json({ ok: false, error: "Niepoprawne ID automatu lub skrytki." })
   }
 
@@ -454,7 +454,7 @@ router.put("/automaty/:automatId/lockers/:lockerId/mark-repaired", requireAuth, 
       SET status = 'WOLNA'
       WHERE skrytka_id = $1 AND automat_id = $2
       `,
-      [lockerId, automatId]
+      [lockerId, parcelLockerId]
     )
 
     if (result.rowCount === 0) {

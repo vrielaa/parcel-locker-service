@@ -1,23 +1,23 @@
 import { query } from "./db.js"
 
 /* =========================
-   AUTOMATY
+   PARCEL LOCKERS
 ========================= */
 
-export async function getAutomatyInCity(miasto) {
+export async function getParcelLockersInCity(city) {
   const result = await query(
     `
     SELECT *
     FROM parcel_locker.automaty_in_city
     WHERE miasto = $1;
     `,
-    [miasto]
+    [city]
   )
 
   return result.rows
 }
 
-export async function getAllMiasta() {
+export async function getAllCities() {
   const result = await query(
     `
     SELECT *
@@ -28,7 +28,7 @@ export async function getAllMiasta() {
   return result.rows.map(row => row.miasto)
 }
 
-export async function getAutomatInfoById(automatId) {
+export async function getParcelLockerInfoById(parcelLockerId) {
   const result = await query(
     `
     SELECT *
@@ -36,17 +36,17 @@ export async function getAutomatInfoById(automatId) {
     WHERE automat_id = $1
     ORDER BY wiersz, kolumna;
     `,
-    [automatId]
+    [parcelLockerId]
   )
 
   return result.rows
 }
 
 /* =========================
-   GRID AUTOMATU (FRONTEND)
+   PARCEL LOCKER GRID (FRONTEND)
 ========================= */
 
-export async function getAutomatGridById(automatId) {
+export async function getParcelLockerGridById(parcelLockerId) {
   const result = await query(
     `
     SELECT *
@@ -54,7 +54,7 @@ export async function getAutomatGridById(automatId) {
     WHERE automat_id = $1
     ORDER BY wiersz, kolumna;
     `,
-    [automatId]
+    [parcelLockerId]
   )
 
   return result.rows

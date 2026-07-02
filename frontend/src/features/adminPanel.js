@@ -50,7 +50,7 @@ const escapeHtml = (s) =>
 const show = (el) => el && el.classList.remove("hidden")
 const hide = (el) => el && el.classList.add("hidden")
 
-const roleKey = (r) => String(r || "").toUpperCase().trim()
+const roleKey = (role) => String(role || "").toUpperCase().trim()
 
 const getApiErrorMessage = (res, data, fallback) => {
   const msg = data?.error || data?.message || data?.details || fallback || "Błąd"
@@ -80,13 +80,13 @@ const buildUserLabel = (u) => {
 
 const userRowHtml = (u) => {
   const appUserId = u?.app_user_id
-  const rola = roleKey(u?.rola)
-  const klientId = u?.klient_id
+  const role = roleKey(u?.rola)
+  const clientId = u?.klient_id
   const label = escapeHtml(buildUserLabel(u))
 
   const detailsBtn =
-    rola === "KLIENT" && klientId
-      ? `<button class="btn btn--small" type="button" data-action="details" data-klient-id="${String(klientId)}">Pokaż</button>`
+    role === "KLIENT" && clientId
+      ? `<button class="btn btn--small" type="button" data-action="details" data-client-id="${String(clientId)}">Pokaż</button>`
       : ""
 
   return `
@@ -104,11 +104,11 @@ const packageRowHtml = (p) => {
   const id = p?.paczka_id
   const tracking = escapeHtml(p?.numer_tracking || "-")
   const status = escapeHtml(String(p?.status || "").replaceAll("_", " "))
-  const automat = escapeHtml(p?.docelowy_automat_label || "")
+  const parcelLocker = escapeHtml(p?.docelowy_automat_label || "")
   const inLocker = String(p?.status || "").toUpperCase() === "W_AUTOMACIE"
 
   const pickupBtn = inLocker
-    ? `<button class="btn btn--small" type="button" data-action="pickup" data-paczka-id="${String(id)}">Symuluj odebranie</button>`
+    ? `<button class="btn btn--small" type="button" data-action="pickup" data-package-id="${String(id)}">Symuluj odebranie</button>`
     : ""
 
   return `
@@ -116,7 +116,7 @@ const packageRowHtml = (p) => {
       <div class="admin-client__row-main">
         <div><strong>${tracking}</strong></div>
         <div>${status}</div>
-        <div>${automat}</div>
+        <div>${parcelLocker}</div>
       </div>
       <div class="admin-client__row-actions">
         ${pickupBtn}
@@ -317,11 +317,11 @@ export function initAdminUsersView() {
     await fetchUsers()
   }
 
-  const createUser = async ({ role, imie, nazwisko, email, telefon, password }) => {
+  const createUser = async ({ role, firstName, lastName, email, phone, password }) => {
     const res = await apiFetch("/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, imie, nazwisko, email, telefon, password })
+      body: JSON.stringify({ role, imie: firstName, nazwisko: lastName, email, telefon: phone, password })
     })
 
     const data = await res.json().catch(() => null)
@@ -331,25 +331,25 @@ export function initAdminUsersView() {
     await fetchUsers()
   }
 
-  const fetchClientPackages = async (klientId, mode) => {
-    const res = await apiFetch(`/admin/clients/${encodeURIComponent(klientId)}/paczki?mode=${encodeURIComponent(mode)}`)
+  const fetchClientPackages = async (clientId, mode) => {
+    const res = await apiFetch(`/admin/clients/${encodeURIComponent(clientId)}/paczki?mode=${encodeURIComponent(mode)}`)
     const data = await res.json().catch(() => null)
 
     if (!res.ok) throw new Error(getApiErrorMessage(res, data, "Nie udało się pobrać paczek klienta."))
 
     const client = data?.client || null
-    const paczki = Array.isArray(data?.paczki) ? data.paczki : []
+    const packages = Array.isArray(data?.paczki) ? data.paczki : []
 
-    clientTitle.textContent = client?.email ? `Klient: ${client.email}` : `Klient ID: ${klientId}`
+    clientTitle.textContent = client?.email ? `Klient: ${client.email}` : `Klient ID: ${clientId}`
 
     tabSent.classList.toggle("isActive", mode === "sent")
     tabReceived.classList.toggle("isActive", mode === "received")
 
-    clientPackages.innerHTML = paczki.map(packageRowHtml).join("") || "<div>Brak paczek</div>"
+    clientPackages.innerHTML = packages.map(packageRowHtml).join("") || "<div>Brak paczek</div>"
   }
 
-  const simulatePickup = async (paczkaId) => {
-    const res = await apiFetch(`/admin/paczki/${encodeURIComponent(paczkaId)}/simulate-pickup`, { method: "POST" })
+  const simulatePickup = async (packageId) => {
+    const res = await apiFetch(`/admin/paczki/${encodeURIComponent(packageId)}/simulate-pickup`, { method: "POST" })
     const data = await res.json().catch(() => null)
 
     if (!res.ok) throw new Error(getApiErrorMessage(res, data, "Nie udało się zasymulować odbioru."))
@@ -380,10 +380,10 @@ export function initAdminUsersView() {
     }
 
     if (action === "details") {
-      const klientId = btn.getAttribute("data-klient-id")
-      if (!klientId) return
+      const clientId = btn.getAttribute("data-client-id")
+      if (!clientId) return
 
-      currentClientId = klientId
+      currentClientId = clientId
       currentClientMode = "sent"
 
       showClientState()
@@ -405,14 +405,14 @@ export function initAdminUsersView() {
     const action = btn.getAttribute("data-action")
 
     if (action === "pickup") {
-      const paczkaId = btn.getAttribute("data-paczka-id")
-      if (!paczkaId) return
+      const packageId = btn.getAttribute("data-package-id")
+      if (!packageId) return
 
       const ok = confirm("Symulować odebranie paczki?")
       if (!ok) return
 
       try {
-        await simulatePickup(paczkaId)
+        await simulatePickup(packageId)
       } catch (err) {
         alert(err?.message || "Pickup failed")
       }
@@ -423,16 +423,16 @@ export function initAdminUsersView() {
     e.preventDefault()
 
     const role = roleKey(formRole.value)
-    const imie = String(firstNameEl.value || "").trim()
-    const nazwisko = String(lastNameEl.value || "").trim()
+    const firstName = String(firstNameEl.value || "").trim()
+    const lastName = String(lastNameEl.value || "").trim()
     const email = String(emailEl.value || "").trim()
-    const telefon = String(phoneEl.value || "").trim()
+    const phone = String(phoneEl.value || "").trim()
     const password = String(passwordEl.value || "").trim()
 
-    if (!role || !imie || !nazwisko || !email || !password) return
+    if (!role || !firstName || !lastName || !email || !password) return
 
     try {
-      await createUser({ role, imie, nazwisko, email, telefon, password })
+      await createUser({ role, firstName, lastName, email, phone, password })
 
       closeCreateForm()
       showListState()

@@ -1,9 +1,9 @@
 // src/features/lockerGrid.js
 import { addClass, removeClass } from "../utils.js"
 
-const getLockerId = (x) => x?.skrytka_id ?? x?.id ?? null
-const getLockerSize = (x) => String(x?.rozmiar ?? x?.rozmiar_kod ?? x?.rozmiarKod ?? "").trim().toUpperCase()
-const getLockerStatus = (x) => String(x?.status ?? "").trim().toUpperCase()
+const getLockerId = (locker) => locker?.skrytka_id ?? locker?.id ?? null
+const getLockerSize = (locker) => String(locker?.rozmiar ?? locker?.rozmiar_kod ?? locker?.rozmiarKod ?? "").trim().toUpperCase()
+const getLockerStatus = (locker) => String(locker?.status ?? "").trim().toUpperCase()
 
 const sizeRank = (s) => {
   const map = { XS: 0, S: 1, M: 2, L: 3, XL: 4 }
@@ -21,7 +21,7 @@ export const createLockerGrid = ({
 }) => {
   let selectedId = null
   let lastLayout = []
-  let lastAutomatTitle = ""
+  let lastParcelLockerTitle = ""
 
   const clear = () => {
     if (titleEl) titleEl.textContent = ""
@@ -29,7 +29,7 @@ export const createLockerGrid = ({
     if (containerEl) addClass(containerEl, "hidden")
     selectedId = null
     lastLayout = []
-    lastAutomatTitle = ""
+    lastParcelLockerTitle = ""
   }
 
   const show = () => {
@@ -37,14 +37,14 @@ export const createLockerGrid = ({
   }
 
   const setTitle = (t) => {
-    lastAutomatTitle = String(t || "")
-    if (titleEl) titleEl.textContent = lastAutomatTitle
+    lastParcelLockerTitle = String(t || "")
+    if (titleEl) titleEl.textContent = lastParcelLockerTitle
   }
 
   const setSelected = (id) => {
     selectedId = id != null ? String(id) : null
-    gridHostEl?.querySelectorAll("[data-skrytka-id]").forEach((el) => {
-      const isActive = selectedId && el.dataset.skrytkaId === selectedId
+    gridHostEl?.querySelectorAll("[data-locker-id]").forEach((el) => {
+      const isActive = selectedId && el.dataset.lockerId === selectedId
       if (isActive) el.classList.add("is-active")
       else el.classList.remove("is-active")
     })
@@ -80,7 +80,7 @@ export const createLockerGrid = ({
       addClass(el, "locker-display__locker")
       addClass(el, `locker-display__locker--status-${status}`)
       addClass(el, `locker-display__locker--size-${size}`)
-      el.dataset.skrytkaId = String(id)
+      el.dataset.lockerId = String(id)
 
       el.style.gridColumnStart = locker.kolumna
       el.style.gridRowStart = locker.wiersz

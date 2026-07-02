@@ -3,7 +3,7 @@ import { displayMessageForSeconds } from "../messages.js"
 import { apiFetch } from "../api.js"
 import { createLockerGrid } from "./lockerGrid.js"
 
-export function initAutomatsView() {
+export function initParcelLockersView() {
   const buttonsCitiesContainer = getElById("buttons-cities")
   const listLockersInCityContainer = qs(".list-lockers-in-city")
   const lockerDisplay = qs(".locker-display")
@@ -17,7 +17,7 @@ export function initAutomatsView() {
 
   let citiesButtons = []
   let currentCity = null
-  let automatsReqId = 0
+  let parcelLockersRequestId = 0
 
   const grid = createLockerGrid({
     containerEl: lockerDisplay,
@@ -46,7 +46,7 @@ export function initAutomatsView() {
     buttonsCitiesContainer.innerHTML = ""
   }
 
-  const showAutomats = () => {
+  const showParcelLockers = () => {
     grid.clear()
     listLockersInCityContainer.classList.remove("hidden")
     goBackBtn.classList.add("hidden")
@@ -62,53 +62,53 @@ export function initAutomatsView() {
   const loadCitiesButtons = async () => {
     try {
       const res = await apiFetch(`/miasta`)
-      const miasta = await res.json()
+      const cities = await res.json()
 
-      citiesButtons = miasta.map((miasto) => {
+      citiesButtons = cities.map((city) => {
         const button = document.createElement("button")
-        button.textContent = miasto
-        button.dataset.city = miasto
+        button.textContent = city
+        button.dataset.city = city
         addClass(button, "buttons-cities__city-button")
         return button
       })
     } catch {}
   }
 
-const listLockersInCityAndDisplay = async (miasto) => {
-  currentCity = miasto
+  const listLockersInCityAndDisplay = async (city) => {
+    currentCity = city
 
-  const reqId = ++automatsReqId
-
-  listLockersInCityContainer.innerHTML = ""
-  showAutomats()
-
-  try {
-    const res = await apiFetch(`/automaty?miasto=${encodeURIComponent(miasto)}`)
-    const data = await res.json().catch(() => null)
-
-    if (reqId !== automatsReqId) return
-
-    const automaty = (data?.automaty ?? data?.rows ?? data) || []
+    const requestId = ++parcelLockersRequestId
 
     listLockersInCityContainer.innerHTML = ""
+    showParcelLockers()
 
-    automaty.forEach((automat) => {
-      const button = document.createElement("button")
-      button.textContent = `${automat.nazwa} - ${automat.adres}`
-      addClass(button, "list-lockers-in-city__locker-button")
-      button.addEventListener("click", () => displayLockerDetails(automat))
-      listLockersInCityContainer.appendChild(button)
-    })
-  } catch (err) {
-    if (reqId !== automatsReqId) return
-    displayMessageForSeconds("Błąd: " + err.message, 5, "db-message")
-  }
-}
-
-
-  const displayLockerDetails = async (automat) => {
     try {
-      const res = await apiFetch(`/automaty/${automat.automat_id}`)
+      const res = await apiFetch(`/automaty?miasto=${encodeURIComponent(city)}`)
+      const data = await res.json().catch(() => null)
+
+      if (requestId !== parcelLockersRequestId) return
+
+      const parcelLockers = (data?.automaty ?? data?.rows ?? data) || []
+
+      listLockersInCityContainer.innerHTML = ""
+
+      parcelLockers.forEach((parcelLocker) => {
+        const button = document.createElement("button")
+        button.textContent = `${parcelLocker.nazwa} - ${parcelLocker.adres}`
+        addClass(button, "list-lockers-in-city__locker-button")
+        button.addEventListener("click", () => displayLockerDetails(parcelLocker))
+        listLockersInCityContainer.appendChild(button)
+      })
+    } catch (err) {
+      if (requestId !== parcelLockersRequestId) return
+      displayMessageForSeconds("Błąd: " + err.message, 5, "db-message")
+    }
+  }
+
+
+  const displayLockerDetails = async (parcelLocker) => {
+    try {
+      const res = await apiFetch(`/automaty/${parcelLocker.automat_id}`)
       const layout = await res.json()
 
       if (!Array.isArray(layout) || layout.length === 0) {
@@ -117,7 +117,7 @@ const listLockersInCityAndDisplay = async (miasto) => {
       }
 
       hideCities()
-      grid.setTitle(`Automat: ${automat.nazwa} (ID: ${automat.automat_id})`)
+      grid.setTitle(`Automat: ${parcelLocker.nazwa} (ID: ${parcelLocker.automat_id})`)
       grid.renderLayout(layout)
       showGrid()
     } catch (err) {
@@ -131,10 +131,10 @@ const listLockersInCityAndDisplay = async (miasto) => {
     qsa(".buttons-cities__city-button").forEach((b) => removeClass(b, "isActive"))
     addClass(e.target, "isActive")
 
-    const miasto = e.target.dataset.city
-    if (!miasto) return
+    const city = e.target.dataset.city
+    if (!city) return
 
-    listLockersInCityAndDisplay(miasto)
+    listLockersInCityAndDisplay(city)
   })
 
   getLockersBtn.addEventListener("click", async () => {

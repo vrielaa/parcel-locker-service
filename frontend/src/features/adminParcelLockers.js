@@ -7,7 +7,7 @@ const ENDPOINTS = {
   DELETE: (id) => [`/admin/automaty/${id}`],
   CITIES: ["/miasta"],
 
-  MARK_LOCKER_REPAIRED: (automatId, lockerId) => [`/admin/automaty/${automatId}/lockers/${lockerId}/mark-repaired`]
+  MARK_LOCKER_REPAIRED: (parcelLockerId, lockerId) => [`/admin/automaty/${parcelLockerId}/lockers/${lockerId}/mark-repaired`]
 }
 
 const escapeHtml = (s) =>
@@ -27,10 +27,13 @@ const normalizeText = (s) =>
     .trim()
     .replace(/\s+/g, " ")
 
-const getAutomatId = (a) => a?.automat_id ?? a?.id ?? a?.automatId ?? null
-const getAutomatName = (a) => a?.nazwa ?? a?.kod ?? a?.name ?? a?.automat_nazwa ?? a?.automatNazwa ?? "-"
-const getAutomatAddress = (a) => a?.adres ?? a?.address ?? a?.automat_adres ?? a?.automatAdres ?? ""
-const getAutomatCity = (a) => a?.miasto ?? a?.city ?? a?.automat_miasto ?? a?.automatMiasto ?? ""
+const getParcelLockerId = (parcelLocker) => parcelLocker?.automat_id ?? parcelLocker?.id ?? parcelLocker?.automatId ?? null
+const getParcelLockerName = (parcelLocker) =>
+  parcelLocker?.nazwa ?? parcelLocker?.kod ?? parcelLocker?.name ?? parcelLocker?.automat_nazwa ?? parcelLocker?.automatNazwa ?? "-"
+const getParcelLockerAddress = (parcelLocker) =>
+  parcelLocker?.adres ?? parcelLocker?.address ?? parcelLocker?.automat_adres ?? parcelLocker?.automatAdres ?? ""
+const getParcelLockerCity = (parcelLocker) =>
+  parcelLocker?.miasto ?? parcelLocker?.city ?? parcelLocker?.automat_miasto ?? parcelLocker?.automatMiasto ?? ""
 
 const inferCityFromAddress = (addr) => {
   const s = String(addr || "").trim()
@@ -117,10 +120,10 @@ const normalizeFaultyRowsResponse = (data) => {
     })
 }
 
-const renderFaultyAutomatsButtons = (listEl, automaty, onSelect) => {
+const renderFaultyParcelLockerButtons = (listEl, parcelLockers, onSelect) => {
   listEl.replaceChildren()
 
-  const list = Array.isArray(automaty) ? automaty.slice() : []
+  const list = Array.isArray(parcelLockers) ? parcelLockers.slice() : []
   if (!list.length) {
     const p = document.createElement("p")
     p.textContent = "Brak automatów z awariami."
@@ -156,7 +159,7 @@ const renderFaultyAutomatsButtons = (listEl, automaty, onSelect) => {
   })
 }
 
-const renderFaultyLockersList = ({ listEl, automat, onBack, onRepair }) => {
+const renderFaultyLockersList = ({ listEl, parcelLocker, onBack, onRepair }) => {
   listEl.replaceChildren()
 
   const head = document.createElement("div")
@@ -173,13 +176,13 @@ const renderFaultyLockersList = ({ listEl, automat, onBack, onRepair }) => {
 
   const title = document.createElement("h4")
   title.className = "admin-automaty__faulty-title"
-  title.textContent = `${automat?.name || "Automat"} (#${automat?.id || "?"}) — uszkodzone skrytki: ${Number(automat?.faultyCount || 0)}`
+  title.textContent = `${parcelLocker?.name || "Automat"} (#${parcelLocker?.id || "?"}) — uszkodzone skrytki: ${Number(parcelLocker?.faultyCount || 0)}`
 
   head.appendChild(backBtn)
   head.appendChild(title)
   listEl.appendChild(head)
 
-  const ids = Array.isArray(automat?.faultyIds) ? automat.faultyIds.slice() : []
+  const ids = Array.isArray(parcelLocker?.faultyIds) ? parcelLocker.faultyIds.slice() : []
   if (!ids.length) {
     const p = document.createElement("p")
     p.textContent = "Brak uszkodzonych skrytek dla tego automatu."
@@ -218,12 +221,12 @@ const renderFaultyLockersList = ({ listEl, automat, onBack, onRepair }) => {
     })
 }
 
-export function initAdminAutomatyPanel() {
+export function initAdminParcelLockersPanel() {
   const role = (localStorage.getItem("rola") || "").toUpperCase()
   if (role !== "ADMIN") return
 
   const usersViewEl = getElById("admin-users-view")
-  const automatyViewEl = getElById("admin-automaty-view")
+  const parcelLockersViewEl = getElById("admin-automaty-view")
   const clientViewEl = getElById("admin-client-view")
 
   const titleEl = getElById("admin-automaty-title")
@@ -238,7 +241,7 @@ export function initAdminAutomatyPanel() {
   const formEl = getElById("admin-automaty-form")
   const cancelBtn = getElById("admin-automaty-form-cancel")
 
-  const kodEl = getElById("admin-automaty-name")
+  const codeEl = getElById("admin-automaty-name")
   const cityEl = getElById("admin-automaty-city")
   const addressEl = getElById("admin-automaty-address")
 
@@ -251,11 +254,11 @@ export function initAdminAutomatyPanel() {
   const cityListEl = getElById("admin-automaty-city-list")
 
   if (
-    !automatyViewEl ||
+    !parcelLockersViewEl ||
     !addBtn ||
     !formBoxEl ||
     !formEl ||
-    !kodEl ||
+    !codeEl ||
     !cityEl ||
     !addressEl ||
     !gpsEl ||
@@ -271,10 +274,10 @@ export function initAdminAutomatyPanel() {
   let citiesButtons = []
   let citiesLoaded = false
   let currentCity = ""
-  let automatsReqId = 0
+  let parcelLockersRequestId = 0
 
   let faultyRowsCache = []
-  let selectedFaultyAutomat = null
+  let selectedFaultyParcelLocker = null
 
   const hideForm = () => {
     formBoxEl.classList.add("hidden")
@@ -309,7 +312,7 @@ export function initAdminAutomatyPanel() {
   const showUsersView = () => {
     hideForm()
 
-    if (automatyViewEl) automatyViewEl.classList.add("hidden")
+    if (parcelLockersViewEl) parcelLockersViewEl.classList.add("hidden")
     if (clientViewEl) clientViewEl.classList.add("hidden")
     if (usersViewEl) usersViewEl.classList.remove("hidden")
   }
@@ -336,7 +339,7 @@ export function initAdminAutomatyPanel() {
     if (faultyBtn) faultyBtn.disabled = disabled
     if (allBtn) allBtn.disabled = disabled
 
-    kodEl.disabled = disabled
+    codeEl.disabled = disabled
     cityEl.disabled = disabled
     addressEl.disabled = disabled
     gpsEl.disabled = disabled
@@ -350,14 +353,14 @@ export function initAdminAutomatyPanel() {
     if (backBtn) backBtn.disabled = disabled
   }
 
-  const createAutomat = async ({ kod, adres, miasto, wspolrzedne, liczbaWierszy, liczbaKolumn }) => {
+  const createParcelLocker = async ({ code, address, city, gpsCoordinates, rowCount, columnCount }) => {
     const payload = {
-      kod,
-      adres,
-      miasto,
-      wspolrzedne,
-      liczbaWierszy,
-      liczbaKolumn
+      kod: code,
+      adres: address,
+      miasto: city,
+      wspolrzedne: gpsCoordinates,
+      liczbaWierszy: rowCount,
+      liczbaKolumn: columnCount
     }
 
     const result = await tryFetchJson(ENDPOINTS.CREATE, {
@@ -374,7 +377,7 @@ export function initAdminAutomatyPanel() {
     return { ok: true, data: result.data }
   }
 
-  const deleteAutomat = async (id) => {
+  const deleteParcelLocker = async (id) => {
     const result = await tryFetchJson(ENDPOINTS.DELETE(id), { method: "DELETE" })
 
     if (!result?.ok) {
@@ -389,18 +392,18 @@ export function initAdminAutomatyPanel() {
     if (citiesLoaded) return
 
     const result = await tryFetchJson(ENDPOINTS.CITIES, { method: "GET" })
-    const miasta = result?.ok ? result.data : []
-    const list = Array.isArray(miasta) ? miasta : []
+    const cities = result?.ok ? result.data : []
+    const list = Array.isArray(cities) ? cities : []
 
     citiesButtons = list
       .map((m) => String(m || "").trim())
       .filter(Boolean)
-      .map((miasto) => {
+      .map((city) => {
         const btn = document.createElement("button")
         btn.type = "button"
         btn.className = "btn admin-automaty__city-btn"
-        btn.textContent = miasto
-        btn.dataset.city = miasto
+        btn.textContent = city
+        btn.dataset.city = city
         return btn
       })
 
@@ -420,22 +423,22 @@ export function initAdminAutomatyPanel() {
     citiesButtons.forEach((b) => citiesEl.appendChild(b))
   }
 
-  const renderAutomatsInCityList = (automaty, miasto) => {
+  const renderParcelLockersInCityList = (parcelLockers, city) => {
     cityListEl.replaceChildren()
 
-    const list = Array.isArray(automaty) ? automaty.slice() : []
+    const list = Array.isArray(parcelLockers) ? parcelLockers.slice() : []
     if (!list.length) {
       const p = document.createElement("p")
-      p.textContent = `Brak automatów w mieście: ${miasto}`
+      p.textContent = `Brak automatów w mieście: ${city}`
       cityListEl.appendChild(p)
       return
     }
 
     list
-      .map((a) => {
-        const id = getAutomatId(a)
-        const name = String(getAutomatName(a) || "-").trim()
-        const address = String(getAutomatAddress(a) || "").trim()
+      .map((parcelLocker) => {
+        const id = getParcelLockerId(parcelLocker)
+        const name = String(getParcelLockerName(parcelLocker) || "-").trim()
+        const address = String(getParcelLockerAddress(parcelLocker) || "").trim()
         return { id: id != null ? String(id) : "", name, address }
       })
       .sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name), "pl"))
@@ -461,16 +464,16 @@ export function initAdminAutomatyPanel() {
           if (!ok) return
 
           setDisabled(true)
-          const r = await deleteAutomat(a.id)
+          const response = await deleteParcelLocker(a.id)
           setDisabled(false)
 
-          if (!r.ok) {
-            alert(r.error || "Nie udało się usunąć automatu.")
+          if (!response.ok) {
+            alert(response.error || "Nie udało się usunąć automatu.")
             return
           }
 
           alert("Automat usunięty.")
-          await loadAutomatyInCity(currentCity)
+          await loadParcelLockersInCity(currentCity)
         })
 
         actions.appendChild(del)
@@ -481,32 +484,32 @@ export function initAdminAutomatyPanel() {
       })
   }
 
-  const loadAutomatyInCity = async (miasto) => {
-    currentCity = miasto
+  const loadParcelLockersInCity = async (city) => {
+    currentCity = city
 
-    const reqId = ++automatsReqId
+    const requestId = ++parcelLockersRequestId
     setDisabled(true)
 
     try {
-      const result = await tryFetchJson([`/automaty?miasto=${encodeURIComponent(miasto)}`], { method: "GET" })
-      if (reqId !== automatsReqId) return
+      const result = await tryFetchJson([`/automaty?miasto=${encodeURIComponent(city)}`], { method: "GET" })
+      if (requestId !== parcelLockersRequestId) return
 
       if (!result?.ok) {
         const status = result?.res?.status
         const msg = result?.data?.error || (status ? `Błąd pobierania automatów (${status})` : "Błąd pobierania automatów")
-        renderAutomatsInCityList([], miasto)
+        renderParcelLockersInCityList([], city)
         alert(msg)
         return
       }
 
       const list = normalizeListResponse(result.data)
-      renderAutomatsInCityList(list, miasto)
+      renderParcelLockersInCityList(list, city)
     } finally {
-      if (reqId === automatsReqId) setDisabled(false)
+      if (requestId === parcelLockersRequestId) setDisabled(false)
     }
   }
 
-  const loadFaultyAutomaty = async () => {
+  const loadFaultyParcelLockers = async () => {
     setDisabled(true)
 
     try {
@@ -516,49 +519,49 @@ export function initAdminAutomatyPanel() {
         const status = result?.res?.status
         const msg = result?.data?.error || (status ? `Błąd pobierania awarii (${status})` : "Błąd pobierania awarii")
         faultyRowsCache = []
-        selectedFaultyAutomat = null
-        renderFaultyAutomatsButtons(listEl, [], () => {})
+        selectedFaultyParcelLocker = null
+        renderFaultyParcelLockerButtons(listEl, [], () => {})
         alert(msg)
         return
       }
 
       faultyRowsCache = normalizeFaultyRowsResponse(result.data)
-      selectedFaultyAutomat = null
+      selectedFaultyParcelLocker = null
 
-      showFaultyAutomats()
+      showFaultyParcelLockers()
     } finally {
       setDisabled(false)
     }
   }
 
-  const showFaultyAutomats = () => {
-    selectedFaultyAutomat = null
+  const showFaultyParcelLockers = () => {
+    selectedFaultyParcelLocker = null
 
-    renderFaultyAutomatsButtons(listEl, faultyRowsCache, (automat) => {
-      selectedFaultyAutomat = automat
-      showFaultyLockers(automat)
+    renderFaultyParcelLockerButtons(listEl, faultyRowsCache, (parcelLocker) => {
+      selectedFaultyParcelLocker = parcelLocker
+      showFaultyLockers(parcelLocker)
     })
   }
 
-  const showFaultyLockers = (automat) => {
+  const showFaultyLockers = (parcelLocker) => {
     renderFaultyLockersList({
       listEl,
-      automat,
+      parcelLocker,
       onBack: () => {
-        showFaultyAutomats()
+        showFaultyParcelLockers()
       },
       onRepair: async ({ lockerId, btn, row }) => {
-        const automatId = Number(automat?.id)
-        const skrytkaId = Number(lockerId)
+        const parcelLockerId = Number(parcelLocker?.id)
+        const repairedLockerId = Number(lockerId)
 
-        if (!Number.isInteger(automatId) || automatId <= 0) return
-        if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) return
+        if (!Number.isInteger(parcelLockerId) || parcelLockerId <= 0) return
+        if (!Number.isInteger(repairedLockerId) || repairedLockerId <= 0) return
 
         btn.disabled = true
         const prev = btn.textContent
         btn.textContent = "Przetwarzanie..."
 
-        const result = await tryFetchJson(ENDPOINTS.MARK_LOCKER_REPAIRED(automatId, skrytkaId), {
+        const result = await tryFetchJson(ENDPOINTS.MARK_LOCKER_REPAIRED(parcelLockerId, repairedLockerId), {
           method: "PUT",
           body: JSON.stringify({ status: "WOLNA" })
         })
@@ -576,26 +579,26 @@ export function initAdminAutomatyPanel() {
 
         if (row) row.remove()
 
-        automat.faultyIds = (automat.faultyIds || []).filter((x) => Number(x) !== Number(skrytkaId))
-        automat.faultyCount = Math.max(0, Number(automat.faultyCount || 0) - 1)
+        parcelLocker.faultyIds = (parcelLocker.faultyIds || []).filter((x) => Number(x) !== Number(repairedLockerId))
+        parcelLocker.faultyCount = Math.max(0, Number(parcelLocker.faultyCount || 0) - 1)
 
         faultyRowsCache = faultyRowsCache
           .map((a) => {
-            if (String(a.id) !== String(automat.id)) return a
+            if (String(a.id) !== String(parcelLocker.id)) return a
             return {
               ...a,
-              faultyIds: automat.faultyIds,
-              faultyCount: automat.faultyCount
+              faultyIds: parcelLocker.faultyIds,
+              faultyCount: parcelLocker.faultyCount
             }
           })
           .filter((a) => Number(a.faultyCount || 0) > 0)
 
-        if (automat.faultyCount <= 0) {
-          await loadFaultyAutomaty()
+        if (parcelLocker.faultyCount <= 0) {
+          await loadFaultyParcelLockers()
           return
         }
 
-        showFaultyLockers(automat)
+        showFaultyLockers(parcelLocker)
       }
     })
   }
@@ -614,11 +617,11 @@ export function initAdminAutomatyPanel() {
       citiesEl.querySelectorAll("button[data-city]").forEach((b) => b.classList.remove("isActive"))
       const first = citiesEl.querySelector("button[data-city]")
       if (first) first.classList.add("isActive")
-      if (currentCity) await loadAutomatyInCity(currentCity)
+      if (currentCity) await loadParcelLockersInCity(currentCity)
       return
     }
 
-    if (currentCity) await loadAutomatyInCity(currentCity)
+    if (currentCity) await loadParcelLockersInCity(currentCity)
   }
 
   const switchToFaultyMode = async () => {
@@ -626,7 +629,7 @@ export function initAdminAutomatyPanel() {
     hideForm()
     showFaultyUi()
     if (titleEl) titleEl.textContent = "Automaty z uszkodzonymi skrytkami"
-    await loadFaultyAutomaty()
+    await loadFaultyParcelLockers()
   }
 
   const onAddClick = () => {
@@ -640,7 +643,7 @@ export function initAdminAutomatyPanel() {
     rowsEl.value = "6"
     gpsEl.value = ""
 
-    kodEl.focus()
+    codeEl.focus()
   }
 
   const onCancel = () => {
@@ -653,27 +656,27 @@ export function initAdminAutomatyPanel() {
   const onSubmit = async (e) => {
     e.preventDefault()
 
-    const kod = String(kodEl.value || "").trim()
-    const miasto = String(cityEl.value || "").trim()
-    const adres = String(addressEl.value || "").trim()
+    const code = String(codeEl.value || "").trim()
+    const city = String(cityEl.value || "").trim()
+    const address = String(addressEl.value || "").trim()
 
-    const wspolrzedne = String(gpsEl.value || "").trim()
-    const liczbaKolumn = Number.parseInt(String(colsEl.value || "").trim(), 10)
-    const liczbaWierszy = Number.parseInt(String(rowsEl.value || "").trim(), 10)
+    const gpsCoordinates = String(gpsEl.value || "").trim()
+    const columnCount = Number.parseInt(String(colsEl.value || "").trim(), 10)
+    const rowCount = Number.parseInt(String(rowsEl.value || "").trim(), 10)
 
-    if (!kod || !miasto || !adres || !wspolrzedne) return
+    if (!code || !city || !address || !gpsCoordinates) return
 
-    if (!Number.isInteger(liczbaKolumn) || liczbaKolumn <= 0) {
+    if (!Number.isInteger(columnCount) || columnCount <= 0) {
       alert("Liczba kolumn musi być liczbą całkowitą > 0.")
       return
     }
 
-    if (!Number.isInteger(liczbaWierszy) || liczbaWierszy <= 0) {
+    if (!Number.isInteger(rowCount) || rowCount <= 0) {
       alert("Liczba rzędów musi być liczbą całkowitą > 0.")
       return
     }
 
-    if (liczbaWierszy % 2 !== 0) {
+    if (rowCount % 2 !== 0) {
       alert("Liczba rzędów musi być parzysta.")
       return
     }
@@ -681,13 +684,13 @@ export function initAdminAutomatyPanel() {
     setDisabled(true)
 
     try {
-      const result = await createAutomat({
-        kod,
-        adres,
-        miasto,
-        wspolrzedne,
-        liczbaWierszy,
-        liczbaKolumn
+      const result = await createParcelLocker({
+        code,
+        address,
+        city,
+        gpsCoordinates,
+        rowCount,
+        columnCount
       })
 
       if (!result.ok) {
@@ -766,10 +769,10 @@ export function initAdminAutomatyPanel() {
       citiesEl.querySelectorAll("button[data-city]").forEach((b) => b.classList.remove("isActive"))
       btn.classList.add("isActive")
 
-      const miasto = btn.dataset.city
-      if (!miasto) return
+      const city = btn.dataset.city
+      if (!city) return
 
-      void loadAutomatyInCity(miasto)
+      void loadParcelLockersInCity(city)
     })
   }
 

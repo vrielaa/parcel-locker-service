@@ -449,13 +449,13 @@ export const openApiSpec = {
         responses: authResponses
       }
     },
-    "/admin/automaty/{automatId}/lockers/{lockerId}/mark-repaired": {
+    "/admin/automaty/{parcelLockerId}/lockers/{lockerId}/mark-repaired": {
       put: {
         tags: ["Admin"],
         summary: "Oznaczenie skrytki jako naprawionej",
         security: [{ bearerAuth: [] }],
         parameters: [
-          idParam("automatId", "ID automatu"),
+          idParam("parcelLockerId", "ID automatu"),
           idParam("lockerId", "ID skrytki")
         ],
         responses: authResponses

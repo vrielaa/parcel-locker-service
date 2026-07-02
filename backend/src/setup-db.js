@@ -1,4 +1,4 @@
-import { initDatabase } from "./dbAdmin.js"
+import { initDatabase } from "./databaseAdmin.js"
 import { pool, query } from "./db.js"
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

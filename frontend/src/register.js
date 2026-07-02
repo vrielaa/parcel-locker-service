@@ -65,15 +65,15 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault()
     setError(errorEl, "")
 
-    const imie = normalizeText(firstNameEl.value)
-    const nazwisko = normalizeText(lastNameEl.value)
-    const telefon = normalizePhone(phoneEl?.value)
+    const firstName = normalizeText(firstNameEl.value)
+    const lastName = normalizeText(lastNameEl.value)
+    const phone = normalizePhone(phoneEl?.value)
 
     const email = normalizeEmail(emailEl.value)
     const password = String(passwordEl.value || "")
     const password2 = String(password2El.value || "")
 
-    if (!imie || !nazwisko || !email) {
+    if (!firstName || !lastName || !email) {
       setError(errorEl, "Uzupełnij imię, nazwisko i email.")
       return
     }
@@ -96,10 +96,10 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          imie,
-          nazwisko,
+          imie: firstName,
+          nazwisko: lastName,
           email,
-          telefon,
+          telefon: phone,
           password,
           password2
         })
@@ -114,17 +114,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const token = data?.token
-      const rola = data?.rola
+      const role = data?.role || data?.rola
       const mustChange = data?.must_change_password
 
-      if (!token || !rola) {
+      if (!token || !role) {
         setError(errorEl, "Brak tokena/roli w odpowiedzi z serwera.")
         setDisabled(formEl, submitBtn, false)
         return
       }
 
       localStorage.setItem("token", token)
-      localStorage.setItem("rola", String(rola || "").toUpperCase())
+      localStorage.setItem("rola", String(role || "").toUpperCase())
       localStorage.removeItem("access_token")
       localStorage.removeItem("klient_id")
       localStorage.removeItem("klientId")

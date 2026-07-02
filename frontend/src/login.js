@@ -1,10 +1,10 @@
-//login.js
+// login.js
 import "../sass/main.scss"
 
 import { getElById } from "./utils.js"
 import { displayMessageForSeconds } from "./messages.js"
 import { API_BASE, setToken, clearToken } from "./api.js"
-import { initDbAdminControls } from "./features/dbAdmin.js"
+import { initDatabaseAdminControls } from "./features/databaseAdmin.js"
 
 const form = getElById("login-form")
 const submitBtn = getElById("login-button")
@@ -70,8 +70,9 @@ form.addEventListener("submit", async (e) => {
     }
 
     clearToken()
-  setToken(data.token)
-  localStorage.setItem("rola", String(data.rola || "").trim().toUpperCase())
+    setToken(data.token)
+    const role = String(data.role || data.rola || "").trim().toUpperCase()
+    localStorage.setItem("rola", role)
 
 
     // displayMessageForSeconds("Zalogowano. Rola: " + data.rola, 3, "db-message")
@@ -95,4 +96,4 @@ form.addEventListener("click", (e) => {
 })
 
 
-initDbAdminControls()
+initDatabaseAdminControls()

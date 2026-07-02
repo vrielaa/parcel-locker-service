@@ -7,14 +7,14 @@ const router = Router()
 
 router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
   try {
-    const paczkaId = Number(req.params.id)
-    if (!Number.isInteger(paczkaId) || paczkaId <= 0) {
+    const packageId = Number(req.params.id)
+    if (!Number.isInteger(packageId) || packageId <= 0) {
       return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
     }
 
-    const role = String(req.user?.rola || "").trim().toUpperCase()
+    const role = String(req.user?.role || "").trim().toUpperCase()
 
-    const pRow = await query(
+    const packageResult = await query(
       `
       SELECT
         paczka_id,
@@ -27,29 +27,29 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
       WHERE paczka_id = $1
       LIMIT 1
       `,
-      [paczkaId]
+      [packageId]
     )
 
-    if (pRow.rowCount === 0) return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
+    if (packageResult.rowCount === 0) return res.status(404).json({ ok: false, error: "Paczka nie istnieje" })
 
-    const paczka = pRow.rows[0]
-    const status = String(paczka.status || "").trim().toUpperCase()
+    const packageRow = packageResult.rows[0]
+    const status = String(packageRow.status || "").trim().toUpperCase()
 
     if (role === "KLIENT") {
-      const klientId = req.user?.klientId
-      if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
+      const clientId = req.user?.clientId
+      if (!clientId) return res.status(403).json({ ok: false, error: "Forbidden" })
 
-      const own =
-        Number(paczka.odbiorca_id ?? 0) === Number(klientId) ||
-        Number(paczka.nadawca_id ?? 0) === Number(klientId)
+      const ownsPackage =
+        Number(packageRow.odbiorca_id ?? 0) === Number(clientId) ||
+        Number(packageRow.nadawca_id ?? 0) === Number(clientId)
 
-      if (!own) return res.status(403).json({ ok: false, error: "Forbidden" })
+      if (!ownsPackage) return res.status(403).json({ ok: false, error: "Forbidden" })
     } else if (role === "KURIER") {
-      const kurierId = req.user?.pracownikId
-      if (!kurierId) return res.status(403).json({ ok: false, error: "Brak pracownikId w tokenie" })
+      const courierId = req.user?.employeeId
+      if (!courierId) return res.status(403).json({ ok: false, error: "Brak employeeId w tokenie" })
 
-      const isPool = status === "NADANA" && paczka.kurier_id == null
-      const isMine = paczka.kurier_id != null && Number(paczka.kurier_id) === Number(kurierId)
+      const isPool = status === "NADANA" && packageRow.kurier_id == null
+      const isMine = packageRow.kurier_id != null && Number(packageRow.kurier_id) === Number(courierId)
 
       if (!isPool && !isMine) return res.status(403).json({ ok: false, error: "Forbidden" })
     } else if (role === "OPERATOR" || role === "ADMIN") {
@@ -70,7 +70,7 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
       WHERE p.paczka_id = $1
       LIMIT 1
       `,
-      [paczkaId]
+      [packageId]
     )
 
     const result = await query(
@@ -80,7 +80,7 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
       WHERE paczka_id = $1
       ORDER BY czas DESC
       `,
-      [paczkaId]
+      [packageId]
     )
 
     const row = info.rows[0] || {}
@@ -100,18 +100,18 @@ router.get("/paczki/:id/zdarzenia", requireAuth, async (req, res) => {
 
 
 router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), async (req, res) => {
-  const paczkaId = Number(req.params.id)
-  const ile_godzin = Number(req.body?.ile_godzin)
+  const packageId = Number(req.params.id)
+  const extensionHours = Number(req.body?.ile_godzin)
 
-  if (!Number.isInteger(paczkaId) || paczkaId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
-  if (!Number.isFinite(ile_godzin) || ile_godzin <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna liczba godzin." })
+  if (!Number.isInteger(packageId) || packageId <= 0) return res.status(400).json({ ok: false, error: "Niepoprawne ID paczki." })
+  if (!Number.isFinite(extensionHours) || extensionHours <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna liczba godzin." })
 
   const client = await pool.connect()
 
   try {
     await client.query("BEGIN")
 
-    const own = await client.query(
+    const ownedPackage = await client.query(
       `
       SELECT paczka_id, status, termin_odbioru
       FROM parcel_locker.paczka
@@ -119,15 +119,15 @@ router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), asy
       FOR UPDATE
       LIMIT 1
       `,
-      [paczkaId, req.user.klientId]
+      [packageId, req.user.clientId]
     )
 
-    if (own.rowCount === 0) {
+    if (ownedPackage.rowCount === 0) {
       await client.query("ROLLBACK")
       return res.status(403).json({ ok: false, error: "Forbidden" })
     }
 
-    const { status, termin_odbioru } = own.rows[0]
+    const { status, termin_odbioru: pickupDeadline } = ownedPackage.rows[0]
     const statusUpper = String(status || "").toUpperCase()
 
     if (statusUpper !== "W_AUTOMACIE") {
@@ -135,7 +135,7 @@ router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), asy
       return res.status(409).json({ ok: false, error: "Nie można przedłużyć paczki w tym statusie." })
     }
 
-    if (!termin_odbioru || new Date(termin_odbioru).getTime() <= Date.now()) {
+    if (!pickupDeadline || new Date(pickupDeadline).getTime() <= Date.now()) {
       await client.query("ROLLBACK")
       return res.status(409).json({ ok: false, error: "Minął termin odbioru – paczka została odesłana." })
     }
@@ -145,17 +145,17 @@ router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), asy
       INSERT INTO parcel_locker.przedluzenie(paczka_id, klient_id, ile_godzin)
       VALUES ($1, $2, $3)
       `,
-      [paczkaId, req.user.klientId, ile_godzin]
+      [packageId, req.user.clientId, extensionHours]
     )
 
-    const upd = await client.query(
+    const updatedPackage = await client.query(
       `
       UPDATE parcel_locker.paczka
       SET termin_odbioru = termin_odbioru + make_interval(hours => $3::int)
       WHERE paczka_id = $1 AND odbiorca_id = $2
       RETURNING termin_odbioru
       `,
-      [paczkaId, req.user.klientId, ile_godzin]
+      [packageId, req.user.clientId, extensionHours]
     )
 
     await client.query(
@@ -163,12 +163,12 @@ router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), asy
       INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
       VALUES ($1, 'PRZEDLUZONA', $2)
       `,
-      [paczkaId, `Przedłużenie o ${ile_godzin} godzin`]
+      [packageId, `Przedłużenie o ${extensionHours} godzin`]
     )
 
     await client.query("COMMIT")
 
-    res.json({ ok: true, termin_odbioru: upd.rows[0]?.termin_odbioru })
+    res.json({ ok: true, termin_odbioru: updatedPackage.rows[0]?.termin_odbioru })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
     res.status(500).json({ ok: false, error: "Błąd serwera." })
@@ -178,7 +178,14 @@ router.post("/paczki/:id/przedluzenia", requireAuth, requireRoles("KLIENT"), asy
 })
 
 router.post("/paczki", requireAuth, requireRoles("OPERATOR"), async (req, res) => {
-  const { numer_tracking, szerokosc_cm, wysokosc_cm, glebokosc_cm, nadawca_id, odbiorca_id } = req.body
+  const {
+    numer_tracking: trackingNumber,
+    szerokosc_cm: widthCm,
+    wysokosc_cm: heightCm,
+    glebokosc_cm: depthCm,
+    nadawca_id: senderId,
+    odbiorca_id: receiverId
+  } = req.body
 
   const result = await query(
     `
@@ -187,20 +194,20 @@ router.post("/paczki", requireAuth, requireRoles("OPERATOR"), async (req, res) =
     VALUES ($1,$2,$3,$4,$5,$6,'NADANA')
     RETURNING paczka_id
     `,
-    [numer_tracking, szerokosc_cm, wysokosc_cm, glebokosc_cm, nadawca_id, odbiorca_id]
+    [trackingNumber, widthCm, heightCm, depthCm, senderId, receiverId]
   )
 
-  const paczkaId = result.rows[0].paczka_id
+  const packageId = result.rows[0].paczka_id
 
   await query(
     `
     INSERT INTO parcel_locker.zdarzeniepaczki(paczka_id, typ, opis)
     VALUES ($1, 'UTWORZONA', 'Utworzono paczkę')
     `,
-    [paczkaId]
+    [packageId]
   )
 
-  res.json({ ok: true, paczka_id: paczkaId })
+  res.json({ ok: true, paczka_id: packageId })
 })
 
 export default router

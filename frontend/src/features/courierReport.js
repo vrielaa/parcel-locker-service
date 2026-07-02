@@ -5,18 +5,18 @@ import { createLockerGrid } from "./lockerGrid.js"
 
 const ENDPOINTS = {
   CITIES: "/miasta",
-  AUTOMATS_IN_CITY: (miasto) => `/automaty?miasto=${encodeURIComponent(miasto)}`,
-  AUTOMAT_LAYOUT: (id) => `/automaty/${id}`,
+  PARCEL_LOCKERS_IN_CITY: (city) => `/automaty?miasto=${encodeURIComponent(city)}`,
+  PARCEL_LOCKER_LAYOUT: (id) => `/automaty/${id}`,
   MARK_LOCKER_DAMAGED: (id) => `/kurier/skrytki/${id}/status`
 }
 
-const getAutomatId = (a) => a?.automat_id ?? a?.id ?? null
-const getAutomatName = (a) => a?.nazwa ?? a?.kod ?? a?.name ?? "-"
-const getAutomatAddress = (a) => a?.adres ?? a?.address ?? "-"
+const getParcelLockerId = (parcelLocker) => parcelLocker?.automat_id ?? parcelLocker?.id ?? null
+const getParcelLockerName = (parcelLocker) => parcelLocker?.nazwa ?? parcelLocker?.kod ?? parcelLocker?.name ?? "-"
+const getParcelLockerAddress = (parcelLocker) => parcelLocker?.adres ?? parcelLocker?.address ?? "-"
 
 const normalizeStatus = (s) => String(s ?? "").trim().toUpperCase()
 
-export function initKurierReport() {
+export function initCourierReport() {
   const viewEl = getElById("view-report-problem")
   if (!viewEl) return
 
@@ -34,10 +34,10 @@ export function initKurierReport() {
 
   const descriptionEl = viewEl.querySelector("#report-description")
 
-  const selectedAutomatLabelEl = viewEl.querySelector("#report-selected-automat")
+  const selectedParcelLockerLabelEl = viewEl.querySelector("#report-selected-automat")
   const selectedLockerLabelEl = viewEl.querySelector("#report-selected-locker")
 
-  const automatIdEl = viewEl.querySelector("#report-automat-id")
+  const parcelLockerIdEl = viewEl.querySelector("#report-automat-id")
   const lockerIdEl = viewEl.querySelector("#report-locker-id")
 
   const submitBtn = viewEl.querySelector("#report-submit")
@@ -52,9 +52,9 @@ export function initKurierReport() {
     !lockerInfoEl ||
     !gridHostEl ||
     !descriptionEl ||
-    !selectedAutomatLabelEl ||
+    !selectedParcelLockerLabelEl ||
     !selectedLockerLabelEl ||
-    !automatIdEl ||
+    !parcelLockerIdEl ||
     !lockerIdEl ||
     !submitBtn ||
     !goBackBtn
@@ -62,8 +62,8 @@ export function initKurierReport() {
     return
 
   let currentCity = ""
-  let selectedAutomat = null
-  let automatsReqId = 0
+  let selectedParcelLocker = null
+  let parcelLockersRequestId = 0
 
   const grid = createLockerGrid({
     containerEl: lockerDisplayEl,
@@ -89,16 +89,16 @@ export function initKurierReport() {
   })
 
   const updateSubmitDisabled = () => {
-    submitBtn.disabled = !(automatIdEl.value && lockerIdEl.value && String(descriptionEl.value || "").trim())
+    submitBtn.disabled = !(parcelLockerIdEl.value && lockerIdEl.value && String(descriptionEl.value || "").trim())
   }
 
   const resetSelection = () => {
-    selectedAutomat = null
+    selectedParcelLocker = null
 
-    automatIdEl.value = ""
+    parcelLockerIdEl.value = ""
     lockerIdEl.value = ""
 
-    selectedAutomatLabelEl.textContent = "—"
+    selectedParcelLockerLabelEl.textContent = "—"
     selectedLockerLabelEl.textContent = "—"
 
     descriptionEl.value = ""
@@ -107,7 +107,7 @@ export function initKurierReport() {
     grid.clear()
   }
 
-  const showAutomats = () => {
+  const showParcelLockers = () => {
     grid.clear()
     removeClass(listEl, "hidden")
     addClass(lockerDisplayEl, "hidden")
@@ -122,10 +122,10 @@ export function initKurierReport() {
     removeClass(goBackBtn, "hidden")
   }
 
-  const renderAutomatsList = (automaty) => {
+  const renderParcelLockersList = (parcelLockers) => {
     listEl.replaceChildren()
 
-    const list = Array.isArray(automaty) ? automaty : []
+    const list = Array.isArray(parcelLockers) ? parcelLockers : []
     if (!list.length) {
       const p = document.createElement("p")
       p.textContent = "Brak automatów w tym mieście."
@@ -133,10 +133,10 @@ export function initKurierReport() {
       return
     }
 
-    list.forEach((a) => {
-      const id = getAutomatId(a)
-      const name = String(getAutomatName(a) || "-")
-      const addr = String(getAutomatAddress(a) || "-")
+    list.forEach((parcelLocker) => {
+      const id = getParcelLockerId(parcelLocker)
+      const name = String(getParcelLockerName(parcelLocker) || "-")
+      const addr = String(getParcelLockerAddress(parcelLocker) || "-")
 
       const btn = document.createElement("button")
       btn.type = "button"
@@ -174,45 +174,45 @@ export function initKurierReport() {
     }
   }
 
-  const loadAutomatsInCity = async (miasto) => {
-    currentCity = miasto
+  const loadParcelLockersInCity = async (city) => {
+    currentCity = city
     resetSelection()
 
-    const reqId = ++automatsReqId
+    const requestId = ++parcelLockersRequestId
 
     listEl.replaceChildren()
-    showAutomats()
+    showParcelLockers()
 
     try {
-      const res = await apiFetch(ENDPOINTS.AUTOMATS_IN_CITY(miasto))
+      const res = await apiFetch(ENDPOINTS.PARCEL_LOCKERS_IN_CITY(city))
       const data = await res.json().catch(() => null)
 
-      if (reqId !== automatsReqId) return
+      if (requestId !== parcelLockersRequestId) return
 
-      const automaty = (data?.automaty ?? data?.rows ?? data) || []
-      renderAutomatsList(automaty)
+      const parcelLockers = (data?.automaty ?? data?.rows ?? data) || []
+      renderParcelLockersList(parcelLockers)
     } catch {
-      if (reqId !== automatsReqId) return
+      if (requestId !== parcelLockersRequestId) return
       displayMessageForSeconds("Błąd pobierania automatów.", 5, "db-message")
-      renderAutomatsList([])
+      renderParcelLockersList([])
     }
   }
 
   const displayLockerDetails = async ({ id, name, addr }) => {
     if (!id) return
 
-    selectedAutomat = { id: Number(id), name: String(name), addr: String(addr) }
+    selectedParcelLocker = { id: Number(id), name: String(name), addr: String(addr) }
 
-    automatIdEl.value = String(id)
+    parcelLockerIdEl.value = String(id)
     lockerIdEl.value = ""
 
-    selectedAutomatLabelEl.textContent = `${name} (#${id})`
+    selectedParcelLockerLabelEl.textContent = `${name} (#${id})`
     selectedLockerLabelEl.textContent = "—"
 
     updateSubmitDisabled()
 
     try {
-      const res = await apiFetch(ENDPOINTS.AUTOMAT_LAYOUT(id))
+      const res = await apiFetch(ENDPOINTS.PARCEL_LOCKER_LAYOUT(id))
       const layout = await res.json().catch(() => null)
 
       if (!Array.isArray(layout) || layout.length === 0) {
@@ -230,12 +230,12 @@ export function initKurierReport() {
     }
   }
 
-  const reloadSelectedAutomatLayout = async () => {
-    const automatId = Number(automatIdEl.value)
-    if (!Number.isInteger(automatId) || automatId <= 0) return
+  const reloadSelectedParcelLockerLayout = async () => {
+    const parcelLockerId = Number(parcelLockerIdEl.value)
+    if (!Number.isInteger(parcelLockerId) || parcelLockerId <= 0) return
 
     try {
-      const res = await apiFetch(ENDPOINTS.AUTOMAT_LAYOUT(automatId))
+      const res = await apiFetch(ENDPOINTS.PARCEL_LOCKER_LAYOUT(parcelLockerId))
       const layout = await res.json().catch(() => null)
 
       if (!Array.isArray(layout) || layout.length === 0) {
@@ -243,8 +243,8 @@ export function initKurierReport() {
         return
       }
 
-      const name = selectedAutomat?.name || "Automat"
-      grid.setTitle(`Automat: ${name} (ID: ${automatId})`)
+      const name = selectedParcelLocker?.name || "Automat"
+      grid.setTitle(`Automat: ${name} (ID: ${parcelLockerId})`)
       grid.renderLayout(layout)
       showGrid()
     } catch {
@@ -255,9 +255,9 @@ export function initKurierReport() {
   if (citySelectEl.dataset.bound !== "1") {
     citySelectEl.dataset.bound = "1"
     citySelectEl.addEventListener("change", () => {
-      const miasto = String(citySelectEl.value || "").trim()
-      if (!miasto) return
-      void loadAutomatsInCity(miasto)
+      const city = String(citySelectEl.value || "").trim()
+      if (!city) return
+      void loadParcelLockersInCity(city)
     })
   }
 
@@ -271,8 +271,8 @@ export function initKurierReport() {
     goBackBtn.type = "button"
     goBackBtn.addEventListener("click", () => {
       if (!currentCity) return
-      showAutomats()
-      void loadAutomatsInCity(currentCity)
+      showParcelLockers()
+      void loadParcelLockersInCity(currentCity)
     })
   }
 
@@ -281,18 +281,18 @@ export function initKurierReport() {
     formEl.addEventListener("submit", async (e) => {
       e.preventDefault()
 
-      const automatId = Number(String(automatIdEl.value || "").trim())
-      const skrytkaId = Number(String(lockerIdEl.value || "").trim())
+      const parcelLockerId = Number(String(parcelLockerIdEl.value || "").trim())
+      const lockerId = Number(String(lockerIdEl.value || "").trim())
       const desc = String(descriptionEl.value || "").trim()
 
-      if (!Number.isInteger(automatId) || automatId <= 0) return
-      if (!Number.isInteger(skrytkaId) || skrytkaId <= 0) return
+      if (!Number.isInteger(parcelLockerId) || parcelLockerId <= 0) return
+      if (!Number.isInteger(lockerId) || lockerId <= 0) return
       if (!desc) return
 
       submitBtn.disabled = true
 
       try {
-        const res = await apiFetch(ENDPOINTS.MARK_LOCKER_DAMAGED(skrytkaId), {
+        const res = await apiFetch(ENDPOINTS.MARK_LOCKER_DAMAGED(lockerId), {
         method: "PUT",
         body: JSON.stringify({ opis: desc })
         })
@@ -312,7 +312,7 @@ export function initKurierReport() {
         descriptionEl.value = ""
         updateSubmitDisabled()
 
-        await reloadSelectedAutomatLayout()
+        await reloadSelectedParcelLockerLayout()
       } catch (err) {
         displayMessageForSeconds(err?.message || "Nie udało się oznaczyć skrytki jako uszkodzonej.", 5, "db-message")
         updateSubmitDisabled()
@@ -322,5 +322,5 @@ export function initKurierReport() {
 
   void loadCities()
   resetSelection()
-  showAutomats()
+  showParcelLockers()
 }

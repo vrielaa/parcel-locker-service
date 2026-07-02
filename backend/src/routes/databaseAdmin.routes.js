@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { query } from "../db.js"
-import { initDatabase } from "../dbAdmin.js"
+import { initDatabase } from "../databaseAdmin.js"
 import { clearDatabase } from "../utils.js"
 import { requireAuth } from "../middleware/auth.js"
 import { requireRoles } from "../middleware/requireRoles.js"

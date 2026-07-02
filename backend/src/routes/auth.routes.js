@@ -10,14 +10,21 @@ import { getJwtSecret } from "../config.js"
 const router = Router()
 
 router.post("/register", async (req, res) => {
-  const { imie, nazwisko, email, telefon, password, password2 } = req.body
+  const {
+    imie: firstNameInput,
+    nazwisko: lastNameInput,
+    email,
+    telefon: phoneInput,
+    password,
+    password2
+  } = req.body
 
-  const imieTrim = String(imie || "").trim()
-  const nazwiskoTrim = String(nazwisko || "").trim()
-  const emailTrim = String(email || "").trim().toLowerCase()
-  const telefonTrim = String(telefon || "").trim() || null
+  const firstName = String(firstNameInput || "").trim()
+  const lastName = String(lastNameInput || "").trim()
+  const normalizedEmail = String(email || "").trim().toLowerCase()
+  const phone = String(phoneInput || "").trim() || null
 
-  if (!imieTrim || !nazwiskoTrim || !emailTrim) {
+  if (!firstName || !lastName || !normalizedEmail) {
     return res.status(400).json({ ok: false, error: "Uzupełnij imię, nazwisko i email." })
   }
 
@@ -41,7 +48,7 @@ router.post("/register", async (req, res) => {
       WHERE email = $1
       LIMIT 1
       `,
-      [emailTrim]
+      [normalizedEmail]
     )
 
     if (existingAppUser.rowCount > 0) {
@@ -57,10 +64,10 @@ router.post("/register", async (req, res) => {
       LIMIT 1
       FOR UPDATE
       `,
-      [emailTrim]
+      [normalizedEmail]
     )
 
-    let klientId = null
+    let clientId = null
 
     if (existingClient.rowCount === 0) {
       const ins = await client.query(
@@ -69,12 +76,12 @@ router.post("/register", async (req, res) => {
         VALUES ($1, $2, $3, $4)
         RETURNING klient_id
         `,
-        [imieTrim, nazwiskoTrim, emailTrim, telefonTrim]
+        [firstName, lastName, normalizedEmail, phone]
       )
 
-      klientId = ins.rows[0]?.klient_id ?? null
+      clientId = ins.rows[0]?.klient_id ?? null
     } else {
-      klientId = existingClient.rows[0]?.klient_id ?? null
+      clientId = existingClient.rows[0]?.klient_id ?? null
 
       await client.query(
         `
@@ -84,11 +91,11 @@ router.post("/register", async (req, res) => {
             telefon = $4
         WHERE klient_id = $1
         `,
-        [klientId, imieTrim, nazwiskoTrim, telefonTrim]
+        [clientId, firstName, lastName, phone]
       )
     }
 
-    if (!klientId) {
+    if (!clientId) {
       await client.query("ROLLBACK")
       return res.status(500).json({ ok: false, error: "Nie udało się utworzyć profilu klienta." })
     }
@@ -101,7 +108,7 @@ router.post("/register", async (req, res) => {
       VALUES ($1, $2, 'KLIENT', $3, FALSE)
       RETURNING app_user_id, rola, klient_id, must_change_password
       `,
-      [emailTrim, passwordHash, klientId]
+      [normalizedEmail, passwordHash, clientId]
     )
 
     const user = insUser.rows[0]
@@ -109,9 +116,9 @@ router.post("/register", async (req, res) => {
     const token = jwt.sign(
       {
         appUserId: user.app_user_id,
-        rola: user.rola,
-        klientId: user.klient_id,
-        pracownikId: null
+        role: user.rola,
+        clientId: user.klient_id,
+        employeeId: null
       },
       getJwtSecret(),
       { expiresIn: "2h" }
@@ -121,14 +128,14 @@ router.post("/register", async (req, res) => {
 
     logInfo("REGISTER ok", {
       ip: req.ip,
-      email: emailTrim,
+      email: normalizedEmail,
       appUserId: user.app_user_id,
-      rola: user.rola,
+      role: user.rola,
       token: maskToken(token),
       exp: "2h"
     })
 
-    res.json({ ok: true, token, rola: user.rola, must_change_password: user.must_change_password })
+    res.json({ ok: true, token, role: user.rola, rola: user.rola, must_change_password: user.must_change_password })
   } catch (err) {
     try { await client.query("ROLLBACK") } catch {}
 
@@ -151,7 +158,7 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body
     
 
-    const result = await query(
+    const userResult = await query(
       `
       SELECT app_user_id, email, password_hash, rola, klient_id, pracownik_id, must_change_password
       FROM parcel_locker.AppUser
@@ -161,7 +168,7 @@ router.post("/login", async (req, res) => {
       [email]
     )
 
-    const user = result.rows[0]
+    const user = userResult.rows[0]
     if (!user) {
       logWarn("LOGIN failed - no such user", { email, ip: req.ip })
       return res.status(401).json({ ok: false, error: "Bad credentials" })
@@ -176,9 +183,9 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       {
         appUserId: user.app_user_id,
-        rola: user.rola,
-        klientId: user.klient_id,
-        pracownikId: user.pracownik_id
+        role: user.rola,
+        clientId: user.klient_id,
+        employeeId: user.pracownik_id
       },
       getJwtSecret(),
       { expiresIn: "2h" }
@@ -188,12 +195,12 @@ router.post("/login", async (req, res) => {
       ip: req.ip,
       email,
       appUserId: user.app_user_id,
-      rola: user.rola,
+      role: user.rola,
       token: maskToken(token),
       exp: "2h"
     })
 
-    res.json({ ok: true, token, rola: user.rola, must_change_password: user.must_change_password })
+    res.json({ ok: true, token, role: user.rola, rola: user.rola, must_change_password: user.must_change_password })
   } catch (err) {
     console.error(err)
     res.status(500).json({ ok: false, error: "Auth failed" })
@@ -216,7 +223,15 @@ router.get("/me", requireAuth, async (req, res) => {
     const user = result.rows[0]
     if (!user) return res.status(404).json({ ok: false, error: "User not found" })
 
-    res.json({ ok: true, user })
+    res.json({
+      ok: true,
+      user: {
+        ...user,
+        role: user.rola,
+        clientId: user.klient_id,
+        employeeId: user.pracownik_id
+      }
+    })
   } catch (err) {
     console.error(err)
     res.status(500).json({ ok: false, error: "Me failed" })

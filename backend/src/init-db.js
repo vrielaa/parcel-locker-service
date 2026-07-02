@@ -1,4 +1,4 @@
-import { initDatabase } from "./dbAdmin.js"
+import { initDatabase } from "./databaseAdmin.js"
 import { pool } from "./db.js"
 
 async function main() {

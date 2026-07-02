@@ -1,13 +1,13 @@
 import "../sass/main.scss"
-import { initAutomatsView } from "./features/automat.js"
-import { initPackagesView } from "./features/paczki.js"
-import { initKurierPanel } from "./features/kurier.js"
+import { initParcelLockersView } from "./features/parcelLockers.js"
+import { initPackagesView } from "./features/packages.js"
+import { initCourierPanel } from "./features/courier.js"
 import { initSendPackageView } from "./features/sendPackage.js"
 import { initOperatorPanel } from "./features/operatorPanel.js"
-import { initDbAdminControls } from "./features/dbAdmin.js"
+import { initDatabaseAdminControls } from "./features/databaseAdmin.js"
 import { initAdminUsersView } from "./features/adminPanel.js"
-import { initAdminAutomatyPanel } from "./features/adminAutomaty.js"
-import { initKurierReport } from "./features/kurierReport.js"
+import { initAdminParcelLockersPanel } from "./features/adminParcelLockers.js"
+import { initCourierReport } from "./features/courierReport.js"
 import { initLogout } from "./features/logout.js"
 import { addClass, removeClass, getElById } from "./utils.js"
 import { apiFetch, clearToken } from "./api.js"
@@ -63,11 +63,11 @@ async function main() {
     return
   }
 
-  localStorage.setItem("rola", String(me.user.rola || "").trim().toUpperCase())
+  const role = String(me.user.role || me.user.rola || "").toUpperCase()
+  localStorage.setItem("rola", role)
+  const showDevTools = localStorage.getItem("showDevTools") === "true"
 
   
-
-  const role = (me.user.rola || "").toUpperCase()
 
   const myAccountEmailEl = getElById("account-button");
 
@@ -96,8 +96,8 @@ async function main() {
     if (!showDevTools) addClass(el, "hidden")
   })
 
-  const btnAutomaty = getElById("get-automaty")
-  // if (btnAutomaty) removeClass(btnAutomaty, "hidden")
+  const parcelLockersButton = getElById("get-automaty")
+  // if (parcelLockersButton) removeClass(parcelLockersButton, "hidden")
 
   const views = Array.from(document.querySelectorAll("[data-view]"))
 
@@ -128,54 +128,54 @@ async function main() {
   const btnOperatorPanel = getElById("nav-operator-panel")
   const createPackageBtn = getElById("nav-create-package")
   const btnAdminUsers = getElById("nav-admin-users")
-  const btnAdminAutomaty = getElById("nav-admin-automaty")
-  const btnKurierReport = getElById("nav-courier-report")
+  const adminParcelLockersButton = getElById("nav-admin-automaty")
+  const courierReportButton = getElById("nav-courier-report")
 
-  if (btnAutomaty) btnAutomaty.addEventListener("click", () => showView("view-automaty"))
+  if (parcelLockersButton) parcelLockersButton.addEventListener("click", () => showView("view-automaty"))
   if (btnMyPackages) btnMyPackages.addEventListener("click", () => showView("view-klient"))
   if (btnCourierPackages) btnCourierPackages.addEventListener("click", () => showView("view-kurier"))
   if (btnOperatorPanel) btnOperatorPanel.addEventListener("click", () => showView("view-operator"))
   if (createPackageBtn) createPackageBtn.addEventListener("click", () => showView("view-create-package"))
-  if (btnKurierReport) btnKurierReport.addEventListener("click", () => showView("view-report-problem"))
+  if (courierReportButton) courierReportButton.addEventListener("click", () => showView("view-report-problem"))
 
   if (btnAdminUsers) {
     btnAdminUsers.addEventListener("click", () => {
       showView("view_admin")
 
       const usersViewEl = getElById("admin-users-view")
-      const automatyViewEl = getElById("admin-automaty-view")
+      const adminParcelLockersViewEl = getElById("admin-automaty-view")
       const clientViewEl = getElById("admin-client-view")
 
       if (usersViewEl) removeClass(usersViewEl, "hidden")
-      if (automatyViewEl) addClass(automatyViewEl, "hidden")
+      if (adminParcelLockersViewEl) addClass(adminParcelLockersViewEl, "hidden")
       if (clientViewEl) addClass(clientViewEl, "hidden")
     })
   }
 
-  if (btnAdminAutomaty) {
-    btnAdminAutomaty.addEventListener("click", () => {
+  if (adminParcelLockersButton) {
+    adminParcelLockersButton.addEventListener("click", () => {
       showView("view_admin")
 
       const usersViewEl = getElById("admin-users-view")
-      const automatyViewEl = getElById("admin-automaty-view")
+      const adminParcelLockersViewEl = getElById("admin-automaty-view")
       const clientViewEl = getElById("admin-client-view")
 
       if (usersViewEl) addClass(usersViewEl, "hidden")
       if (clientViewEl) addClass(clientViewEl, "hidden")
-      if (automatyViewEl) removeClass(automatyViewEl, "hidden")
+      if (adminParcelLockersViewEl) removeClass(adminParcelLockersViewEl, "hidden")
     })
   }
 
-  initAutomatsView()
-  initDbAdminControls()
+  initParcelLockersView()
+  initDatabaseAdminControls()
   initLogout()
   initPackagesView()
-  initKurierPanel()
-  initKurierReport()
+  initCourierPanel()
+  initCourierReport()
   initSendPackageView()
   initOperatorPanel()
   initAdminUsersView()
-  initAdminAutomatyPanel()
+  initAdminParcelLockersPanel()
 }
 
 main()

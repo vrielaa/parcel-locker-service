@@ -1,4 +1,4 @@
-// sendPackages.js
+// sendPackage.js
 import { getElById } from "../utils.js"
 import { displayMessageForSeconds } from "../messages.js"
 import { apiFetch, API_BASE } from "../api.js"
@@ -37,15 +37,15 @@ const normalizeText = (s) =>
     .trim()
     .replace(/\s+/g, " ")
 
-const getLockerId = (a) => a?.automat_id ?? a?.id ?? a?.automatId ?? null
-const getLockerName = (a) => a?.nazwa ?? a?.name ?? a?.automat_nazwa ?? a?.automatNazwa ?? "-"
-const getLockerAddress = (a) => a?.adres ?? a?.address ?? a?.automat_adres ?? a?.automatAdres ?? ""
-const getLockerCity = (a) => a?.miasto ?? a?.city ?? a?.automat_miasto ?? a?.automatMiasto ?? ""
+const getLockerId = (parcelLocker) => parcelLocker?.automat_id ?? parcelLocker?.id ?? parcelLocker?.automatId ?? null
+const getLockerName = (parcelLocker) => parcelLocker?.nazwa ?? parcelLocker?.name ?? parcelLocker?.automat_nazwa ?? parcelLocker?.automatNazwa ?? "-"
+const getLockerAddress = (parcelLocker) => parcelLocker?.adres ?? parcelLocker?.address ?? parcelLocker?.automat_adres ?? parcelLocker?.automatAdres ?? ""
+const getLockerCity = (parcelLocker) => parcelLocker?.miasto ?? parcelLocker?.city ?? parcelLocker?.automat_miasto ?? parcelLocker?.automatMiasto ?? ""
 
-const buildLockerLabel = (a) => {
-  const name = getLockerName(a)
-  const addr = getLockerAddress(a)
-  const city = getLockerCity(a)
+const buildLockerLabel = (parcelLocker) => {
+  const name = getLockerName(parcelLocker)
+  const addr = getLockerAddress(parcelLocker)
+  const city = getLockerCity(parcelLocker)
 
   const suffix = addr ? addr : city ? city : ""
   return suffix ? `${name} — ${suffix}` : name
@@ -59,9 +59,9 @@ const normalizeLockersResponse = (data) => {
 const loadCities = async () => {
   try {
     const res = await fetch(`${API_BASE}/miasta`)
-    const miasta = await res.json()
+    const cities = await res.json()
 
-    miasta.forEach((city) => {
+    cities.forEach((city) => {
       const c = String(city || "").trim()
       if (c && !citiesCache.includes(c)) citiesCache.push(c)
     })
@@ -73,11 +73,11 @@ const loadCities = async () => {
   }
 }
 
-const loadLockersInCity = async (miasto) => {
+const loadLockersInCity = async (city) => {
   try {
-    const res = await apiFetch(`/automaty?miasto=${encodeURIComponent(miasto)}`)
-    const automaty = await res.json()
-    return automaty
+    const res = await apiFetch(`/automaty?miasto=${encodeURIComponent(city)}`)
+    const parcelLockers = await res.json()
+    return parcelLockers
   } catch (err) {
     displayMessageForSeconds("Błąd: " + err.message, 5, "db-message")
     return []
@@ -243,14 +243,14 @@ export function initSendPackageView() {
     const list = normalizeLockersResponse(lockers)
 
     lockerIndex = list
-      .map((automat) => {
-        const id = getLockerId(automat)
+      .map((parcelLocker) => {
+        const id = getLockerId(parcelLocker)
         if (!id) return null
 
-        const name = String(getLockerName(automat) || "").trim()
-        const city = String(getLockerCity(automat) || "").trim()
-        const addr = String(getLockerAddress(automat) || "").trim()
-        const label = buildLockerLabel(automat)
+        const name = String(getLockerName(parcelLocker) || "").trim()
+        const city = String(getLockerCity(parcelLocker) || "").trim()
+        const addr = String(getLockerAddress(parcelLocker) || "").trim()
+        const label = buildLockerLabel(parcelLocker)
 
         return {
           id: String(id),
@@ -309,18 +309,18 @@ export function initSendPackageView() {
 
     if (lockersLoaded) return
 
-    const miasto = String(cityEl.value || "").trim()
+    const city = String(cityEl.value || "").trim()
 
-    if (!miasto) {
+    if (!city) {
       setLockerOptions([])
       return
     }
 
-    const automaty = await loadLockersInCity(miasto)
+    const parcelLockers = await loadLockersInCity(city)
 
     if (token !== lockersLoadToken) return
 
-    setLockerOptions(automaty)
+    setLockerOptions(parcelLockers)
     lockersLoaded = true
   }
 
@@ -401,12 +401,12 @@ export function initSendPackageView() {
     }
   }
 
-  const createPackage = async ({ recipientEmail, lockerId, szerokosc_cm, wysokosc_cm, glebokosc_cm }) => {
+  const createPackage = async ({ recipientEmail, lockerId, widthCm, heightCm, depthCm }) => {
     const payload = {
       automat_id: Number(lockerId),
-      szerokosc_cm,
-      wysokosc_cm,
-      glebokosc_cm,
+      szerokosc_cm: widthCm,
+      wysokosc_cm: heightCm,
+      glebokosc_cm: depthCm,
       odbiorca: { email: recipientEmail }
     }
 
@@ -460,7 +460,7 @@ export function initSendPackageView() {
     const dims = getPackageDims()
     if (!dims) return
 
-    const [szerokosc_cm, wysokosc_cm, glebokosc_cm] = dims
+    const [widthCm, heightCm, depthCm] = dims
 
     if (!recipientEmail || !lockerId) return
 
@@ -487,9 +487,9 @@ export function initSendPackageView() {
       const result = await createPackage({
         recipientEmail,
         lockerId,
-        szerokosc_cm,
-        wysokosc_cm,
-        glebokosc_cm
+        widthCm,
+        heightCm,
+        depthCm
       })
 
       if (!result.ok) {

@@ -1,7 +1,7 @@
 export const requireRoles =
   (...roles) =>
   (req, res, next) => {
-    const role = (req.user?.rola || "").toUpperCase()
+    const role = (req.user?.role || req.user?.rola || "").toUpperCase()
     const allowed = roles.map((r) => String(r).toUpperCase())
 
     if (!role) return res.status(401).json({ ok: false, error: "AUTH_REQUIRED" })

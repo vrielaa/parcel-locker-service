@@ -2,7 +2,7 @@ import { getElById } from "../utils.js"
 import { displayMessageForSeconds } from "../messages.js"
 import { apiFetch } from "../api.js"
 
-const endpoint = "/operator/paczki/pending"
+const ENDPOINT = "/operator/paczki/pending"
 
 const escapeHtml = (s) =>
   String(s ?? "")
@@ -35,7 +35,7 @@ const toLocal = (d) => {
   return x.toLocaleString()
 }
 
-const getId = (p) => p?.paczka_id ?? p?.id ?? null
+const getPackageId = (p) => p?.paczka_id ?? p?.id ?? null
 const getTracking = (p) => p?.numer_tracking ?? p?.tracking ?? p?.numer ?? "-"
 const getSenderEmail = (p) => p?.nadawca_email ?? p?.nadawcaEmail ?? "-"
 const getReceiverEmail = (p) => p?.odbiorca_email ?? p?.odbiorcaEmail ?? "-"
@@ -49,7 +49,7 @@ const getDimsText = (p) => {
   return `${w} × ${h} × ${d} cm`
 }
 
-const getDestAutomatText = (p) => {
+const getDestinationParcelLockerText = (p) => {
   const name = p?.docelowy_automat_nazwa ?? p?.automat_nazwa ?? "-"
   const addr = p?.docelowy_automat_adres ?? p?.automat_adres ?? ""
   return addr ? `${name} — ${addr}` : name
@@ -114,7 +114,7 @@ export function initOperatorPanel() {
       return
     }
 
-    const id = getId(p)
+    const id = getPackageId(p)
     if (!id) {
       clearDetails()
       hintEl && (hintEl.textContent = "Brak ID paczki.")
@@ -127,7 +127,7 @@ export function initOperatorPanel() {
     receiverValue && (receiverValue.textContent = String(getReceiverEmail(p) || "-"))
     createdValue && (createdValue.textContent = toLocal(getCreated(p)))
     dimsValue && (dimsValue.textContent = getDimsText(p))
-    lockerValue && (lockerValue.textContent = getDestAutomatText(p))
+    lockerValue && (lockerValue.textContent = getDestinationParcelLockerText(p))
 
     hintEl && (hintEl.textContent = "Skrytkę wybierze kurier w docelowym automacie.")
     approveBtn.disabled = false
@@ -143,7 +143,7 @@ export function initOperatorPanel() {
     }
 
     filtered = all.filter((p) => {
-      const id = String(getId(p) ?? "")
+      const id = String(getPackageId(p) ?? "")
       const tr = String(getTracking(p) ?? "").toLowerCase()
       const se = String(getSenderEmail(p) ?? "").toLowerCase()
       const re = String(getReceiverEmail(p) ?? "").toLowerCase()
@@ -164,7 +164,7 @@ export function initOperatorPanel() {
     setMessage("")
 
     filtered.forEach((p) => {
-      const id = String(getId(p))
+      const id = String(getPackageId(p))
       const tracking = String(getTracking(p))
       const sender = String(getSenderEmail(p))
       const receiver = String(getReceiverEmail(p))
@@ -172,7 +172,7 @@ export function initOperatorPanel() {
       const btn = document.createElement("button")
       btn.type = "button"
       btn.className = "operator-panel__item"
-      btn.dataset.paczkaId = id
+      btn.dataset.packageId = id
 
       btn.innerHTML = `
         <div class="operator-panel__item-left">
@@ -209,7 +209,7 @@ export function initOperatorPanel() {
       setMessage("Ładowanie paczek...")
       clearDetails()
 
-      const res = await apiFetch(endpoint)
+      const res = await apiFetch(ENDPOINT)
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
@@ -226,14 +226,14 @@ export function initOperatorPanel() {
       applyFilter()
 
       if (selectedId) {
-        const picked = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
+        const picked = filtered.find((x) => String(getPackageId(x)) === String(selectedId)) || null
         if (!picked) selectedId = null
       }
 
       renderList()
 
       if (selectedId) {
-        const picked = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
+        const picked = filtered.find((x) => String(getPackageId(x)) === String(selectedId)) || null
         if (picked) await setDetails(picked)
         else clearDetails()
       }
@@ -250,7 +250,7 @@ export function initOperatorPanel() {
   const approveSelected = async () => {
     if (!selectedId) return
 
-    const p = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
+    const p = filtered.find((x) => String(getPackageId(x)) === String(selectedId)) || null
     if (!p) return
 
     approveBtn.disabled = true
@@ -288,7 +288,7 @@ export function initOperatorPanel() {
       renderList()
 
       if (selectedId) {
-        const picked = filtered.find((x) => String(getId(x)) === String(selectedId)) || null
+        const picked = filtered.find((x) => String(getPackageId(x)) === String(selectedId)) || null
         if (!picked) {
           selectedId = null
           clearDetails()

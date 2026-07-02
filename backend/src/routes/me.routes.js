@@ -14,40 +14,40 @@ const makeTracking = () => {
 
 router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
   try {
-    const klientId = req.user?.klientId
-    if (!klientId) return res.status(403).json({ ok: false, error: "Brak klientId w tokenie" })
+    const clientId = req.user?.clientId
+    if (!clientId) return res.status(403).json({ ok: false, error: "Brak clientId w tokenie" })
 
-    const automatId = Number(req.body?.automat_id)
-    if (!Number.isInteger(automatId) || automatId <= 0) {
+    const parcelLockerId = Number(req.body?.automat_id)
+    if (!Number.isInteger(parcelLockerId) || parcelLockerId <= 0) {
       return res.status(400).json({ ok: false, error: "Niepoprawny automat_id" })
     }
 
-    const a = await query(
+    const parcelLockerResult = await query(
       `
       SELECT automat_id
       FROM parcel_locker.automat
       WHERE automat_id = $1
       LIMIT 1
       `,
-      [automatId]
+      [parcelLockerId]
     )
-    if (a.rowCount === 0) return res.status(404).json({ ok: false, error: "Automat nie istnieje" })
+    if (parcelLockerResult.rowCount === 0) return res.status(404).json({ ok: false, error: "Automat nie istnieje" })
 
-    const szerokosc_cm = Number(req.body?.szerokosc_cm)
-    const wysokosc_cm = Number(req.body?.wysokosc_cm)
-    const glebokosc_cm = Number(req.body?.glebokosc_cm)
+    const widthCm = Number(req.body?.szerokosc_cm)
+    const heightCm = Number(req.body?.wysokosc_cm)
+    const depthCm = Number(req.body?.glebokosc_cm)
 
-    const odbiorca = req.body?.odbiorca || {}
-    const odb_email = String(req.body?.odbiorca_email ?? odbiorca.email ?? "").trim().toLowerCase()
-    const odb_telefon = odbiorca.telefon != null ? String(odbiorca.telefon).trim() : null
+    const receiver = req.body?.odbiorca || {}
+    const receiverEmail = String(req.body?.odbiorca_email ?? receiver.email ?? "").trim().toLowerCase()
+    const receiverPhone = receiver.telefon != null ? String(receiver.telefon).trim() : null
 
-    if (!Number.isFinite(szerokosc_cm) || szerokosc_cm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna szerokosc_cm" })
-    if (!Number.isFinite(wysokosc_cm) || wysokosc_cm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna wysokosc_cm" })
-    if (!Number.isFinite(glebokosc_cm) || glebokosc_cm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna glebokosc_cm" })
+    if (!Number.isFinite(widthCm) || widthCm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna szerokosc_cm" })
+    if (!Number.isFinite(heightCm) || heightCm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna wysokosc_cm" })
+    if (!Number.isFinite(depthCm) || depthCm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna glebokosc_cm" })
 
-    if (!odb_email) return res.status(400).json({ ok: false, error: "Brak email odbiorcy" })
+    if (!receiverEmail) return res.status(400).json({ ok: false, error: "Brak email odbiorcy" })
 
-    const numer_tracking = makeTracking()
+    const trackingNumber = makeTracking()
 
     const result = await query(
       `
@@ -98,14 +98,14 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
         (SELECT zdarzenie_id FROM ev) AS zdarzenie_id
       `,
       [
-        odb_email,
-        odb_telefon,
-        numer_tracking,
-        szerokosc_cm,
-        wysokosc_cm,
-        glebokosc_cm,
-        klientId,
-        automatId
+        receiverEmail,
+        receiverPhone,
+        trackingNumber,
+        widthCm,
+        heightCm,
+        depthCm,
+        clientId,
+        parcelLockerId
       ]
     )
 
@@ -117,19 +117,19 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
 
 router.get("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
   try {
-    const klientId = req.user.klientId
-    if (!klientId) return res.status(403).json({ ok: false, error: "Forbidden" })
+    const clientId = req.user.clientId
+    if (!clientId) return res.status(403).json({ ok: false, error: "Forbidden" })
 
-      await query(
-        `
-        UPDATE parcel_locker.paczka
-        SET termin_odbioru = termin_odbioru
-        WHERE status = 'W_AUTOMACIE'
-          AND termin_odbioru IS NOT NULL
-          AND termin_odbioru < CURRENT_TIMESTAMP
-          AND odbiorca_id = $1
-        `,
-        [klientId]
+    await query(
+      `
+      UPDATE parcel_locker.paczka
+      SET termin_odbioru = termin_odbioru
+      WHERE status = 'W_AUTOMACIE'
+        AND termin_odbioru IS NOT NULL
+        AND termin_odbioru < CURRENT_TIMESTAMP
+        AND odbiorca_id = $1
+      `,
+      [clientId]
     )
 
 
@@ -162,7 +162,7 @@ router.get("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => {
         OR (p.odbiorca_id = $1 AND p.status <> 'CZEKA_NA_ZATWIERDZENIE')
       ORDER BY p.paczka_id DESC
       `,
-      [klientId]
+      [clientId]
     )
 
     res.json({ ok: true, paczki: result.rows })

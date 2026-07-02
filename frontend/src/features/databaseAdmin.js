@@ -2,7 +2,7 @@ import { getElById } from "../utils.js"
 import { callApi } from "../api.js"
 import { displayMessageForSeconds } from "../messages.js"
 
-export function initDbAdminControls() {
+export function initDatabaseAdminControls() {
   const checkBtn = getElById("check-db-button")
   const initBtn = getElById("init-db-button")
 
