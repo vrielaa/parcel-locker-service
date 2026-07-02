@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken"
 import { requireAuth } from "../middleware/auth.js"
 import { logInfo, logWarn, maskToken } from "../logger.js"
 import { query, pool } from "../db.js"
+import { getJwtSecret } from "../config.js"
 
 const router = Router()
 
@@ -112,7 +113,7 @@ router.post("/register", async (req, res) => {
         klientId: user.klient_id,
         pracownikId: null
       },
-      process.env.JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: "2h" }
     )
 
@@ -179,7 +180,7 @@ router.post("/login", async (req, res) => {
         klientId: user.klient_id,
         pracownikId: user.pracownik_id
       },
-      process.env.JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: "2h" }
     )
 

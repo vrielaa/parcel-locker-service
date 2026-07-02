@@ -112,18 +112,14 @@ npm --prefix backend install
 npm --prefix frontend install
 ```
 
-Utwórz plik `backend/.env`:
+Skopiuj przykładowe pliki env:
 
-```env
-PORT=8080
-
-DB_HOST=localhost
-DB_USER=postgres
-DB_PASS=postgres
-DB_NAME=parcel_locker
-
-JWT_SECRET=local-dev-secret-change-me
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
+
+Domyślna konfiguracja zakłada lokalny backend na porcie `3000`, projektowy PostgreSQL na porcie `5433` i bazę `parcel_locker`. Jeżeli Twoja lokalna baza działa na innym porcie albo używa innego użytkownika lub hasła, zmień `DB_PORT`, `DB_USER` i `DB_PASS` w `backend/.env`.
 
 Dla Google Cloud SQL backend obsługuje też zmienną:
 
@@ -135,28 +131,34 @@ Jeżeli `INSTANCE_CONNECTION_NAME` jest ustawione, backend użyje socketa `/clou
 
 ## Baza Danych
 
-Utwórz bazę:
+Normalnie wystarczy uruchomić:
 
 ```bash
-createdb parcel_locker
+npm run dev
 ```
 
-Zainicjalizuj schemat w kolejności używanej przez backend:
+Ten skrypt podnosi lokalny PostgreSQL przez Docker Compose, czeka na gotowość bazy i inicjalizuje schemat tylko wtedy, gdy jeszcze go nie ma.
+
+Jeżeli chcesz osobno podnieść lub zatrzymać bazę:
 
 ```bash
-psql -d parcel_locker -f backend/sql/schema.sql
-psql -d parcel_locker -f backend/sql/functions.sql
-psql -d parcel_locker -f backend/sql/data.sql
-psql -d parcel_locker -f backend/sql/view.sql
+npm run db:up
+npm run db:down
 ```
+
+Jeżeli chcesz wymusić pełny reset schematu i danych:
+
+```bash
+npm run db:init
+```
+
+`db:init` uruchamia `schema.sql`, `functions.sql`, `data.sql` i `view.sql`. Uwaga: `schema.sql` usuwa i tworzy schemat `parcel_locker` od nowa, więc kasuje dane w tym schemacie.
 
 Opcjonalnie dodaj role bazodanowe i uprawnienia:
 
 ```bash
 psql -d parcel_locker -f backend/sql/roles.sql
 ```
-
-Uwaga: `schema.sql` usuwa i tworzy schemat `parcel_locker` od nowa, więc kasuje dane w tym schemacie.
 
 Backend ma też endpointy administracyjne:
 
@@ -181,7 +183,7 @@ Konto klienta można utworzyć przez formularz rejestracji.
 
 ## Uruchamianie
 
-Backend:
+Backend bez automatycznego uruchamiania Dockera:
 
 ```bash
 npm start --prefix backend
@@ -190,10 +192,10 @@ npm start --prefix backend
 Domyślnie API działa na:
 
 ```text
-http://localhost:8080
+http://localhost:3000
 ```
 
-Frontend:
+Frontend bez automatycznego uruchamiania Dockera:
 
 ```bash
 npm run dev --prefix frontend
@@ -205,17 +207,29 @@ Domyślnie Vite otwiera:
 http://localhost:5173/login.html
 ```
 
-Można też uruchomić backend i frontend jedną komendą:
+Uruchom backend i frontend jedną komendą:
 
 ```bash
 npm run dev
 ```
 
-Uwaga lokalna: frontend używa `API_BASE = "/api"`. W produkcji działa to przez rewrite Firebase. W lokalnym Vite nie ma obecnie skonfigurowanego proxy do backendu, więc pełny lokalny przepływ wymaga proxy/rewrite z `/api` na `http://localhost:8080/api` albo uruchomienia aplikacji za warstwą, która zapewnia takie mapowanie.
+Lokalnie Vite proxy'uje `/api` do `VITE_API_PROXY_TARGET`, domyślnie `http://localhost:3000`. W produkcji ten sam prefiks `/api` obsługuje rewrite Firebase do Cloud Run.
 
 ## API
 
 Wszystkie endpointy backendu są pod prefiksem `/api`.
+
+Dokumentacja Swagger UI jest dostepna pod:
+
+```text
+http://localhost:3000/api-docs
+```
+
+Surowy OpenAPI JSON:
+
+```text
+http://localhost:3000/api/openapi.json
+```
 
 ### Publiczne
 

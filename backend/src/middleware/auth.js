@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken"
 import { logWarn, logInfo, maskToken } from "../logger.js"
+import { getJwtSecret } from "../config.js"
 
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization || ""
@@ -12,7 +13,7 @@ export function requireAuth(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const payload = jwt.verify(token, getJwtSecret())
     req.user = payload
 
     logInfo("AUTH ok", {
