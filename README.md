@@ -9,6 +9,7 @@ Webowa aplikacja bazodanowa symulująca system obsługi automatów paczkowych. P
 - [Architektura](#architektura)
 - [Funkcjonalności](#funkcjonalności)
 - [Wymagania](#wymagania)
+- [Uruchomienie Krok Po Kroku](#uruchomienie-krok-po-kroku)
 - [Konfiguracja Lokalna](#konfiguracja-lokalna)
 - [Baza Danych](#baza-danych)
 - [Konta Testowe](#konta-testowe)
@@ -99,8 +100,131 @@ W produkcji Firebase Hosting serwuje pliki z `frontend/dist`, a ścieżki `/api/
 
 - Node.js 18+,
 - npm,
-- PostgreSQL 14+,
+- Docker Desktop z Docker Compose,
+- opcjonalnie PostgreSQL 14+ przy uruchamianiu bez Dockera,
 - opcjonalnie Firebase CLI do deploymentu hostingu.
+
+## Uruchomienie Krok Po Kroku
+
+Najprostszy lokalny start korzysta z Dockera dla PostgreSQL.
+
+1. Sklonuj repozytorium i przejdź do katalogu projektu:
+
+```bash
+git clone <adres-repozytorium>
+cd parcel-locker-service
+```
+
+Jeżeli masz już projekt lokalnie, wystarczy wejść do katalogu:
+
+```bash
+cd parcel-locker-service
+```
+
+2. Uruchom Docker Desktop.
+
+Na macOS możesz użyć:
+
+```bash
+open -a Docker
+```
+
+Poczekaj, aż Docker Desktop będzie gotowy. Możesz to sprawdzić:
+
+```bash
+docker info
+```
+
+3. Zainstaluj zależności:
+
+```bash
+npm install
+npm --prefix backend install
+npm --prefix frontend install
+```
+
+4. Utwórz lokalne pliki konfiguracyjne:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+Domyślne wartości są przygotowane pod lokalny start:
+
+```text
+Backend:   http://localhost:3000
+Frontend:  http://localhost:5173/login.html
+PostgreSQL: localhost:5433
+DB user:   postgres
+DB pass:   postgres
+DB name:   parcel_locker
+```
+
+5. Uruchom projekt:
+
+```bash
+npm run dev
+```
+
+Ta komenda:
+
+- uruchamia PostgreSQL przez `docker compose`,
+- czeka aż baza będzie gotowa,
+- inicjalizuje schemat i dane startowe, jeśli baza jest pusta,
+- uruchamia backend,
+- uruchamia frontend.
+
+6. Otwórz aplikację:
+
+```text
+http://localhost:5173/login.html
+```
+
+7. Zaloguj się kontem testowym:
+
+| Rola | Email | Hasło |
+| --- | --- | --- |
+| ADMIN | `admin@test.pl` | `admin123` |
+| OPERATOR | `operator@test.pl` | `operator123` |
+| KURIER | `kurier@test.pl` | `kurier123` |
+| KURIER | `kurier2@test.pl` | `kurier123` |
+
+Konto klienta możesz utworzyć przez formularz rejestracji.
+
+8. Opcjonalnie otwórz dokumentację API:
+
+```text
+http://localhost:3000/api-docs
+```
+
+### Przydatne Komendy
+
+```bash
+npm run dev        # pełny lokalny start: DB + backend + frontend
+npm run dev:app    # tylko backend + frontend, bez uruchamiania Dockera
+npm run db:up      # uruchomienie lokalnego Postgresa
+npm run db:setup   # inicjalizacja DB tylko jeśli schema jeszcze nie istnieje
+npm run db:init    # pełny reset schematu i danych startowych
+npm run db:down    # zatrzymanie lokalnego Postgresa
+```
+
+### Typowe Problemy
+
+Jeżeli widzisz `ECONNREFUSED 127.0.0.1:5433` albo `ECONNREFUSED ::1:5433`, PostgreSQL nie działa. Uruchom Docker Desktop i ponów:
+
+```bash
+npm run db:up
+npm run dev
+```
+
+Jeżeli port `5433` jest zajęty, zmień mapowanie portu w `docker-compose.yml` oraz `DB_PORT` w `backend/.env`.
+
+Jeżeli chcesz zacząć z czystą bazą:
+
+```bash
+npm run db:init
+```
 
 ## Konfiguracja Lokalna
 
