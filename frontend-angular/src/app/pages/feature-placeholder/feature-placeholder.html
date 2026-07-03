@@ -1,12 +1,12 @@
-<section class="feature">
-  <header class="feature__header">
-    <span>{{ feature().area }}</span>
-    <h1>{{ feature().title }}</h1>
-    <p>{{ feature().status }}</p>
+<section class="grid w-full gap-[18px]">
+  <header class="grid gap-2.5 rounded-lg border border-line bg-surface p-7 shadow-card">
+    <span class="text-xs font-bold uppercase text-brand">{{ feature().area }}</span>
+    <h1 class="m-0 text-3xl leading-tight">{{ feature().title }}</h1>
+    <p class="m-0 text-muted">{{ feature().status }}</p>
   </header>
 
-  <div class="feature__body">
-    <h2>Backend contract</h2>
+  <div class="rounded-lg border border-line bg-surface px-7 py-[22px] shadow-card">
+    <h2 class="m-0 text-base">Backend contract</h2>
     <app-endpoint-list
       [endpoints]="feature().endpoints"
       [selectedEndpoint]="selectedEndpoint()"

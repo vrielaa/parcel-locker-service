@@ -8,8 +8,7 @@ import {
 @Component({
   selector: 'app-migration-dashboard',
   imports: [ModuleCard],
-  templateUrl: './migration-dashboard.html',
-  styleUrl: './migration-dashboard.scss'
+  templateUrl: './migration-dashboard.html'
 })
 export class MigrationDashboard {
   protected readonly modules = signal<readonly MigrationModule[]>([

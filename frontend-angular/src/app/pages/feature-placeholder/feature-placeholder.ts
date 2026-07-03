@@ -21,8 +21,7 @@ const fallbackRouteData: FeatureRouteData = {
 @Component({
   selector: 'app-feature-placeholder',
   imports: [EndpointList],
-  templateUrl: './feature-placeholder.html',
-  styleUrl: './feature-placeholder.scss'
+  templateUrl: './feature-placeholder.html'
 })
 export class FeaturePlaceholder {
   private readonly route = inject(ActivatedRoute);

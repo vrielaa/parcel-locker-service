@@ -2,6 +2,8 @@
 
 Angular migration workspace for the Parcel Locker Service frontend.
 
+Styling is Tailwind-first. Global design tokens live in `src/styles.css`, and component templates should use utility classes by default.
+
 ## Local Development
 
 Install dependencies from this directory:
@@ -37,3 +39,4 @@ npm run build
 - Use RxJS only at framework or IO boundaries, such as router data, HTTP streams, and cancellation-heavy flows.
 - Convert router streams to signals with `toSignal()` when templates need reactive route data.
 - Keep presentational components small, standalone, and `OnPush`.
+- Prefer Tailwind utility classes in templates; add component SCSS only for complex selectors, animations, or browser-specific styling that utilities cannot express cleanly.

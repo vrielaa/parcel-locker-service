@@ -9,7 +9,6 @@ import {
 @Component({
   selector: 'app-endpoint-list',
   templateUrl: './endpoint-list.html',
-  styleUrl: './endpoint-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EndpointList {

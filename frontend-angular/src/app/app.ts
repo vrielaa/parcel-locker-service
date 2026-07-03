@@ -9,8 +9,7 @@ interface NavItem {
 @Component({
   selector: 'app-root',
   imports: [RouterLink, RouterLinkActive, RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.scss'
+  templateUrl: './app.html'
 })
 export class App {
   protected readonly navItems = signal<readonly NavItem[]>([

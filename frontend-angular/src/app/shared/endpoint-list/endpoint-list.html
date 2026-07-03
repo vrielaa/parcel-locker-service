@@ -1,11 +1,12 @@
 @if (hasEndpoints()) {
-  <ul class="endpoint-list">
+  <ul class="mt-4 flex list-none flex-wrap gap-2 p-0">
     @for (endpoint of endpoints(); track endpoint) {
       <li>
         <button
           type="button"
-          [class.endpoint-list__button--active]="selectedEndpoint() === endpoint"
-          class="endpoint-list__button"
+          [class.border-brand]="selectedEndpoint() === endpoint"
+          [class.text-brand-strong]="selectedEndpoint() === endpoint"
+          class="rounded-lg border border-line bg-background px-2.5 py-2 font-mono text-sm text-muted transition-colors hover:border-brand hover:text-brand-strong"
           (click)="selectEndpoint(endpoint)"
         >
           {{ endpoint }}
@@ -14,5 +15,5 @@
     }
   </ul>
 } @else {
-  <p class="endpoint-list__empty">No endpoints mapped yet.</p>
+  <p class="mt-4 text-muted">No endpoints mapped yet.</p>
 }
