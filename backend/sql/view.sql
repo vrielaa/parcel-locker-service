@@ -18,6 +18,7 @@ SELECT
     a.automat_id,
     a.liczba_wierszy,
     a.liczba_kolumn,
+    a.ekran_w_kolumnie,
 
     s.skrytka_id,
     s.wiersz,

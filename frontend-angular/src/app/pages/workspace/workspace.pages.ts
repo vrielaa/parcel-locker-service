@@ -1,4 +1,4 @@
-import { Component, OnInit, WritableSignal, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, WritableSignal, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { ApiClient } from '../../core/api/api-client';
@@ -18,7 +18,9 @@ import {
   asArray,
   formatDate,
   formatStatus,
+  lockerDimensions,
   lockerId,
+  lockerSize,
   packageDimensions,
   packageId,
   packageTracking,
@@ -111,7 +113,221 @@ export class DashboardPage {
 }
 
 @Component({
+  selector: 'app-locker-layout',
+  template: `
+    <div class="grid gap-4">
+      @if (layout().length) {
+        <div class="overflow-auto rounded-2xl border border-line bg-background p-4">
+          <div class="w-max rounded-2xl border border-line bg-ink p-3 shadow-inner">
+            <div
+              class="grid gap-1.5"
+              role="grid"
+              [attr.aria-label]="'Układ automatu: ' + rows() + ' wierszy i ' + columns() + ' kolumn'"
+              [style.grid-template-columns]="gridTemplateColumns()"
+              [style.grid-template-rows]="gridTemplateRows()"
+            >
+              @if (screenColumn()) {
+                <div
+                  class="grid place-items-center rounded-lg border border-dashed border-warning/60 bg-warning/15 px-2 text-center text-[0.62rem] font-black uppercase text-warning"
+                  aria-hidden="true"
+                  [style.grid-column]="screenGridColumn()"
+                  [style.grid-row]="screenGridRow()"
+                >
+                  <span>Ekran</span>
+                </div>
+              }
+
+              @for (cell of sortedLayout(); track lockerId(cell)) {
+                <button
+                  type="button"
+                  role="gridcell"
+                  [attr.aria-pressed]="selectedId() === lockerId(cell)"
+                  [attr.aria-disabled]="!selectable() || isDisabled(cell)"
+                  [attr.tabindex]="selectable() && !isDisabled(cell) ? 0 : -1"
+                  [attr.title]="lockerTitle(cell)"
+                  [disabled]="isDisabled(cell)"
+                  [class]="lockerCellClass(cell)"
+                  [style.grid-column]="lockerGridColumn(cell)"
+                  [style.grid-row]="lockerGridRow(cell)"
+                  (click)="select(cell)"
+                >
+                  <strong class="text-[0.78rem] leading-none">{{ lockerSize(cell) }}</strong>
+                  <span class="text-[0.58rem] leading-none opacity-75">#{{ lockerId(cell) }}</span>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 text-xs text-muted">
+          <span class="rounded-full border border-line bg-background px-3 py-1 font-bold">{{ rows() }} wierszy x {{ columns() }} kolumn</span>
+          @for (item of sizeLegend(); track item.code) {
+            <span class="rounded-full border border-line bg-background px-3 py-1">
+              <strong>{{ item.code }}</strong>{{ item.dimensions ? ' · ' + item.dimensions : '' }}
+            </span>
+          }
+          <span class="rounded-full bg-success/10 px-3 py-1 font-bold text-success">Wolna</span>
+          <span class="rounded-full bg-brand-soft px-3 py-1 font-bold text-brand-strong">Zajęta</span>
+          <span class="rounded-full bg-danger/10 px-3 py-1 font-bold text-danger">Uszkodzona</span>
+        </div>
+      } @else {
+        <p class="m-0 rounded-xl border border-line bg-background p-4 text-sm text-muted">Brak danych układu automatu.</p>
+      }
+    </div>
+  `
+})
+export class LockerLayoutView {
+  readonly layout = input<LockerCell[]>([]);
+  readonly selectedId = input<number | null>(null);
+  readonly selectable = input(false);
+  readonly disabledStatuses = input<string[]>([]);
+  readonly disabledIds = input<number[]>([]);
+  readonly lockerSelected = output<LockerCell>();
+
+  protected readonly lockerId = lockerId;
+  protected readonly lockerSize = lockerSize;
+
+  protected readonly sortedLayout = computed(() => {
+    return [...this.layout()].sort((a, b) => {
+      const rowDiff = this.cellRow(a) - this.cellRow(b);
+      return rowDiff || this.cellColumn(a) - this.cellColumn(b);
+    });
+  });
+
+  protected readonly rows = computed(() => {
+    return Math.max(0, ...this.layout().map((cell) => this.positiveNumber(cell.liczba_wierszy)), ...this.layout().map((cell) => this.cellRow(cell)));
+  });
+
+  protected readonly columns = computed(() => {
+    return Math.max(0, ...this.layout().map((cell) => this.positiveNumber(cell.liczba_kolumn)), ...this.layout().map((cell) => this.cellColumn(cell)));
+  });
+
+  protected readonly screenColumn = computed(() => {
+    const fromApi = this.positiveNumber(this.layout()[0]?.ekran_w_kolumnie);
+    if (fromApi) return fromApi;
+
+    const rows = this.rows();
+    const columns = this.columns();
+    if (rows <= 2 || !columns) return 0;
+
+    const occupied = new Set(this.layout().map((cell) => `${this.cellColumn(cell)}:${this.cellRow(cell)}`));
+    for (let column = 1; column <= columns; column += 1) {
+      let hasMiddleLocker = false;
+      for (let row = 2; row < rows; row += 1) {
+        if (occupied.has(`${column}:${row}`)) {
+          hasMiddleLocker = true;
+          break;
+        }
+      }
+      if (!hasMiddleLocker) return column;
+    }
+
+    return Math.floor(columns / 2) + 1;
+  });
+
+  protected readonly gridTemplateColumns = computed(() => {
+    const columns = Math.max(1, this.columns());
+    return `repeat(${columns}, minmax(54px, 72px))`;
+  });
+
+  protected readonly gridTemplateRows = computed(() => {
+    const rows = this.rows();
+    if (rows <= 0) return '';
+    if (rows === 1) return 'minmax(62px, 74px)';
+    if (rows === 2) return 'repeat(2, minmax(62px, 74px))';
+    return `minmax(62px, 74px) repeat(${rows - 2}, minmax(38px, 44px)) minmax(62px, 74px)`;
+  });
+
+  protected readonly sizeLegend = computed(() => {
+    const bySize = new Map<string, string>();
+    for (const cell of this.layout()) {
+      const size = lockerSize(cell);
+      if (size === '-' || bySize.has(size)) continue;
+      bySize.set(size, lockerDimensions(cell));
+    }
+
+    const order: Record<string, number> = { S: 1, M: 2, L: 3 };
+    return [...bySize.entries()]
+      .map(([code, dimensions]) => ({ code, dimensions }))
+      .sort((a, b) => (order[a.code] || 99) - (order[b.code] || 99));
+  });
+
+  protected lockerGridColumn(cell: LockerCell) {
+    return `${this.cellColumn(cell)} / span 1`;
+  }
+
+  protected lockerGridRow(cell: LockerCell) {
+    return `${this.cellRow(cell)} / span ${this.rowSpan(cell)}`;
+  }
+
+  protected screenGridColumn() {
+    return `${this.screenColumn()} / span 1`;
+  }
+
+  protected screenGridRow() {
+    const rows = this.rows();
+    return rows > 2 ? `2 / span ${rows - 2}` : '1 / -1';
+  }
+
+  protected select(cell: LockerCell) {
+    if (!this.selectable() || this.isDisabled(cell)) return;
+    this.lockerSelected.emit(cell);
+  }
+
+  protected isDisabled(cell: LockerCell) {
+    const status = String(cell.status || '').toUpperCase();
+    return this.disabledStatuses().map((item) => item.toUpperCase()).includes(status) || this.disabledIds().includes(lockerId(cell));
+  }
+
+  protected lockerCellClass(cell: LockerCell) {
+    const status = String(cell.status || '').toUpperCase();
+    const selected = this.selectedId() === lockerId(cell);
+    const selectable = this.selectable() && !this.isDisabled(cell);
+    const size = lockerSize(cell);
+    const tone =
+      status === 'WOLNA'
+        ? 'border-success/70 bg-success/15 text-success'
+        : status === 'USZKODZONA'
+          ? 'border-danger/70 bg-danger/15 text-danger'
+          : 'border-brand/70 bg-brand-soft text-brand-strong';
+    const sizeTone = size === 'L' ? 'shadow-md' : size === 'M' ? 'shadow-sm' : '';
+    const interaction = selectable ? 'hover:-translate-y-0.5 hover:border-white focus:outline-none focus:ring-2 focus:ring-white/70' : 'cursor-default';
+
+    return `grid h-full min-h-0 min-w-[54px] place-items-center rounded-md border px-1 py-1 text-center font-bold leading-none transition ${tone} ${sizeTone} ${interaction} ${selected ? 'ring-2 ring-ink-text ring-offset-2 ring-offset-ink' : ''} disabled:cursor-not-allowed disabled:opacity-45`;
+  }
+
+  protected lockerTitle(cell: LockerCell) {
+    const dimensions = lockerDimensions(cell);
+    return [
+      `Skrytka #${lockerId(cell)}`,
+      `Rozmiar ${lockerSize(cell)}`,
+      dimensions,
+      `Wiersz ${this.cellRow(cell)}, kolumna ${this.cellColumn(cell)}`,
+      formatStatus(cell.status)
+    ].filter(Boolean).join(' | ');
+  }
+
+  private rowSpan(cell: LockerCell) {
+    return lockerSize(cell) === 'M' ? 2 : 1;
+  }
+
+  private cellRow(cell: LockerCell) {
+    return this.positiveNumber(cell.wiersz) || 1;
+  }
+
+  private cellColumn(cell: LockerCell) {
+    return this.positiveNumber(cell.kolumna) || 1;
+  }
+
+  private positiveNumber(value: unknown) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+}
+
+@Component({
   selector: 'app-parcel-lockers-page',
+  imports: [LockerLayoutView],
   template: `
     <section [class]="pageClass">
       <header [class]="panelClass">
@@ -169,20 +385,7 @@ export class DashboardPage {
                 <button [class]="ghostButtonClass" type="button" (click)="reloadSelectedLayout()">Odśwież skrytki</button>
               </div>
 
-              <div class="grid gap-2 overflow-auto rounded-2xl bg-background p-4" [style.grid-template-columns]="gridColumns()">
-                @for (cell of layout(); track lockerId(cell)) {
-                  <div [class]="lockerCellClass(cell)" [title]="'Skrytka #' + lockerId(cell)">
-                    <strong>#{{ lockerId(cell) }}</strong>
-                    <small>{{ cell.rozmiar_kod || cell.kod || '-' }}</small>
-                  </div>
-                }
-              </div>
-
-              <div class="mt-4 flex flex-wrap gap-3 text-sm text-muted">
-                <span class="rounded-full bg-success/10 px-3 py-1 text-success">Wolna</span>
-                <span class="rounded-full bg-brand-soft px-3 py-1 text-brand-strong">Zajęta</span>
-                <span class="rounded-full bg-danger/10 px-3 py-1 text-danger">Uszkodzona</span>
-              </div>
+              <app-locker-layout [layout]="layout()" />
             </section>
           }
         </div>
@@ -211,11 +414,6 @@ export class ParcelLockersPage implements OnInit {
   protected readonly parcelLockerName = parcelLockerName;
   protected readonly parcelLockerAddress = parcelLockerAddress;
   protected readonly lockerId = lockerId;
-
-  protected readonly gridColumns = computed(() => {
-    const maxColumn = Math.max(1, ...this.layout().map((cell) => Number(cell.kolumna || 1)));
-    return `repeat(${maxColumn}, minmax(56px, 1fr))`;
-  });
 
   async ngOnInit() {
     await this.loadCities();
@@ -267,17 +465,6 @@ export class ParcelLockersPage implements OnInit {
     }
   }
 
-  protected lockerCellClass(cell: LockerCell) {
-    const status = String(cell.status || '').toUpperCase();
-    const tone =
-      status === 'WOLNA'
-        ? 'border-success bg-success/10 text-success'
-        : status === 'USZKODZONA'
-          ? 'border-danger bg-danger/10 text-danger'
-          : 'border-brand bg-brand-soft text-brand-strong';
-
-    return `grid min-h-16 place-items-center rounded-lg border p-2 text-center text-xs ${tone}`;
-  }
 }
 
 @Component({
@@ -383,18 +570,22 @@ export class ParcelLockersPage implements OnInit {
                 Automat
                 <select [class]="inputClass" [value]="createParcelLockerId()" (change)="setNumber(createParcelLockerId, $event)">
                   <option value="0">Wybierz automat</option>
-                  @for (locker of createParcelLockers(); track parcelLockerId(locker)) {
+                  @for (locker of filteredCreateParcelLockers(); track parcelLockerId(locker)) {
                     <option [value]="parcelLockerId(locker)">{{ parcelLockerName(locker) }} — {{ parcelLockerAddress(locker) }}</option>
                   }
                 </select>
               </label>
             </div>
 
+            <label [class]="labelClass">Szukaj automatu po kodzie lub adresie<input [class]="inputClass" [value]="lockerSearch()" (input)="setValue(lockerSearch, $event)" placeholder="np. BYD01A"></label>
+
             <div class="grid gap-4 md:grid-cols-3">
               <label [class]="labelClass">Szerokość (cm)<input [class]="inputClass" type="number" min="1" [value]="width()" (input)="setNumber(width, $event)"></label>
               <label [class]="labelClass">Wysokość (cm)<input [class]="inputClass" type="number" min="1" [value]="height()" (input)="setNumber(height, $event)"></label>
               <label [class]="labelClass">Głębokość (cm)<input [class]="inputClass" type="number" min="1" [value]="depth()" (input)="setNumber(depth, $event)"></label>
             </div>
+
+            <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">Sugerowany rozmiar skrytki: <strong>{{ suggestedPackageSize() }}</strong></p>
 
             @if (formMessage()) {
               <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">{{ formMessage() }}</p>
@@ -429,6 +620,7 @@ export class PackagesPage implements OnInit {
   protected readonly createParcelLockers = signal<ParcelLocker[]>([]);
   protected readonly createCity = signal('');
   protected readonly createParcelLockerId = signal(0);
+  protected readonly lockerSearch = signal('');
   protected readonly receiverEmail = signal('');
   protected readonly receiverPhone = signal('');
   protected readonly width = signal(8);
@@ -452,6 +644,29 @@ export class PackagesPage implements OnInit {
       if (this.packageMode() === 'sent') return Number(pkg.nadawca_id) === clientId;
       return Number(pkg.odbiorca_id) === clientId;
     });
+  });
+
+  protected readonly filteredCreateParcelLockers = computed(() => {
+    const query = this.lockerSearch().trim().toLowerCase();
+    if (!query) return this.createParcelLockers();
+
+    return this.createParcelLockers().filter((locker) =>
+      [parcelLockerName(locker), parcelLockerAddress(locker), parcelLockerId(locker)]
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    );
+  });
+
+  protected readonly suggestedPackageSize = computed(() => {
+    const dims = [this.width(), this.height(), this.depth()].map(Number).sort((a, b) => a - b);
+    if (dims.some((dim) => !Number.isFinite(dim) || dim <= 0)) return '-';
+
+    const fits = (limit: number[]) => dims.every((dim, index) => dim <= limit[index]);
+    if (fits([8, 20, 30])) return 'S';
+    if (fits([20, 40, 40])) return 'M';
+    if (fits([40, 60, 60])) return 'L';
+    return 'Poza standardem S/M/L';
   });
 
   async ngOnInit() {
@@ -503,6 +718,7 @@ export class PackagesPage implements OnInit {
     const city = getValue(event);
     this.createCity.set(city);
     this.createParcelLockerId.set(0);
+    this.lockerSearch.set('');
     this.createParcelLockers.set(city ? await this.api.get<ParcelLocker[]>(`/automaty?miasto=${encodeURIComponent(city)}`) : []);
   }
 
@@ -557,8 +773,22 @@ export class PackagesPage implements OnInit {
       <section class="grid gap-4 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
         <aside [class]="panelClass">
           <h2 class="mt-0 text-lg">Paczki do obsługi</h2>
+          <div class="mb-4 grid gap-3 rounded-xl border border-line bg-background p-3">
+            <label [class]="labelClass">
+              Filtr miasta
+              <select [class]="inputClass" [value]="courierCityFilter()" (change)="setCourierCityFilter($event)">
+                <option value="">Wszystkie miasta</option>
+                @for (city of courierCities(); track city) {
+                  <option [value]="city">{{ city }}</option>
+                }
+              </select>
+            </label>
+            @if (courierCityFilter()) {
+              <button [class]="ghostButtonClass" type="button" (click)="courierCityFilter.set('')">Wyczyść filtr</button>
+            }
+          </div>
           <div class="grid gap-2">
-            @for (pkg of allPackages(); track packageId(pkg)) {
+            @for (pkg of filteredCourierPackages(); track packageId(pkg)) {
               <button type="button" [class]="cardButtonClass" (click)="selectPackage(pkg)">
                 <span class="text-xs font-bold uppercase text-muted">#{{ packageId(pkg) }}</span>
                 <strong>{{ packageTracking(pkg) }}</strong>
@@ -643,6 +873,8 @@ export class CourierPage implements OnInit {
   protected readonly subtlePanelClass = subtlePanelClass;
   protected readonly buttonClass = buttonClass;
   protected readonly ghostButtonClass = ghostButtonClass;
+  protected readonly inputClass = inputClass;
+  protected readonly labelClass = labelClass;
   protected readonly cardButtonClass = 'grid gap-2 rounded-xl border border-line bg-background p-4 text-left transition hover:border-brand';
 
   protected readonly pool = signal<PackageRow[]>([]);
@@ -651,9 +883,18 @@ export class CourierPage implements OnInit {
   protected readonly events = signal<PackageEvent[]>([]);
   protected readonly destinationLockers = signal<LockerCell[]>([]);
   protected readonly selectedLockerId = signal(0);
+  protected readonly courierCityFilter = signal('');
   protected readonly message = signal('');
 
   protected readonly allPackages = computed(() => [...this.mine(), ...this.pool()]);
+  protected readonly courierCities = computed(() => {
+    return [...new Set(this.allPackages().map((pkg) => String(pkg.docelowy_automat_miasto || '').trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'pl'));
+  });
+  protected readonly filteredCourierPackages = computed(() => {
+    const city = this.courierCityFilter();
+    return city ? this.allPackages().filter((pkg) => pkg.docelowy_automat_miasto === city) : this.allPackages();
+  });
   protected readonly packageId = packageId;
   protected readonly packageTracking = packageTracking;
   protected readonly packageDimensions = packageDimensions;
@@ -681,6 +922,13 @@ export class CourierPage implements OnInit {
     this.destinationLockers.set([]);
     this.selectedLockerId.set(0);
     await this.loadEvents();
+  }
+
+  protected setCourierCityFilter(event: Event) {
+    this.courierCityFilter.set(getValue(event));
+    this.selectedPackage.set(null);
+    this.destinationLockers.set([]);
+    this.selectedLockerId.set(0);
   }
 
   protected canStartTransport() {
@@ -737,7 +985,11 @@ export class CourierPage implements OnInit {
             <p class="mb-2 text-xs font-bold uppercase text-muted">Operator</p>
             <h1 class="m-0 text-3xl">Paczki do zatwierdzenia</h1>
           </div>
-          <button [class]="ghostButtonClass" type="button" (click)="load()">Odśwież</button>
+          <div class="flex flex-wrap gap-2">
+            <button [class]="ghostButtonClass" type="button" (click)="load()">Odśwież</button>
+            <button [class]="ghostButtonClass" type="button" (click)="testDatabase()">Test bazy</button>
+            <button [class]="dangerButtonClass" type="button" (click)="initializeDatabase()">Wczytaj bazę</button>
+          </div>
         </div>
       </header>
 
@@ -788,6 +1040,7 @@ export class OperatorPage implements OnInit {
   protected readonly subtlePanelClass = subtlePanelClass;
   protected readonly buttonClass = buttonClass;
   protected readonly ghostButtonClass = ghostButtonClass;
+  protected readonly dangerButtonClass = dangerButtonClass;
   protected readonly inputClass = inputClass;
   protected readonly labelClass = labelClass;
   protected readonly cardButtonClass = 'grid gap-2 rounded-xl border border-line bg-background p-4 text-left transition hover:border-brand';
@@ -834,10 +1087,24 @@ export class OperatorPage implements OnInit {
     this.message.set('Paczka zatwierdzona.');
     await this.load();
   }
+
+  protected async testDatabase() {
+    const data = await this.api.get<{ ok: boolean; now?: string }>('/db/test');
+    this.message.set(data.ok ? `Połączenie z bazą działa: ${formatDate(data.now)}` : 'Nie udało się sprawdzić bazy.');
+  }
+
+  protected async initializeDatabase() {
+    if (!confirm('To odtworzy schemat i dane startowe bazy. Kontynuować?')) return;
+    await this.api.post('/db/init');
+    this.message.set('Baza została wczytana od nowa.');
+    this.selected.set(null);
+    await this.load();
+  }
 }
 
 @Component({
   selector: 'app-reports-page',
+  imports: [LockerLayoutView],
   template: `
     <section [class]="pageClass">
       <header [class]="panelClass">
@@ -871,19 +1138,13 @@ export class OperatorPage implements OnInit {
           @if (layout().length) {
             <div class="grid gap-4">
               <h2 class="m-0 text-2xl">{{ parcelLockerName(selectedParcelLocker()) }}</h2>
-              <div class="grid gap-2 overflow-auto rounded-2xl bg-background p-4" [style.grid-template-columns]="gridColumns()">
-                @for (cell of layout(); track lockerId(cell)) {
-                  <button
-                    type="button"
-                    [disabled]="isDamaged(cell)"
-                    [class]="reportCellClass(cell)"
-                    (click)="selectedLocker.set(cell)"
-                  >
-                    <strong>#{{ lockerId(cell) }}</strong>
-                    <small>{{ formatStatus(cell.status) }}</small>
-                  </button>
-                }
-              </div>
+              <app-locker-layout
+                [layout]="layout()"
+                [selectable]="true"
+                [selectedId]="lockerId(selectedLocker())"
+                [disabledStatuses]="['USZKODZONA']"
+                (lockerSelected)="selectedLocker.set($event)"
+              />
 
               <label [class]="labelClass">Opis problemu<textarea [class]="inputClass + ' min-h-24 py-3'" [value]="description()" (input)="setValue(description, $event)"></textarea></label>
 
@@ -929,11 +1190,6 @@ export class ReportsPage implements OnInit {
   protected readonly lockerId = lockerId;
   protected readonly formatStatus = formatStatus;
 
-  protected readonly gridColumns = computed(() => {
-    const maxColumn = Math.max(1, ...this.layout().map((cell) => Number(cell.kolumna || 1)));
-    return `repeat(${maxColumn}, minmax(56px, 1fr))`;
-  });
-
   async ngOnInit() {
     this.cities.set(await this.api.get<string[]>('/miasta'));
   }
@@ -958,12 +1214,6 @@ export class ReportsPage implements OnInit {
 
   protected isDamaged(cell: LockerCell) {
     return String(cell.status || '').toUpperCase() === 'USZKODZONA';
-  }
-
-  protected reportCellClass(cell: LockerCell) {
-    const selected = lockerId(this.selectedLocker()) === lockerId(cell);
-    const base = 'grid min-h-16 place-items-center rounded-lg border p-2 text-center text-xs disabled:cursor-not-allowed disabled:opacity-50';
-    return `${base} ${selected ? 'ring-2 ring-brand' : ''} ${this.isDamaged(cell) ? 'border-danger bg-danger/10 text-danger' : 'border-line bg-surface hover:border-brand'}`;
   }
 
   protected async markDamaged() {
@@ -1044,9 +1294,15 @@ export class ReportsPage implements OnInit {
           </section>
         </section>
 
-        @if (clientPackages().length) {
+        @if (selectedClientEmail()) {
           <section [class]="panelClass">
-            <h2 class="mt-0 text-xl">Paczki klienta {{ selectedClientEmail() }}</h2>
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 class="m-0 text-xl">Paczki klienta {{ selectedClientEmail() }}</h2>
+              <div class="flex flex-wrap gap-2">
+                <button [class]="clientPackageMode() === 'received' ? buttonClass : ghostButtonClass" type="button" (click)="loadSelectedClientPackages('received')">Odebrane</button>
+                <button [class]="clientPackageMode() === 'sent' ? buttonClass : ghostButtonClass" type="button" (click)="loadSelectedClientPackages('sent')">Nadane</button>
+              </div>
+            </div>
             <div class="grid gap-2">
               @for (pkg of clientPackages(); track packageId(pkg)) {
                 <article class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-background p-3">
@@ -1058,6 +1314,8 @@ export class ReportsPage implements OnInit {
                     <button [class]="ghostButtonClass" type="button" (click)="simulatePickup(pkg)">Symuluj odbiór</button>
                   }
                 </article>
+              } @empty {
+                <p class="m-0 text-sm text-muted">Brak paczek w tej kategorii.</p>
               }
             </div>
           </section>
@@ -1137,7 +1395,9 @@ export class AdminPage implements OnInit {
   protected readonly tab = signal<'users' | 'lockers'>('users');
   protected readonly users = signal<UserRow[]>([]);
   protected readonly clientPackages = signal<PackageRow[]>([]);
+  protected readonly selectedClientId = signal(0);
   protected readonly selectedClientEmail = signal('');
+  protected readonly clientPackageMode = signal<'received' | 'sent'>('received');
   protected readonly faultyLockers = signal<FaultyLockerRow[]>([]);
   protected readonly message = signal('');
 
@@ -1221,9 +1481,17 @@ export class AdminPage implements OnInit {
 
   protected async loadClientPackages(user: UserRow) {
     if (!user.klient_id) return;
-    const data = await this.api.get<{ ok: boolean; paczki: PackageRow[] }>(`/admin/clients/${user.klient_id}/paczki?mode=received`);
-    this.clientPackages.set(data.paczki || []);
+    this.selectedClientId.set(user.klient_id);
     this.selectedClientEmail.set(user.email || '');
+    await this.loadSelectedClientPackages('received');
+  }
+
+  protected async loadSelectedClientPackages(mode: 'received' | 'sent') {
+    const clientId = this.selectedClientId();
+    if (!clientId) return;
+    this.clientPackageMode.set(mode);
+    const data = await this.api.get<{ ok: boolean; paczki: PackageRow[] }>(`/admin/clients/${clientId}/paczki?mode=${mode}`);
+    this.clientPackages.set(data.paczki || []);
   }
 
   protected async simulatePickup(pkg: PackageRow) {

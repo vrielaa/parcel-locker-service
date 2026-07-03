@@ -46,11 +46,18 @@ export interface LockerCell {
   skrytka_id?: number;
   id?: number;
   automat_id?: number;
+  liczba_wierszy?: number;
+  liczba_kolumn?: number;
+  ekran_w_kolumnie?: number;
   wiersz?: number;
   kolumna?: number;
   status?: string;
+  rozmiar?: string;
   rozmiar_kod?: string;
   kod?: string;
+  szerokosc_cm?: number;
+  wysokosc_cm?: number;
+  glebokosc_cm?: number;
   [key: string]: unknown;
 }
 

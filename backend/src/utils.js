@@ -31,10 +31,28 @@ export async function getAllCities() {
 export async function getParcelLockerInfoById(parcelLockerId) {
   const result = await query(
     `
-    SELECT *
-    FROM parcel_locker.automat_view
-    WHERE automat_id = $1
-    ORDER BY wiersz, kolumna;
+    SELECT
+      a.automat_id,
+      a.liczba_wierszy,
+      a.liczba_kolumn,
+      a.ekran_w_kolumnie,
+
+      s.skrytka_id,
+      s.wiersz,
+      s.kolumna,
+      s.status,
+
+      r.kod AS rozmiar,
+      r.szerokosc_cm,
+      r.wysokosc_cm,
+      r.glebokosc_cm
+    FROM parcel_locker.automat a
+    LEFT JOIN parcel_locker.skrytka s
+           ON s.automat_id = a.automat_id
+    LEFT JOIN parcel_locker.rozmiar r
+           ON r.rozmiar_id = s.rozmiar_id
+    WHERE a.automat_id = $1
+    ORDER BY s.wiersz, s.kolumna;
     `,
     [parcelLockerId]
   )
@@ -49,10 +67,28 @@ export async function getParcelLockerInfoById(parcelLockerId) {
 export async function getParcelLockerGridById(parcelLockerId) {
   const result = await query(
     `
-    SELECT *
-    FROM parcel_locker.automat_view
-    WHERE automat_id = $1
-    ORDER BY wiersz, kolumna;
+    SELECT
+      a.automat_id,
+      a.liczba_wierszy,
+      a.liczba_kolumn,
+      a.ekran_w_kolumnie,
+
+      s.skrytka_id,
+      s.wiersz,
+      s.kolumna,
+      s.status,
+
+      r.kod AS rozmiar,
+      r.szerokosc_cm,
+      r.wysokosc_cm,
+      r.glebokosc_cm
+    FROM parcel_locker.automat a
+    LEFT JOIN parcel_locker.skrytka s
+           ON s.automat_id = a.automat_id
+    LEFT JOIN parcel_locker.rozmiar r
+           ON r.rozmiar_id = s.rozmiar_id
+    WHERE a.automat_id = $1
+    ORDER BY s.wiersz, s.kolumna;
     `,
     [parcelLockerId]
   )

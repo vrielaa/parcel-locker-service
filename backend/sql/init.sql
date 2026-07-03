@@ -733,6 +733,7 @@ SELECT
     a.automat_id,
     a.liczba_wierszy,
     a.liczba_kolumn,
+    a.ekran_w_kolumnie,
 
     s.skrytka_id,
     s.wiersz,
@@ -2106,4 +2107,3 @@ GRANT SELECT, INSERT ON TABLES TO parcel_klient;
 -- dostep do funkcji
 GRANT EXECUTE ON FUNCTION parcel_locker.extract_city_from_address(text)
 TO parcel_kurier, parcel_admin, parcel_operator;
-

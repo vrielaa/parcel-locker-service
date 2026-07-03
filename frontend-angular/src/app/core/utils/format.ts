@@ -50,6 +50,17 @@ export function lockerId(locker: LockerCell | null | undefined) {
   return Number(locker?.skrytka_id ?? locker?.id ?? 0);
 }
 
+export function lockerSize(locker: LockerCell | null | undefined) {
+  return String(locker?.rozmiar_kod ?? locker?.rozmiar ?? locker?.kod ?? '').trim().toUpperCase() || '-';
+}
+
+export function lockerDimensions(locker: LockerCell | null | undefined) {
+  const width = locker?.szerokosc_cm;
+  const height = locker?.wysokosc_cm;
+  const depth = locker?.glebokosc_cm;
+  return width && height && depth ? `${width} x ${height} x ${depth} cm` : '';
+}
+
 export function parcelLockerId(parcelLocker: ParcelLocker | null | undefined) {
   return Number(parcelLocker?.automat_id ?? parcelLocker?.id ?? 0);
 }
