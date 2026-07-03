@@ -70,54 +70,32 @@ h1 {
   gap: 14px;
 }
 
-.module-card {
+.signal-summary {
   display: grid;
-  gap: 10px;
-  min-height: 136px;
-  padding: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.signal-summary div {
+  display: grid;
+  gap: 8px;
+  min-height: 104px;
+  align-content: center;
+  padding: 18px 20px;
   border: 1px solid var(--color-border);
-  border-left: 4px solid var(--accent-color);
   border-radius: 8px;
   background: var(--color-surface);
 }
 
-.module-card span {
+.signal-summary span {
   color: var(--color-muted);
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
 }
 
-.module-card h2 {
-  font-size: 1.08rem;
-}
-
-.module-card p {
-  color: var(--color-muted);
-}
-
-.module-card--blue {
-  --accent-color: var(--color-blue);
-}
-
-.module-card--green {
-  --accent-color: var(--color-green);
-}
-
-.module-card--amber {
-  --accent-color: var(--color-amber);
-}
-
-.module-card--red {
-  --accent-color: var(--color-red);
-}
-
-.module-card--violet {
-  --accent-color: var(--color-violet);
-}
-
-.module-card--teal {
-  --accent-color: var(--color-teal);
+.signal-summary strong {
+  font-size: 1.15rem;
 }
 
 @media (max-width: 760px) {
@@ -128,5 +106,9 @@ h1 {
 
   h1 {
     font-size: 1.8rem;
+  }
+
+  .signal-summary {
+    grid-template-columns: 1fr;
   }
 }

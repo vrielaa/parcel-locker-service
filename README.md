@@ -52,6 +52,8 @@ Frontend 2.0 na gałęzi `feature/angular-v2`:
 - Angular 21
 - TypeScript
 - SCSS z globalnymi design tokens
+- nowoczesne Signals API, `input()` i `output()` dla komponentów
+- RxJS tylko przy granicach frameworka lub IO, np. router i HTTP
 - lokalne proxy `/api` do backendu Express
 
 Backend:

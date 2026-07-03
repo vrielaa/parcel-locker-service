@@ -1,0 +1,18 @@
+@if (hasEndpoints()) {
+  <ul class="endpoint-list">
+    @for (endpoint of endpoints(); track endpoint) {
+      <li>
+        <button
+          type="button"
+          [class.endpoint-list__button--active]="selectedEndpoint() === endpoint"
+          class="endpoint-list__button"
+          (click)="selectEndpoint(endpoint)"
+        >
+          {{ endpoint }}
+        </button>
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="endpoint-list__empty">No endpoints mapped yet.</p>
+}

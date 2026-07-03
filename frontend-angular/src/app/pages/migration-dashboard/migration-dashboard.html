@@ -15,13 +15,30 @@
     </div>
   </div>
 
+  <section class="signal-summary" aria-label="Migration status">
+    <div>
+      <span>Next module</span>
+      <strong>{{ nextModule()?.name ?? 'None' }}</strong>
+    </div>
+
+    <div>
+      <span>Planned modules</span>
+      <strong>{{ plannedCount() }}</strong>
+    </div>
+
+    <div>
+      <span>Selected module</span>
+      <strong>{{ selectedModule()?.name ?? 'Select one' }}</strong>
+    </div>
+  </section>
+
   <section class="module-grid" aria-label="Migration modules">
-    @for (module of modules; track module.name) {
-      <article class="module-card" [class]="'module-card module-card--' + module.accent">
-        <span>{{ module.phase }}</span>
-        <h2>{{ module.name }}</h2>
-        <p>{{ module.status }}</p>
-      </article>
+    @for (module of modules(); track module.name) {
+      <app-module-card
+        [module]="module"
+        [selected]="selectedModule()?.name === module.name"
+        (moduleSelected)="selectModule($event)"
+      />
     }
   </section>
 </section>

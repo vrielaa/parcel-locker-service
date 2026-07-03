@@ -1,0 +1,11 @@
+<button
+  type="button"
+  class="module-card"
+  [class]="'module-card module-card--' + module().accent"
+  [class.module-card--selected]="selected()"
+  (click)="selectModule()"
+>
+  <span>{{ statusLabel() }}</span>
+  <strong>{{ module().name }}</strong>
+  <small>{{ selected() ? 'Selected' : 'Open details' }}</small>
+</button>

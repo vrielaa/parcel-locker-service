@@ -29,3 +29,11 @@ Angular runs on `http://localhost:4200` and proxies `/api` to the backend on `ht
 ```bash
 npm run build
 ```
+
+## Angular 2.0 Conventions
+
+- Prefer `signal`, `computed`, and local signal state for component UI state.
+- Prefer `input()` / `input.required()` and `output()` for component boundaries.
+- Use RxJS only at framework or IO boundaries, such as router data, HTTP streams, and cancellation-heavy flows.
+- Convert router streams to signals with `toSignal()` when templates need reactive route data.
+- Keep presentational components small, standalone, and `OnPush`.

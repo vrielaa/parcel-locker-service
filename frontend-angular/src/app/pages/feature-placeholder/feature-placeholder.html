@@ -1,16 +1,16 @@
 <section class="feature">
   <header class="feature__header">
-    <span>{{ area }}</span>
-    <h1>{{ title }}</h1>
-    <p>{{ status }}</p>
+    <span>{{ feature().area }}</span>
+    <h1>{{ feature().title }}</h1>
+    <p>{{ feature().status }}</p>
   </header>
 
   <div class="feature__body">
     <h2>Backend contract</h2>
-    <ul>
-      @for (endpoint of endpoints; track endpoint) {
-        <li>{{ endpoint }}</li>
-      }
-    </ul>
+    <app-endpoint-list
+      [endpoints]="feature().endpoints"
+      [selectedEndpoint]="selectedEndpoint()"
+      (endpointSelected)="selectEndpoint($event)"
+    />
   </div>
 </section>
