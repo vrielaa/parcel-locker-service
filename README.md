@@ -47,6 +47,13 @@ Frontend:
 - SCSS/Sass
 - Firebase Hosting
 
+Frontend 2.0 na gałęzi `feature/angular-v2`:
+
+- Angular 21
+- TypeScript
+- SCSS z globalnymi design tokens
+- lokalne proxy `/api` do backendu Express
+
 Backend:
 
 - Node.js
@@ -106,6 +113,7 @@ W produkcji Firebase Hosting serwuje pliki z `frontend/dist`, a ścieżki `/api/
 ## Wymagania
 
 - Node.js 18+,
+- Node.js 20.19+ / 22.12+ / 24+ dla frontendu Angular 2.0,
 - npm,
 - Docker Desktop z Docker Compose,
 - opcjonalnie PostgreSQL 14+ przy uruchamianiu bez Dockera,
@@ -148,6 +156,7 @@ docker info
 npm install
 npm --prefix backend install
 npm --prefix frontend install
+npm --prefix frontend-angular install # tylko na gałęzi feature/angular-v2
 ```
 
 4. Utwórz lokalne pliki konfiguracyjne:
@@ -210,6 +219,8 @@ http://localhost:3000/api-docs
 ```bash
 npm run dev        # pełny lokalny start: DB + backend + frontend
 npm run dev:app    # tylko backend + frontend, bez uruchamiania Dockera
+npm run dev:angular # DB + backend + Angular 2.0 na gałęzi feature/angular-v2
+npm run build:angular # build Angular 2.0
 npm run db:up      # uruchomienie lokalnego Postgresa
 npm run db:setup   # inicjalizacja DB tylko jeśli schema jeszcze nie istnieje
 npm run db:init    # pełny reset schematu i danych startowych
@@ -241,6 +252,7 @@ Zainstaluj zależności w katalogu głównym oraz w obu częściach aplikacji:
 npm install
 npm --prefix backend install
 npm --prefix frontend install
+npm --prefix frontend-angular install # tylko na gałęzi feature/angular-v2
 ```
 
 Skopiuj przykładowe pliki env:
@@ -449,6 +461,13 @@ Authorization: Bearer <token>
 │   │   ├── app.js
 │   │   └── features/
 │   └── sass/
+├── frontend-angular/
+│   ├── angular.json
+│   ├── proxy.conf.json
+│   ├── public/
+│   └── src/
+│       ├── app/
+│       └── styles.scss
 ├── locker-data/
 │   ├── csv_by_city/
 │   ├── csv_wojewodzkie/
@@ -469,6 +488,8 @@ Najważniejsze pliki:
 - `frontend/src/api.js` - klient HTTP i obsługa JWT,
 - `frontend/src/app.js` - inicjalizacja widoków zależnych od roli,
 - `frontend/src/features/` - moduły funkcjonalne UI.
+- `frontend-angular/src/app/core/api/` - konfiguracja API i klient HTTP dla Angulara 2.0,
+- `frontend-angular/src/app/pages/` - trasy startowe pod migrację widoków do Angulara.
 
 ## Deployment
 

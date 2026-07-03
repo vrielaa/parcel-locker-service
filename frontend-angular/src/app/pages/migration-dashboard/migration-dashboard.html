@@ -1,0 +1,27 @@
+<section class="dashboard">
+  <div class="hero">
+    <div>
+      <p class="eyebrow">Migration branch</p>
+      <h1>Parcel Locker 2.0</h1>
+      <p class="lead">
+        Angular shell, routed modules, API proxy, and design tokens are ready for incremental migration.
+      </p>
+    </div>
+
+    <div class="api-panel" aria-label="API contract">
+      <span>API base</span>
+      <strong>/api</strong>
+      <small>Swagger remains the backend contract</small>
+    </div>
+  </div>
+
+  <section class="module-grid" aria-label="Migration modules">
+    @for (module of modules; track module.name) {
+      <article class="module-card" [class]="'module-card module-card--' + module.accent">
+        <span>{{ module.phase }}</span>
+        <h2>{{ module.name }}</h2>
+        <p>{{ module.status }}</p>
+      </article>
+    }
+  </section>
+</section>

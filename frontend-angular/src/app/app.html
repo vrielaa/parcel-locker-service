@@ -1,0 +1,28 @@
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Primary navigation">
+    <a class="brand" routerLink="/" aria-label="Parcel Locker 2.0 dashboard">
+      <img src="/parcel-locker.svg" alt="" class="brand__mark">
+      <span>
+        <strong>Parcel Locker</strong>
+        <small>Angular 2.0</small>
+      </span>
+    </a>
+
+    <nav class="nav">
+      @for (item of navItems; track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="nav__link--active"
+          [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+          class="nav__link"
+        >
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

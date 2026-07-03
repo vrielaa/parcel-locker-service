@@ -1,0 +1,16 @@
+<section class="feature">
+  <header class="feature__header">
+    <span>{{ area }}</span>
+    <h1>{{ title }}</h1>
+    <p>{{ status }}</p>
+  </header>
+
+  <div class="feature__body">
+    <h2>Backend contract</h2>
+    <ul>
+      @for (endpoint of endpoints; track endpoint) {
+        <li>{{ endpoint }}</li>
+      }
+    </ul>
+  </div>
+</section>
