@@ -1,78 +1,99 @@
 import { Routes } from '@angular/router';
 
-import { FeaturePlaceholder } from './pages/feature-placeholder/feature-placeholder';
-import { MigrationDashboard } from './pages/migration-dashboard/migration-dashboard';
+import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guards';
+import { ChangePasswordPage, LoginPage, RegisterPage } from './pages/auth/auth.pages';
+import {
+  AdminPage,
+  CourierPage,
+  DashboardPage,
+  OperatorPage,
+  PackagesPage,
+  ParcelLockersPage,
+  ReportsPage
+} from './pages/workspace/workspace.pages';
 
 export const routes: Routes = [
   {
     path: '',
-    component: MigrationDashboard,
-    title: 'Parcel Locker 2.0'
+    pathMatch: 'full',
+    redirectTo: 'dashboard'
   },
   {
     path: 'login',
-    component: FeaturePlaceholder,
-    title: 'Auth',
-    data: {
-      area: 'Auth',
-      title: 'Authentication',
-      status: 'Next',
-      endpoints: ['/api/auth/login', '/api/auth/me', '/api/auth/register']
-    }
+    component: LoginPage,
+    canActivate: [guestGuard],
+    title: 'Logowanie'
+  },
+  {
+    path: 'register',
+    component: RegisterPage,
+    canActivate: [guestGuard],
+    title: 'Rejestracja'
+  },
+  {
+    path: 'change-password',
+    component: ChangePasswordPage,
+    canActivate: [authGuard],
+    title: 'Zmiana hasła'
+  },
+  {
+    path: 'dashboard',
+    component: DashboardPage,
+    canActivate: [authGuard],
+    title: 'Parcel Locker 2.0'
   },
   {
     path: 'parcel-lockers',
-    component: FeaturePlaceholder,
+    component: ParcelLockersPage,
+    canActivate: [authGuard, roleGuard],
     title: 'Parcel lockers',
     data: {
-      area: 'Core',
-      title: 'Parcel lockers',
-      status: 'Planned',
-      endpoints: ['/api/automaty', '/api/miasta']
+      roles: ['ADMIN', 'OPERATOR', 'KURIER']
     }
   },
   {
     path: 'packages',
-    component: FeaturePlaceholder,
+    component: PackagesPage,
+    canActivate: [authGuard, roleGuard],
     title: 'Packages',
     data: {
-      area: 'Client',
-      title: 'Packages',
-      status: 'Planned',
-      endpoints: ['/api/paczki']
+      roles: ['KLIENT']
     }
   },
   {
     path: 'courier',
-    component: FeaturePlaceholder,
+    component: CourierPage,
+    canActivate: [authGuard, roleGuard],
     title: 'Courier',
     data: {
-      area: 'Courier',
-      title: 'Courier operations',
-      status: 'Planned',
-      endpoints: ['/api/kurier']
+      roles: ['KURIER']
+    }
+  },
+  {
+    path: 'operator',
+    component: OperatorPage,
+    canActivate: [authGuard, roleGuard],
+    title: 'Operator',
+    data: {
+      roles: ['ADMIN', 'OPERATOR']
     }
   },
   {
     path: 'admin',
-    component: FeaturePlaceholder,
+    component: AdminPage,
+    canActivate: [authGuard, roleGuard],
     title: 'Admin',
     data: {
-      area: 'Admin',
-      title: 'Admin panel',
-      status: 'Planned',
-      endpoints: ['/api/admin']
+      roles: ['ADMIN']
     }
   },
   {
     path: 'reports',
-    component: FeaturePlaceholder,
+    component: ReportsPage,
+    canActivate: [authGuard, roleGuard],
     title: 'Reports',
     data: {
-      area: 'Operations',
-      title: 'Problem reports',
-      status: 'Planned',
-      endpoints: ['/api/zgloszenia']
+      roles: ['ADMIN', 'OPERATOR', 'KURIER']
     }
   },
   {

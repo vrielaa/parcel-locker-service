@@ -1,39 +1,52 @@
-<div class="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[248px_minmax(0,1fr)]">
-  <aside
-    class="sticky top-0 flex h-screen w-full flex-col gap-7 border-r border-line bg-surface px-4 py-[22px] max-lg:static max-lg:h-auto max-lg:border-r-0 max-lg:border-b"
-    aria-label="Primary navigation"
-  >
-    <a
-      class="brand grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3 text-foreground no-underline"
-      routerLink="/"
-      aria-label="Parcel Locker 2.0 dashboard"
+@if (auth.user()) {
+  <div class="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[268px_minmax(0,1fr)]">
+    <aside
+      class="sticky top-0 flex h-screen w-full flex-col gap-7 border-r border-line bg-surface px-4 py-[22px] max-lg:static max-lg:h-auto max-lg:border-r-0 max-lg:border-b"
+      aria-label="Primary navigation"
     >
-      <img
-        src="/parcel-locker.svg"
-        alt=""
-        class="h-11 w-11 rounded-lg border border-line bg-background p-2"
+      <a
+        class="brand grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3 text-foreground no-underline"
+        routerLink="/dashboard"
+        aria-label="Parcel Locker 2.0 dashboard"
       >
-      <span class="min-w-0">
-        <strong class="block text-[0.98rem] leading-tight">Parcel Locker</strong>
-        <small class="mt-0.5 block text-xs text-muted">Angular 2.0</small>
-      </span>
-    </a>
-
-    <nav class="grid gap-1.5 max-lg:grid-cols-[repeat(auto-fit,minmax(112px,1fr))]">
-      @for (item of navItems(); track item.path) {
-        <a
-          [routerLink]="item.path"
-          routerLinkActive="bg-brand-soft text-brand-strong"
-          [routerLinkActiveOptions]="{ exact: item.path === '/' }"
-          class="flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-muted no-underline transition-colors hover:bg-brand-soft hover:text-brand-strong"
+        <img
+          src="/parcel-locker.svg"
+          alt=""
+          class="h-11 w-11 rounded-lg border border-line bg-background p-2"
         >
-          {{ item.label }}
-        </a>
-      }
-    </nav>
-  </aside>
+        <span class="min-w-0">
+          <strong class="block text-[0.98rem] leading-tight">Parcel Locker</strong>
+          <small class="mt-0.5 block text-xs text-muted">Angular 2.0</small>
+        </span>
+      </a>
 
-  <main class="w-full min-w-0 p-7 max-lg:p-[18px]">
-    <router-outlet />
-  </main>
-</div>
+      <nav class="grid gap-1.5 max-lg:grid-cols-[repeat(auto-fit,minmax(112px,1fr))]">
+        @for (item of navItems(); track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="bg-brand-soft text-brand-strong"
+            [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
+            class="flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-muted no-underline transition-colors hover:bg-brand-soft hover:text-brand-strong"
+          >
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+
+      <div class="mt-auto grid gap-3 rounded-2xl border border-line bg-background p-3">
+        <div>
+          <p class="m-0 break-all text-sm font-bold">{{ auth.user()?.email }}</p>
+          <p class="m-0 text-xs font-bold uppercase text-muted">{{ auth.role() }}</p>
+        </div>
+        <a class="min-h-10 rounded-lg border border-line bg-surface px-3 py-2 text-center text-sm font-bold text-foreground no-underline hover:border-brand" routerLink="/change-password">Zmień hasło</a>
+        <button class="min-h-10 rounded-lg bg-ink px-3 text-sm font-bold text-white" type="button" (click)="logout()">Wyloguj</button>
+      </div>
+    </aside>
+
+    <main class="w-full min-w-0 p-7 max-lg:p-[18px]">
+      <router-outlet />
+    </main>
+  </div>
+} @else {
+  <router-outlet />
+}

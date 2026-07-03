@@ -17,10 +17,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the app shell brand', async () => {
+  it('should render a router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.brand')?.textContent).toContain('Parcel Locker');
+    expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 });

@@ -1,9 +1,0 @@
-<button
-  type="button"
-  [class]="cardClass()"
-  (click)="selectModule()"
->
-  <span class="text-xs font-bold uppercase text-muted">{{ statusLabel() }}</span>
-  <strong class="text-[1.08rem] text-foreground">{{ module().name }}</strong>
-  <small class="text-muted">{{ selected() ? 'Selected' : 'Open details' }}</small>
-</button>
