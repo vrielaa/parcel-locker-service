@@ -215,16 +215,16 @@ const createPackagesDetailsView = ({
     const withLine = idx !== total - 1
 
     return `
-      <div class="paczka-event">
-        <div class="paczka-event__timeline">
-          <span class="paczka-event__dot"></span>
-          ${withLine ? `<span class="paczka-event__line"></span>` : ``}
+      <div class="package-event">
+        <div class="package-event__timeline">
+          <span class="package-event__dot"></span>
+          ${withLine ? `<span class="package-event__line"></span>` : ``}
         </div>
 
-        <div class="paczka-event__content">
-          <div class="paczka-event__top">
-            <span class="paczka-event__type">${escapeHtml(typ)}</span>
-            <span class="paczka-event__time">${escapeHtml(czas)}</span>
+        <div class="package-event__content">
+          <div class="package-event__top">
+            <span class="package-event__type">${escapeHtml(typ)}</span>
+            <span class="package-event__time">${escapeHtml(czas)}</span>
           </div>
         </div>
       </div>
@@ -250,7 +250,7 @@ const createPackagesDetailsView = ({
     sortEventsNewestFirst(events)
 
     const wrapper = document.createElement("div")
-    wrapper.className = "paczka-events"
+    wrapper.className = "package-events"
     wrapper.innerHTML = events.map((event, idx) => renderEventHtml(event, idx, events.length)).join("")
 
     eventsElement.appendChild(wrapper)
@@ -554,18 +554,18 @@ const createPackagesListView = ({
 
       const btn = document.createElement("button")
       btn.type = "button"
-      btn.className = "view-klient__lista-paczek__buttons-button"
+      btn.className = "view-client__package-list__buttons-button"
       btn.dataset.packageId = String(id)
 
       btn.innerHTML = `
-        <span class="view-klient__lista-paczek__buttons-button__mail">${escapeHtml(who)}</span>
-        <span class="view-klient__lista-paczek__buttons-button__status">${escapeHtml(status)}</span>
+        <span class="view-client__package-list__buttons-button__mail">${escapeHtml(who)}</span>
+        <span class="view-client__package-list__buttons-button__status">${escapeHtml(status)}</span>
         ${
           status === "Odebrana" || status === "Odesłana do nadawcy"
-            ? `<span class="view-klient__lista-paczek__buttons-button__delete">Usuń</span>`
+            ? `<span class="view-client__package-list__buttons-button__delete">Usuń</span>`
             : ``
         }
-        <img class="view-klient__lista-paczek__buttons-button__locker-svg" src="${lockerSvgUrl}" alt="Parcel Locker Icon" />
+        <img class="view-client__package-list__buttons-button__locker-svg" src="${lockerSvgUrl}" alt="Parcel Locker Icon" />
       `
 
       btn.addEventListener("click", () => {
@@ -658,16 +658,16 @@ const createPackagesListView = ({
 }
 
 export function initPackagesView() {
-  const messagePackageListElement = getElById("lista-paczek-message")
-  const buttonsPackagesContainer = getElById("lista-paczek-buttons")
+  const messagePackageListElement = getElById("package-list-message")
+  const buttonsPackagesContainer = getElById("package-list-buttons")
 
-  const detailsBoxElement = getElById("paczka-details-box")
+  const detailsBoxElement = getElById("package-details-box")
   const generalInfoElement = getElById("general-info")
 
-  const eventsElement = getElById("paczka-events")
+  const eventsElement = getElById("package-events")
   const lockerInfoEl = getElById("locker-info")
 
-  const extendBtn = getElById("przedluz-btn")
+  const extendBtn = getElById("extend-btn")
 
   if (!messagePackageListElement || !buttonsPackagesContainer) return
 

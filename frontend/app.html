@@ -52,7 +52,7 @@
       <!-- ========================= -->
       <section class="sidebar">
         <nav class="sidebar__nav">
-          <button class="sidebar__button hidden" id="get-automaty" data-roles="ADMIN,KURIER,OPERATOR">Lista automatów</button>
+          <button class="sidebar__button hidden" id="get-parcel-lockers" data-roles="ADMIN,KURIER,OPERATOR">Lista automatów</button>
 
           <button class="sidebar__button hidden" id="nav-my-packages" data-roles="KLIENT">
             Moje paczki
@@ -78,7 +78,7 @@
             Zarządzanie użytkownikami
           </button>
 
-          <button class="sidebar__button hidden" id="nav-admin-automaty" data-roles="ADMIN" >
+          <button class="sidebar__button hidden" id="nav-admin-parcel-lockers" data-roles="ADMIN" >
             Zarządzanie automatami
           </button>
 
@@ -103,7 +103,7 @@
         <!-- ===================================================== -->
         <!-- WIDOK 1: LISTA AUTOMATÓW I WYBÓR AUTOMATU  -->
         <!-- ===================================================== -->
-        <section class="view hidden" id="view-automaty" data-view data-roles="ADMIN,KURIER,OPERATOR">
+        <section class="view hidden" id="view-parcel-lockers" data-view data-roles="ADMIN,KURIER,OPERATOR">
            <button class="go-back-button hidden" id="go-back-button">Wróć do listy automatów</button>
           <section class="buttons-cities" id="buttons-cities"></section>
 
@@ -141,70 +141,70 @@
         <!-- ========================= -->
         <!-- WIDOK 2: KLIENT           -->
         <!-- ========================= -->
-        <section class="view view-klient hidden" id="view-klient" data-view data-roles="KLIENT">
+        <section class="view view-client hidden" id="view-client" data-view data-roles="KLIENT">
       
-          <section class="view-klient__lista-paczek">
-            <div class="view-klient__lista-paczek__sent-received" id="sent-received-buttons">
-              <button class="view-klient__lista-paczek__sent-received-button view-klient__lista-paczek__buttons-button" id="btn-sent-to-me">
+          <section class="view-client__package-list">
+            <div class="view-client__package-list__sent-received" id="sent-received-buttons">
+              <button class="view-client__package-list__sent-received-button view-client__package-list__buttons-button" id="btn-sent-to-me">
                 Do mnie
               </button>
-              <button class="view-klient__lista-paczek__sent-received-button view-klient__lista-paczek__buttons-button" id="btn-sent-by-me">
+              <button class="view-client__package-list__sent-received-button view-client__package-list__buttons-button" id="btn-sent-by-me">
                 Nadane przeze mnie
               </button>
 
             </div>
-            <p class="view-klient__lista-paczek-message" id="lista-paczek-message"></p>
-            <div class="view-klient__lista-paczek__buttons" id="lista-paczek-buttons">
+            <p class="view-client__package-list-message" id="package-list-message"></p>
+            <div class="view-client__package-list__buttons" id="package-list-buttons">
              
             </div>
 
 
           </section>
-            <section class="view-klient__paczka-details" id="paczka-details">
-              <div class="view-klient__paczka-details__box hidden" id="paczka-details-box">
-                <div class="view-klient__paczka-details__box-general-info view-klient__paczka-details__box-section" id="general-info">
-                    <p class="view-klient__paczka-details__box-general-info--sender">
+            <section class="view-client__package-details" id="package-details">
+              <div class="view-client__package-details__box hidden" id="package-details-box">
+                <div class="view-client__package-details__box-general-info view-client__package-details__box-section" id="general-info">
+                    <p class="view-client__package-details__box-general-info--sender">
                       <span class="span-sender-label span-label" id="sender-label"></span>
                       <span class="span-sender-value span-value" id="sender-value"></span>
                     </p>
-                    <p class="view-klient__paczka-details__box-general-info--receiver">
+                    <p class="view-client__package-details__box-general-info--receiver">
                       <span class="span-receiver-label span-label" id="receiver-label"></span>
                       <span class="span-receiver-value span-value" id="receiver-value"></span>
                     </p>
 
-                    <p class="view-klient__paczka-details__box-general-info--parcel-number">
+                    <p class="view-client__package-details__box-general-info--parcel-number">
                       <span class="span-parcel-number-label span-label" id="parcel-number-label"></span>
                       <span class="span-parcel-number-value span-value" id="parcel-number-value"></span>
                     </p>
 
-                    <p class="view-klient__paczka-details__box-general-info--status" id="status-row">
+                    <p class="view-client__package-details__box-general-info--status" id="status-row">
                       <span class="span-status-label span-label" id="status-label"></span>
                       <span class="span-status-value span-value" id="status-value"></span>
                     </p>
 
-                    <p class="view-klient__paczka-details__box-general-info--deadline hidden" id="deadline-row">
+                    <p class="view-client__package-details__box-general-info--deadline hidden" id="deadline-row">
                       <span class="span-deadline-label span-label" id="deadline-label"></span>
                       <span class="span-deadline-value span-value" id="deadline-value"></span>
                     </p>
 
-                    <button id="przedluz-btn" class="view-klient__paczka-details__box-section__extend-button" type="button">
+                    <button id="extend-btn" class="view-client__package-details__box-section__extend-button" type="button">
                       Przedłuż
                     </button>
 
                 </div>
 
-                <div class="view-klient__paczka-details__box-locker-info view-klient__paczka-details__box-section" id="locker-info">
-                  <p class="view-klient__paczka-details__box-locker-info--name">
+                <div class="view-client__package-details__box-locker-info view-client__package-details__box-section" id="locker-info">
+                  <p class="view-client__package-details__box-locker-info--name">
                     <span class="span-locker-name-label span-label" id="locker-name-label"></span>
                     <span class="span-locker-name-value span-value" id="locker-name-value"></span>
                   </p>
-                  <p class="view-klient__paczka-details__box-locker-info--location">
+                  <p class="view-client__package-details__box-locker-info--location">
                     <span class="span-locker-location-label span-label" id="locker-location-label"></span>
                     <span class="span-locker-location-value span-value" id="locker-location-value"></span>
                   </p>
                 </div>
 
-                <div class="view-klient__paczka-details__box-events view-klient__paczka-details__box-section" id="paczka-events">
+                <div class="view-client__package-details__box-events view-client__package-details__box-section" id="package-events">
             
                 </div>
               </div>
@@ -277,90 +277,90 @@
         <!-- ========================= -->
         <!-- WIDOK: KURIER             -->
         <!-- ========================= -->
-        <section class="view hidden view-kurier" id="view-kurier" data-view data-roles="KURIER">
+        <section class="view hidden view-courier" id="view-courier" data-view data-roles="KURIER">
    
 
           <section class="view__content">
-            <div class="paczki-list-box">
-             <div class="kurier-filters" id="kurier-filters">
-                <div class="kurier-filters__row">
-                  <label class="kurier-filters__label" for="kurier-city-filter">Miasto docelowe:</label>
+            <div class="packages-list-box">
+             <div class="courier-filters" id="courier-filters">
+                <div class="courier-filters__row">
+                  <label class="courier-filters__label" for="courier-city-filter">Miasto docelowe:</label>
 
-                  <select class="kurier-filters__select" id="kurier-city-filter" name="kurier-city-filter">
+                  <select class="courier-filters__select" id="courier-city-filter" name="courier-city-filter">
                     <option value="" selected>Wszystkie miasta</option>
                   </select>
 
-                  <button class="kurier-filters__clear btn btn--small" id="kurier-city-filter-clear" type="button">
+                  <button class="courier-filters__clear btn btn--small" id="courier-city-filter-clear" type="button">
                     Wyczyść
                   </button>
                 </div>
             </div>
-            <section class="paczki__list" id="kurier-paczki-list"></section>
+            <section class="packages__list" id="courier-packages-list"></section>
             </div>
 
-            <section class="paczka-details hidden" id="kurier-paczka-details">
-              <div class="view-kurier__paczka-details__box hidden" id="kurier-paczka-details_box">
-                <div class="view-kurier__paczka-details__box-general-info view-kurier__paczka-details__box-section">
+            <section class="package-details hidden" id="courier-package-details">
+              <div class="view-courier__package-details__box hidden" id="courier-package-details_box">
+                <div class="view-courier__package-details__box-general-info view-courier__package-details__box-section">
                  
-                  <p class="view-kurier__paczka-details__row">
+                  <p class="view-courier__package-details__row">
                     <span class="span-label">Status</span>
-                    <span class="span-value" id="kurier-status-value"></span>
+                    <span class="span-value" id="courier-status-value"></span>
                   </p>
 
-                  <p class="view-kurier__paczka-details__row">
+                  <p class="view-courier__package-details__row">
                     <span class="span-label">Wymiary</span>
-                    <span class="span-value" id="kurier-dims-value"></span>
+                    <span class="span-value" id="courier-dims-value"></span>
                   </p>
 
-                  <p class="view-kurier__paczka-details__row">
+                  <p class="view-courier__package-details__row">
                     <span class="span-label">Nadawca</span>
-                    <span class="span-value" id="kurier-sender-value"></span>
+                    <span class="span-value" id="courier-sender-value"></span>
                   </p>
 
-                  <p class="view-kurier__paczka-details__row">
+                  <p class="view-courier__package-details__row">
                     <span class="span-label">Odbiorca</span>
-                    <span class="span-value" id="kurier-receiver-value"></span>
+                    <span class="span-value" id="courier-receiver-value"></span>
                   </p>
 
                 </div>
 
-                <div class="view-kurier__paczka-details__box-locker-info view-kurier__paczka-details__box-section">
-                  <p class="view-kurier__paczka-details__row">
+                <div class="view-courier__package-details__box-locker-info view-courier__package-details__box-section">
+                  <p class="view-courier__package-details__row">
                     <span class="span-label">Aktualny automat</span>
-                    <span class="span-value" id="kurier-aktualny-automat-value"></span>
+                    <span class="span-value" id="courier-current-parcel-locker-value"></span>
                   </p>
 
-                  <p class="view-kurier__paczka-details__row">
+                  <p class="view-courier__package-details__row">
                     <span class="span-label">Docelowy automat</span>
-                    <span class="span-value" id="kurier-docelowy-automat-value"></span>
+                    <span class="span-value" id="courier-target-parcel-locker-value"></span>
                   </p>
                 </div>
-                      <div class="view-kurier__paczka-details__box-actions view-kurier__paczka-details__box-section" id="kurier-actions">
+                      <div class="view-courier__package-details__box-actions view-courier__package-details__box-section" id="courier-actions">
 
-                  <div class="view-kurier__paczka-details__row hidden" id="kurier-skrytka-row">
+                  <div class="view-courier__package-details__row hidden" id="courier-locker-row">
                     <span class="span-label">Skrytka docelowa</span>
-                    <span class="span-value" id="kurier-skrytka-value"></span>
+                    <span class="span-value" id="courier-locker-value"></span>
                   </div>
 
-                  <p class="view-kurier__paczka-details__hint" id="kurier-hint"></p>
+                  <p class="view-courier__package-details__hint" id="courier-hint"></p>
 
-                  <div class="view-kurier__paczka-details__buttons">
-                    <button class="header__button" id="kurier-odebrana-btn" type="button">
+                  <div class="view-courier__package-details__buttons">
+                    <button class="header__button" id="courier-start-transport-btn" type="button">
                       Rozpocznij transport
                     </button>
 
-                    <button class="header__button" id="kurier-dostarcz-btn" type="button">
+                    <button class="header__button" id="courier-place-in-locker-btn" type="button">
                       Umieść w automacie
                     </button>
                   </div>
                 </div>
-                <div class="view-kurier__paczka-details__box-events view-kurier__paczka-details__box-section" id="kurier-paczka-zdarzenia"></div>
+                <div class="view-courier__package-details__box-events view-courier__package-details__box-section" id="courier-package-events"></div>
 
           
               </div>
 
-              <div class="locker-display hidden" id="kurier-locker-display">
-                <h2 class="locker-display__locker-name" id="kurier-locker-name"></h2>
+              <div class="locker-display hidden" id="courier-locker-display">
+                <h2 class="locker-display__locker-name" id="courier-locker-name"></h2>
 
                 <div class="locker-display__grid"></div>
                   <div class="locker-display__info" id="locker-info">
@@ -452,7 +452,7 @@
                 <div class="report-problem__selected">
                   <p class="report-problem__selected-row">
                     <span class="report-problem__selected-label">Automat:</span>
-                    <span class="report-problem__selected-value" id="report-selected-automat">—</span>
+                    <span class="report-problem__selected-value" id="report-selected-parcel-locker">—</span>
                   </p>
 
                   <p class="report-problem__selected-row">
@@ -461,7 +461,7 @@
                   </p>
                 </div>
 
-                <input type="hidden" id="report-automat-id" name="automat_id" required />
+                <input type="hidden" id="report-parcel-locker-id" name="automat_id" required />
                 <input type="hidden" id="report-locker-id" name="skrytka_id" required />
               </div>
 
@@ -625,22 +625,22 @@
                 <div class="admin-users__lists" id="admin-users-lists">
                   <div class="admin-users__lists__group admin-users__lists__group--clients">
                     <h3>Klienci</h3>
-                    <div class="admin-users__list" id="admin-users-list-kli"></div>
+                    <div class="admin-users__list" id="admin-users-list-clients"></div>
                   </div>
 
                   <div class="admin-users__lists__group admin-users__lists__group--operators">
                     <h3>Operatorzy</h3>
-                    <div class="admin-users__list" id="admin-users-list-opr"></div>
+                    <div class="admin-users__list" id="admin-users-list-operators"></div>
                   </div>
 
                   <div class="admin-users__lists__group admin-users__lists__group--couriers">
                     <h3>Kurierzy</h3>
-                    <div class="admin-users__list" id="admin-users-list-kur"></div>
+                    <div class="admin-users__list" id="admin-users-list-couriers"></div>
                   </div>
 
                   <div class="admin-users__lists__group admin-users__lists__group--admins">
                     <h3>Admini</h3>
-                    <div class="admin-users__list" id="admin-users-list-adm"></div>
+                    <div class="admin-users__list" id="admin-users-list-admins"></div>
                   </div>
                 </div>
               </section>
@@ -659,65 +659,65 @@
                 <div class="admin-client__list" id="admin-client-packages"></div>
               </section>
 
-              <section class="admin-automaty hidden" id="admin-automaty-view">
-                <div class="admin-automaty__header">
-                  <button class="btn" id="admin-automaty-back" type="button">← Wróć</button>
-                  <h3 id="admin-automaty-title">Zarządzanie automatami</h3>
+              <section class="admin-parcel-lockers hidden" id="admin-parcel-lockers-view">
+                <div class="admin-parcel-lockers__header">
+                  <button class="btn" id="admin-parcel-lockers-back" type="button">← Wróć</button>
+                  <h3 id="admin-parcel-lockers-title">Zarządzanie automatami</h3>
                 </div>
 
-                <div class="admin-automaty__actions">
-                  <button class="btn" id="admin-automaty-btn-add" type="button">Dodaj nowy automat</button>
-                  <button class="btn" id="admin-automaty-btn-faulty" type="button">Zobacz automaty z awariami</button>
-                  <button class="btn" id="admin-automaty-btn-all" type="button">Zobacz wszystkie automaty</button>
+                <div class="admin-parcel-lockers__actions">
+                  <button class="btn" id="admin-parcel-lockers-btn-add" type="button">Dodaj nowy automat</button>
+                  <button class="btn" id="admin-parcel-lockers-btn-faulty" type="button">Zobacz automaty z awariami</button>
+                  <button class="btn" id="admin-parcel-lockers-btn-all" type="button">Zobacz wszystkie automaty</button>
                 </div>
 
-                <div class="admin-automaty__cities hidden" id="admin-automaty-cities"></div>
+                <div class="admin-parcel-lockers__cities hidden" id="admin-parcel-lockers-cities"></div>
 
-                <div class="admin-automaty__city-list hidden" id="admin-automaty-city-list"></div>
+                <div class="admin-parcel-lockers__city-list hidden" id="admin-parcel-lockers-city-list"></div>
 
 
-                <div class="admin-automaty__form hidden" id="admin-automaty-form-box">
-                  <h3 class="admin-automaty__form-title" id="admin-automaty-form-title">Dodaj nowy automat</h3>
+                <div class="admin-parcel-lockers__form hidden" id="admin-parcel-lockers-form-box">
+                  <h3 class="admin-parcel-lockers__form-title" id="admin-parcel-lockers-form-title">Dodaj nowy automat</h3>
 
-                  <form class="admin-automaty__form--form" id="admin-automaty-form">
-                    <div class="admin-automaty__form--form-row form-row">
-                      <label for="admin-automaty-name">Kod automatu</label>
-                      <input id="admin-automaty-name" type="text" autocomplete="off" required />
+                  <form class="admin-parcel-lockers__form--form" id="admin-parcel-lockers-form">
+                    <div class="admin-parcel-lockers__form--form-row form-row">
+                      <label for="admin-parcel-lockers-name">Kod automatu</label>
+                      <input id="admin-parcel-lockers-name" type="text" autocomplete="off" required />
                     </div>
 
-                    <div class="admin-automaty__form--form-row form-row">
-                      <label for="admin-automaty-city">Miasto</label>
-                      <input id="admin-automaty-city" type="text" autocomplete="off" required />
+                    <div class="admin-parcel-lockers__form--form-row form-row">
+                      <label for="admin-parcel-lockers-city">Miasto</label>
+                      <input id="admin-parcel-lockers-city" type="text" autocomplete="off" required />
                     </div>
 
-                    <div class="admin-automaty__form--form-row form-row">
-                      <label for="admin-automaty-address">Adres</label>
-                      <input id="admin-automaty-address" type="text" autocomplete="off" required />
+                    <div class="admin-parcel-lockers__form--form-row form-row">
+                      <label for="admin-parcel-lockers-address">Adres</label>
+                      <input id="admin-parcel-lockers-address" type="text" autocomplete="off" required />
                     </div>
 
-                    <div class="admin-automaty__form--form-row form-row">
-                      <label for="admin-automaty-num-lockers-total">Wspolrzedne GPS</label>
-                      <input id="admin-automaty-gps-coords" type="text" placeholder="szerokość, długość" autocomplete="off" required />
+                    <div class="admin-parcel-lockers__form--form-row form-row">
+                      <label for="admin-parcel-lockers-num-lockers-total">Wspolrzedne GPS</label>
+                      <input id="admin-parcel-lockers-gps-coords" type="text" placeholder="szerokość, długość" autocomplete="off" required />
                     </div>
 
-                    <div class="admin-automaty__form--form-row form-row">
-                      <label for="admin-automaty-num-columns">Liczba kolumn</label>
-                      <input id="admin-automaty-num-columns" type="number" min="1" autocomplete="off" required />
+                    <div class="admin-parcel-lockers__form--form-row form-row">
+                      <label for="admin-parcel-lockers-num-columns">Liczba kolumn</label>
+                      <input id="admin-parcel-lockers-num-columns" type="number" min="1" autocomplete="off" required />
                     </div>
 
-                    <div class="admin-automaty__form--form-row form-row">
-                      <label for="admin-automaty-num-rows">Liczba rzędów (musi być parzysta)</label>
-                      <input id="admin-automaty-num-rows" type="number" min="1" autocomplete="off" required />
+                    <div class="admin-parcel-lockers__form--form-row form-row">
+                      <label for="admin-parcel-lockers-num-rows">Liczba rzędów (musi być parzysta)</label>
+                      <input id="admin-parcel-lockers-num-rows" type="number" min="1" autocomplete="off" required />
                     </div>
 
-                    <div class="admin-automaty__form--form-actions">
+                    <div class="admin-parcel-lockers__form--form-actions">
                       <button class="btn" type="submit">Zapisz</button>
-                      <button class="btn" id="admin-automaty-form-cancel" type="button">Anuluj</button>
+                      <button class="btn" id="admin-parcel-lockers-form-cancel" type="button">Anuluj</button>
                     </div>
                   </form>
                 </div>
 
-                <div class="admin-automaty__list hidden" id="admin-automaty-list"></div>
+                <div class="admin-parcel-lockers__list hidden" id="admin-parcel-lockers-list"></div>
 
             </section>
           </section>

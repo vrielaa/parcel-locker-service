@@ -134,20 +134,20 @@ const renderFaultyParcelLockerButtons = (listEl, parcelLockers, onSelect) => {
   list.forEach((a) => {
     const btn = document.createElement("button")
     btn.type = "button"
-    btn.className = "btn admin-automaty__faulty-btn"
+    btn.className = "btn admin-parcel-lockers__faulty-btn"
 
     const title = `${a.name} (#${a.id})`
     const city = a.city || "-"
     const count = Number(a.faultyCount || 0)
 
     btn.innerHTML = `
-      <div class="admin-automaty__faulty-btn__top">
-        <span class="admin-automaty__faulty-btn__title">${escapeHtml(title)}</span>
-        <span class="admin-automaty__faulty-btn__count">${escapeHtml(count)}</span>
+      <div class="admin-parcel-lockers__faulty-btn__top">
+        <span class="admin-parcel-lockers__faulty-btn__title">${escapeHtml(title)}</span>
+        <span class="admin-parcel-lockers__faulty-btn__count">${escapeHtml(count)}</span>
       </div>
-      <div class="admin-automaty__faulty-btn__bottom">
-        <span class="admin-automaty__faulty-btn__city">${escapeHtml(city)}</span>
-        <span class="admin-automaty__faulty-btn__addr">${escapeHtml(a.address || "-")}</span>
+      <div class="admin-parcel-lockers__faulty-btn__bottom">
+        <span class="admin-parcel-lockers__faulty-btn__city">${escapeHtml(city)}</span>
+        <span class="admin-parcel-lockers__faulty-btn__addr">${escapeHtml(a.address || "-")}</span>
       </div>
     `
 
@@ -163,11 +163,11 @@ const renderFaultyLockersList = ({ listEl, parcelLocker, onBack, onRepair }) => 
   listEl.replaceChildren()
 
   const head = document.createElement("div")
-  head.className = "admin-automaty__faulty-head"
+  head.className = "admin-parcel-lockers__faulty-head"
 
   const backBtn = document.createElement("button")
   backBtn.type = "button"
-  backBtn.className = "btn admin-automaty__faulty-back"
+  backBtn.className = "btn admin-parcel-lockers__faulty-back"
   backBtn.textContent = "Wróć"
 
   backBtn.addEventListener("click", () => {
@@ -175,7 +175,7 @@ const renderFaultyLockersList = ({ listEl, parcelLocker, onBack, onRepair }) => 
   })
 
   const title = document.createElement("h4")
-  title.className = "admin-automaty__faulty-title"
+  title.className = "admin-parcel-lockers__faulty-title"
   title.textContent = `${parcelLocker?.name || "Automat"} (#${parcelLocker?.id || "?"}) — uszkodzone skrytki: ${Number(parcelLocker?.faultyCount || 0)}`
 
   head.appendChild(backBtn)
@@ -195,18 +195,18 @@ const renderFaultyLockersList = ({ listEl, parcelLocker, onBack, onRepair }) => 
     .sort((a, b) => Number(a) - Number(b))
     .forEach((lockerId) => {
       const row = document.createElement("div")
-      row.className = "admin-automaty__faulty-locker-row"
+      row.className = "admin-parcel-lockers__faulty-locker-row"
 
       const left = document.createElement("div")
-      left.className = "admin-automaty__faulty-locker-left"
+      left.className = "admin-parcel-lockers__faulty-locker-left"
       left.innerHTML = `<strong>Skrytka #${escapeHtml(lockerId)}</strong>`
 
       const actions = document.createElement("div")
-      actions.className = "admin-automaty__faulty-locker-actions"
+      actions.className = "admin-parcel-lockers__faulty-locker-actions"
 
       const repairBtn = document.createElement("button")
       repairBtn.type = "button"
-      repairBtn.className = "btn admin-automaty__faulty-locker-repair"
+      repairBtn.className = "btn admin-parcel-lockers__faulty-locker-repair"
       repairBtn.textContent = "Oznacz jako naprawiona"
 
       repairBtn.addEventListener("click", async () => {
@@ -226,32 +226,32 @@ export function initAdminParcelLockersPanel() {
   if (role !== "ADMIN") return
 
   const usersViewEl = getElById("admin-users-view")
-  const parcelLockersViewEl = getElById("admin-automaty-view")
+  const parcelLockersViewEl = getElById("admin-parcel-lockers-view")
   const clientViewEl = getElById("admin-client-view")
 
-  const titleEl = getElById("admin-automaty-title")
-  const backBtn = getElById("admin-automaty-back")
+  const titleEl = getElById("admin-parcel-lockers-title")
+  const backBtn = getElById("admin-parcel-lockers-back")
 
-  const addBtn = getElById("admin-automaty-btn-add")
-  const faultyBtn = getElById("admin-automaty-btn-faulty")
-  const allBtn = getElById("admin-automaty-btn-all")
+  const addBtn = getElById("admin-parcel-lockers-btn-add")
+  const faultyBtn = getElById("admin-parcel-lockers-btn-faulty")
+  const allBtn = getElById("admin-parcel-lockers-btn-all")
 
-  const formBoxEl = getElById("admin-automaty-form-box")
-  const formTitleEl = getElById("admin-automaty-form-title")
-  const formEl = getElById("admin-automaty-form")
-  const cancelBtn = getElById("admin-automaty-form-cancel")
+  const formBoxEl = getElById("admin-parcel-lockers-form-box")
+  const formTitleEl = getElById("admin-parcel-lockers-form-title")
+  const formEl = getElById("admin-parcel-lockers-form")
+  const cancelBtn = getElById("admin-parcel-lockers-form-cancel")
 
-  const codeEl = getElById("admin-automaty-name")
-  const cityEl = getElById("admin-automaty-city")
-  const addressEl = getElById("admin-automaty-address")
+  const codeEl = getElById("admin-parcel-lockers-name")
+  const cityEl = getElById("admin-parcel-lockers-city")
+  const addressEl = getElById("admin-parcel-lockers-address")
 
-  const gpsEl = getElById("admin-automaty-gps-coords")
-  const colsEl = getElById("admin-automaty-num-columns")
-  const rowsEl = getElById("admin-automaty-num-rows")
+  const gpsEl = getElById("admin-parcel-lockers-gps-coords")
+  const colsEl = getElById("admin-parcel-lockers-num-columns")
+  const rowsEl = getElById("admin-parcel-lockers-num-rows")
 
-  const listEl = getElById("admin-automaty-list")
-  const citiesEl = getElById("admin-automaty-cities")
-  const cityListEl = getElById("admin-automaty-city-list")
+  const listEl = getElById("admin-parcel-lockers-list")
+  const citiesEl = getElById("admin-parcel-lockers-cities")
+  const cityListEl = getElById("admin-parcel-lockers-city-list")
 
   if (
     !parcelLockersViewEl ||
@@ -401,7 +401,7 @@ export function initAdminParcelLockersPanel() {
       .map((city) => {
         const btn = document.createElement("button")
         btn.type = "button"
-        btn.className = "btn admin-automaty__city-btn"
+        btn.className = "btn admin-parcel-lockers__city-btn"
         btn.textContent = city
         btn.dataset.city = city
         return btn
@@ -444,18 +444,18 @@ export function initAdminParcelLockersPanel() {
       .sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name), "pl"))
       .forEach((a) => {
         const row = document.createElement("div")
-        row.className = "admin-automaty__city-item"
+        row.className = "admin-parcel-lockers__city-item"
 
         const text = document.createElement("div")
-        text.className = "admin-automaty__city-item-text"
+        text.className = "admin-parcel-lockers__city-item-text"
         text.innerHTML = `<strong>${escapeHtml(a.name)}</strong> — ${escapeHtml(a.address || "-")}`
 
         const actions = document.createElement("div")
-        actions.className = "admin-automaty__city-item-actions"
+        actions.className = "admin-parcel-lockers__city-item-actions"
 
         const del = document.createElement("button")
         del.type = "button"
-        del.className = "btn admin-automaty__city-item-delete"
+        del.className = "btn admin-parcel-lockers__city-item-delete"
         del.textContent = "Usuń"
         del.disabled = !a.id
 

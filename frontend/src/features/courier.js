@@ -378,7 +378,7 @@ const createCourierDetailsView = ({
   const setEventsText = (text) => {
     if (!eventsEl) return
 
-    const label = ensureHistoryLabel(eventsEl, "kurier-package-history-label", "Historia paczki")
+    const label = ensureHistoryLabel(eventsEl, "courier-package-history-label", "Historia paczki")
     eventsEl.replaceChildren()
     if (label) eventsEl.appendChild(label)
 
@@ -402,16 +402,16 @@ const createCourierDetailsView = ({
     const withLine = idx !== total - 1
 
     return `
-      <div class="paczka-event">
-        <div class="paczka-event__timeline">
-          <span class="paczka-event__dot"></span>
-          ${withLine ? `<span class="paczka-event__line"></span>` : ``}
+      <div class="package-event">
+        <div class="package-event__timeline">
+          <span class="package-event__dot"></span>
+          ${withLine ? `<span class="package-event__line"></span>` : ``}
         </div>
 
-        <div class="paczka-event__content">
-          <div class="paczka-event__top">
-            <span class="paczka-event__type">${escapeHtml(typ)}</span>
-            <span class="paczka-event__time">${escapeHtml(czas)}</span>
+        <div class="package-event__content">
+          <div class="package-event__top">
+            <span class="package-event__type">${escapeHtml(typ)}</span>
+            <span class="package-event__time">${escapeHtml(czas)}</span>
           </div>
         </div>
       </div>
@@ -421,7 +421,7 @@ const createCourierDetailsView = ({
   const renderEvents = (eventsPayload) => {
     if (!eventsEl) return
 
-    const label = ensureHistoryLabel(eventsEl, "kurier-package-history-label", "Historia paczki")
+    const label = ensureHistoryLabel(eventsEl, "courier-package-history-label", "Historia paczki")
     eventsEl.replaceChildren()
     if (label) eventsEl.appendChild(label)
 
@@ -436,7 +436,7 @@ const createCourierDetailsView = ({
     sortEventsNewestFirst(events)
 
     const wrapper = document.createElement("div")
-    wrapper.className = "paczka-events"
+    wrapper.className = "package-events"
     wrapper.innerHTML = events.map((event, idx) => renderEventHtml(event, idx, events.length)).join("")
     eventsEl.appendChild(wrapper)
   }
@@ -758,13 +758,13 @@ const createCourierListView = ({ listEl, cityFilterEl, cityClearEl, onSelectPack
 
       const btn = document.createElement("button")
       btn.type = "button"
-      btn.className = "view-klient__lista-paczek__buttons-button"
+      btn.className = "view-client__package-list__buttons-button"
       btn.dataset.packageId = String(id)
 
       btn.innerHTML = `
-        <span class="view-klient__lista-paczek__buttons-button__mail">${escapeHtml(sender)} → ${escapeHtml(receiver)}</span>
-        <span class="view-klient__lista-paczek__buttons-button__status">${escapeHtml(status)}</span>
-        <img class="view-klient__lista-paczek__buttons-button__locker-svg" src="${lockerSvgUrl}" alt="Parcel Locker Icon" />
+        <span class="view-client__package-list__buttons-button__mail">${escapeHtml(sender)} → ${escapeHtml(receiver)}</span>
+        <span class="view-client__package-list__buttons-button__status">${escapeHtml(status)}</span>
+        <img class="view-client__package-list__buttons-button__locker-svg" src="${lockerSvgUrl}" alt="Parcel Locker Icon" />
       `
 
       btn.addEventListener("click", () => {
@@ -913,37 +913,37 @@ export function initCourierPanel() {
   const role = (localStorage.getItem("rola") || "").toUpperCase()
   if (role !== "KURIER") return
 
-  const listEl = getElById("kurier-paczki-list")
-  const detailsWrapperEl = getElById("kurier-paczka-details")
-  const detailsBoxEl = getElById("kurier-paczka-details_box")
+  const listEl = getElById("courier-packages-list")
+  const detailsWrapperEl = getElById("courier-package-details")
+  const detailsBoxEl = getElById("courier-package-details_box")
 
-  const statusValueEl = getElById("kurier-status-value")
-  const dimsValueEl = getElById("kurier-dims-value")
-  const senderValueEl = getElById("kurier-sender-value")
-  const receiverValueEl = getElById("kurier-receiver-value")
+  const statusValueEl = getElById("courier-status-value")
+  const dimsValueEl = getElById("courier-dims-value")
+  const senderValueEl = getElById("courier-sender-value")
+  const receiverValueEl = getElById("courier-receiver-value")
 
-  const currentLockerValueEl = getElById("kurier-aktualny-automat-value")
-  const targetLockerValueEl = getElById("kurier-docelowy-automat-value")
+  const currentLockerValueEl = getElById("courier-current-parcel-locker-value")
+  const targetLockerValueEl = getElById("courier-target-parcel-locker-value")
 
-  const lockerRowEl = getElById("kurier-skrytka-row")
-  const lockerValueEl = getElById("kurier-skrytka-value")
+  const lockerRowEl = getElById("courier-locker-row")
+  const lockerValueEl = getElById("courier-locker-value")
 
-  const hintEl = getElById("kurier-hint")
+  const hintEl = getElById("courier-hint")
 
-  const btnStartTransport = getElById("kurier-odebrana-btn")
-  const btnPlaceInLocker = getElById("kurier-dostarcz-btn")
+  const btnStartTransport = getElById("courier-start-transport-btn")
+  const btnPlaceInLocker = getElById("courier-place-in-locker-btn")
 
-  const eventsEl = getElById("kurier-paczka-zdarzenia")
+  const eventsEl = getElById("courier-package-events")
 
-  const lockerDisplayEl = getElById("kurier-locker-display")
-  const lockerNameEl = getElById("kurier-locker-name")
+  const lockerDisplayEl = getElById("courier-locker-display")
+  const lockerNameEl = getElById("courier-locker-name")
 
-  const cityFilterEl = getElById("kurier-city-filter")
-  const cityClearEl = getElById("kurier-city-filter-clear")
+  const cityFilterEl = getElById("courier-city-filter")
+  const cityClearEl = getElById("courier-city-filter-clear")
 
   const actionsEl =
-    getElById("kurier-actions") ||
-    detailsBoxEl?.querySelector(".view-kurier__paczka-details__box-actions") ||
+    getElById("courier-actions") ||
+    detailsBoxEl?.querySelector(".view-courier__package-details__box-actions") ||
     null
 
   if (!listEl || !detailsWrapperEl || !detailsBoxEl) return

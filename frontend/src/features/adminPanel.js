@@ -27,10 +27,10 @@ const SELECTORS = {
 
   listsBoxId: "admin-users-lists",
 
-  listKliId: "admin-users-list-kli",
-  listOprId: "admin-users-list-opr",
-  listKurId: "admin-users-list-kur",
-  listAdmId: "admin-users-list-adm",
+  listClientsId: "admin-users-list-clients",
+  listOperatorsId: "admin-users-list-operators",
+  listCouriersId: "admin-users-list-couriers",
+  listAdminsId: "admin-users-list-admins",
 
   clientBackId: "admin-client-back",
   clientTitleId: "admin-client-title",
@@ -151,10 +151,10 @@ export function initAdminUsersView() {
 
   const listsBox = getElById(SELECTORS.listsBoxId)
 
-  const listKli = getElById(SELECTORS.listKliId)
-  const listOpr = getElById(SELECTORS.listOprId)
-  const listKur = getElById(SELECTORS.listKurId)
-  const listAdm = getElById(SELECTORS.listAdmId)
+  const listClients = getElById(SELECTORS.listClientsId)
+  const listOperators = getElById(SELECTORS.listOperatorsId)
+  const listCouriers = getElById(SELECTORS.listCouriersId)
+  const listAdmins = getElById(SELECTORS.listAdminsId)
 
   const clientBack = getElById(SELECTORS.clientBackId)
   const clientTitle = getElById(SELECTORS.clientTitleId)
@@ -184,10 +184,10 @@ export function initAdminUsersView() {
     !phoneEl ||
     !passwordEl ||
     !listsBox ||
-    !listKli ||
-    !listOpr ||
-    !listKur ||
-    !listAdm ||
+    !listClients ||
+    !listOperators ||
+    !listCouriers ||
+    !listAdmins ||
     !clientBack ||
     !clientTitle ||
     !tabSent ||
@@ -277,23 +277,23 @@ export function initAdminUsersView() {
   }
 
   const renderUsers = (users) => {
-    const kli = []
-    const opr = []
-    const kur = []
-    const adm = []
+    const clients = []
+    const operators = []
+    const couriers = []
+    const admins = []
 
     users.forEach((u) => {
       const r = roleKey(u?.rola)
-      if (r === "KLIENT") kli.push(u)
-      else if (r === "OPERATOR") opr.push(u)
-      else if (r === "KURIER") kur.push(u)
-      else if (r === "ADMIN") adm.push(u)
+      if (r === "KLIENT") clients.push(u)
+      else if (r === "OPERATOR") operators.push(u)
+      else if (r === "KURIER") couriers.push(u)
+      else if (r === "ADMIN") admins.push(u)
     })
 
-    listKli.innerHTML = kli.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
-    listOpr.innerHTML = opr.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
-    listKur.innerHTML = kur.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
-    listAdm.innerHTML = adm.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
+    listClients.innerHTML = clients.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
+    listOperators.innerHTML = operators.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
+    listCouriers.innerHTML = couriers.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
+    listAdmins.innerHTML = admins.map(userRowHtml).join("") || "<div class=\"no-users-message\">Brak</div>"
   }
 
   const fetchUsers = async () => {

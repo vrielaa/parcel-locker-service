@@ -96,7 +96,7 @@ async function main() {
     if (!showDevTools) addClass(el, "hidden")
   })
 
-  const parcelLockersButton = getElById("get-automaty")
+  const parcelLockersButton = getElById("get-parcel-lockers")
   // if (parcelLockersButton) removeClass(parcelLockersButton, "hidden")
 
   const views = Array.from(document.querySelectorAll("[data-view]"))
@@ -128,12 +128,12 @@ async function main() {
   const btnOperatorPanel = getElById("nav-operator-panel")
   const createPackageBtn = getElById("nav-create-package")
   const btnAdminUsers = getElById("nav-admin-users")
-  const adminParcelLockersButton = getElById("nav-admin-automaty")
+  const adminParcelLockersButton = getElById("nav-admin-parcel-lockers")
   const courierReportButton = getElById("nav-courier-report")
 
-  if (parcelLockersButton) parcelLockersButton.addEventListener("click", () => showView("view-automaty"))
-  if (btnMyPackages) btnMyPackages.addEventListener("click", () => showView("view-klient"))
-  if (btnCourierPackages) btnCourierPackages.addEventListener("click", () => showView("view-kurier"))
+  if (parcelLockersButton) parcelLockersButton.addEventListener("click", () => showView("view-parcel-lockers"))
+  if (btnMyPackages) btnMyPackages.addEventListener("click", () => showView("view-client"))
+  if (btnCourierPackages) btnCourierPackages.addEventListener("click", () => showView("view-courier"))
   if (btnOperatorPanel) btnOperatorPanel.addEventListener("click", () => showView("view-operator"))
   if (createPackageBtn) createPackageBtn.addEventListener("click", () => showView("view-create-package"))
   if (courierReportButton) courierReportButton.addEventListener("click", () => showView("view-report-problem"))
@@ -143,7 +143,7 @@ async function main() {
       showView("view_admin")
 
       const usersViewEl = getElById("admin-users-view")
-      const adminParcelLockersViewEl = getElById("admin-automaty-view")
+      const adminParcelLockersViewEl = getElById("admin-parcel-lockers-view")
       const clientViewEl = getElById("admin-client-view")
 
       if (usersViewEl) removeClass(usersViewEl, "hidden")
@@ -157,7 +157,7 @@ async function main() {
       showView("view_admin")
 
       const usersViewEl = getElById("admin-users-view")
-      const adminParcelLockersViewEl = getElById("admin-automaty-view")
+      const adminParcelLockersViewEl = getElById("admin-parcel-lockers-view")
       const clientViewEl = getElById("admin-client-view")
 
       if (usersViewEl) addClass(usersViewEl, "hidden")

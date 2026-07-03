@@ -34,10 +34,10 @@ export function initCourierReport() {
 
   const descriptionEl = viewEl.querySelector("#report-description")
 
-  const selectedParcelLockerLabelEl = viewEl.querySelector("#report-selected-automat")
+  const selectedParcelLockerLabelEl = viewEl.querySelector("#report-selected-parcel-locker")
   const selectedLockerLabelEl = viewEl.querySelector("#report-selected-locker")
 
-  const parcelLockerIdEl = viewEl.querySelector("#report-automat-id")
+  const parcelLockerIdEl = viewEl.querySelector("#report-parcel-locker-id")
   const lockerIdEl = viewEl.querySelector("#report-locker-id")
 
   const submitBtn = viewEl.querySelector("#report-submit")

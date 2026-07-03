@@ -413,7 +413,7 @@
 
     }
 
-    .admin-automaty{
+    .admin-parcel-lockers{
 
         display: flex;
         flex-direction: column;
@@ -435,11 +435,11 @@
             width: 100%;
             position: relative;
 
-            #admin-automaty-title{
+            #admin-parcel-lockers-title{
                 text-align: center;
             }
 
-            #admin-automaty-back{
+            #admin-parcel-lockers-back{
                 margin-right: auto;
                 border: none;
                 font-size: 1.6rem;
@@ -473,7 +473,7 @@
             margin-bottom: 1rem;
             margin-top: 1rem;
 
-            .admin-automaty__faulty-title{
+            .admin-parcel-lockers__faulty-title{
                 font-size: 1.6rem;
                 font-family: $font-primary;
                 color: $color-grey-dark-1;
@@ -555,7 +555,7 @@
                 cursor: pointer;
                 transition: all 0.3s;
 
-                .admin-automaty__faulty-btn{
+                .admin-parcel-lockers__faulty-btn{
 
                     &__top{
                         margin-bottom: 5px;
@@ -604,7 +604,7 @@
             
         }
 
-        .admin-automaty{
+        .admin-parcel-lockers{
             &__actions{
                 display: flex;
                 gap: 10px;

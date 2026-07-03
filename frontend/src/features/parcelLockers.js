@@ -9,7 +9,7 @@ export function initParcelLockersView() {
   const lockerDisplay = qs(".locker-display")
   const lockerDisplayGrid = qs(".locker-display__grid")
   const goBackBtn = getElById("go-back-button")
-  const getLockersBtn = getElById("get-automaty")
+  const getLockersBtn = getElById("get-parcel-lockers")
   const lockerName = getElById("locker-name")
   const lockerInfoEl = getElById("locker-info")
 
