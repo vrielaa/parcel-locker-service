@@ -35,8 +35,8 @@ const panelClass = 'rounded-2xl border border-line bg-surface p-6 shadow-card';
 const subtlePanelClass = 'rounded-xl border border-line bg-background p-4';
 const buttonClass = 'min-h-10 rounded-lg bg-brand px-4 text-sm font-bold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50';
 const ghostButtonClass = 'min-h-10 rounded-lg border border-line bg-surface px-4 text-sm font-bold text-foreground transition hover:border-brand hover:text-brand-strong disabled:cursor-not-allowed disabled:opacity-50';
-const dangerButtonClass = 'min-h-10 rounded-lg bg-danger px-4 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50';
-const inputClass = 'min-h-10 rounded-lg border border-line bg-background px-3 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20';
+const dangerButtonClass = 'min-h-10 rounded-lg border border-danger/50 bg-danger px-4 text-sm font-bold text-ink-text transition hover:bg-danger/90 disabled:cursor-not-allowed disabled:opacity-50';
+const inputClass = 'min-h-10 rounded-lg border border-line bg-field px-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20';
 const labelClass = 'grid gap-1.5 text-sm font-semibold text-foreground';
 
 function getValue(event: Event) {

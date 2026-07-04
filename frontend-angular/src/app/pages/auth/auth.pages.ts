@@ -6,7 +6,7 @@ import { apiMessage } from '../../core/utils/format';
 
 const authCardClass = 'mx-auto grid w-full max-w-md gap-5 rounded-2xl border border-line bg-surface p-7 shadow-card';
 const labelClass = 'grid gap-1.5 text-sm font-semibold text-foreground';
-const inputClass = 'min-h-11 rounded-lg border border-line bg-background px-3 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20';
+const inputClass = 'min-h-11 rounded-lg border border-line bg-field px-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20';
 const buttonClass = 'min-h-11 rounded-lg bg-brand px-4 text-sm font-bold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55';
 const secondaryLinkClass = 'font-semibold text-brand-strong no-underline hover:underline';
 
