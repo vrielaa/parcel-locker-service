@@ -13,42 +13,7 @@ const secondaryLinkClass = 'font-semibold text-brand-strong no-underline hover:u
 @Component({
   selector: 'app-login-page',
   imports: [RouterLink],
-  template: `
-    <main class="grid min-h-screen place-items-center bg-background px-4 py-10">
-      <section [class]="authCardClass">
-        <div>
-          <p class="mb-2 text-xs font-bold uppercase text-muted">Parcel Locker 2.0</p>
-          <h1 class="m-0 text-3xl leading-tight">Logowanie</h1>
-          <p class="mt-2 text-sm leading-6 text-muted">Zaloguj się, żeby przejść do nowej wersji aplikacji.</p>
-        </div>
-
-        <form class="grid gap-4" (submit)="submit($event)">
-          <label [class]="labelClass">
-            Email
-            <input [class]="inputClass" type="email" autocomplete="email" [value]="email()" (input)="setValue(email, $event)">
-          </label>
-
-          <label [class]="labelClass">
-            Hasło
-            <input [class]="inputClass" type="password" autocomplete="current-password" [value]="password()" (input)="setValue(password, $event)">
-          </label>
-
-          @if (message()) {
-            <p class="m-0 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">{{ message() }}</p>
-          }
-
-          <button [class]="buttonClass" type="submit" [disabled]="submitting()">
-            {{ submitting() ? 'Logowanie...' : 'Zaloguj się' }}
-          </button>
-        </form>
-
-        <p class="m-0 text-sm text-muted">
-          Nie masz konta?
-          <a [class]="secondaryLinkClass" routerLink="/register">Zarejestruj się</a>
-        </p>
-      </section>
-    </main>
-  `
+  templateUrl: './login.page.html'
 })
 export class LoginPage {
   private readonly auth = inject(AuthStore);
@@ -97,46 +62,7 @@ export class LoginPage {
 @Component({
   selector: 'app-register-page',
   imports: [RouterLink],
-  template: `
-    <main class="grid min-h-screen place-items-center bg-background px-4 py-10">
-      <section class="mx-auto grid w-full max-w-2xl gap-5 rounded-2xl border border-line bg-surface p-7 shadow-card">
-        <div>
-          <p class="mb-2 text-xs font-bold uppercase text-muted">Nowe konto klienta</p>
-          <h1 class="m-0 text-3xl leading-tight">Rejestracja</h1>
-        </div>
-
-        <form class="grid gap-4" (submit)="submit($event)">
-          <div class="grid gap-4 md:grid-cols-2">
-            <label [class]="labelClass">Imię<input [class]="inputClass" [value]="firstName()" (input)="setValue(firstName, $event)"></label>
-            <label [class]="labelClass">Nazwisko<input [class]="inputClass" [value]="lastName()" (input)="setValue(lastName, $event)"></label>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <label [class]="labelClass">Email<input [class]="inputClass" type="email" [value]="email()" (input)="setValue(email, $event)"></label>
-            <label [class]="labelClass">Telefon<input [class]="inputClass" [value]="phone()" (input)="setValue(phone, $event)"></label>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <label [class]="labelClass">Hasło<input [class]="inputClass" type="password" [value]="password()" (input)="setValue(password, $event)"></label>
-            <label [class]="labelClass">Powtórz hasło<input [class]="inputClass" type="password" [value]="password2()" (input)="setValue(password2, $event)"></label>
-          </div>
-
-          @if (message()) {
-            <p class="m-0 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">{{ message() }}</p>
-          }
-
-          <button [class]="buttonClass" type="submit" [disabled]="submitting()">
-            {{ submitting() ? 'Tworzenie konta...' : 'Utwórz konto' }}
-          </button>
-        </form>
-
-        <p class="m-0 text-sm text-muted">
-          Masz już konto?
-          <a [class]="secondaryLinkClass" routerLink="/login">Wróć do logowania</a>
-        </p>
-      </section>
-    </main>
-  `
+  templateUrl: './register.page.html'
 })
 export class RegisterPage {
   private readonly auth = inject(AuthStore);
@@ -202,30 +128,7 @@ export class RegisterPage {
 
 @Component({
   selector: 'app-change-password-page',
-  template: `
-    <main class="grid min-h-screen place-items-center bg-background px-4 py-10">
-      <section [class]="authCardClass">
-        <div>
-          <p class="mb-2 text-xs font-bold uppercase text-muted">Bezpieczeństwo</p>
-          <h1 class="m-0 text-3xl leading-tight">Zmień hasło</h1>
-        </div>
-
-        <form class="grid gap-4" (submit)="submit($event)">
-          <label [class]="labelClass">Aktualne hasło<input [class]="inputClass" type="password" [value]="currentPassword()" (input)="setValue(currentPassword, $event)"></label>
-          <label [class]="labelClass">Nowe hasło<input [class]="inputClass" type="password" [value]="newPassword()" (input)="setValue(newPassword, $event)"></label>
-          <label [class]="labelClass">Powtórz nowe hasło<input [class]="inputClass" type="password" [value]="newPassword2()" (input)="setValue(newPassword2, $event)"></label>
-
-          @if (message()) {
-            <p class="m-0 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">{{ message() }}</p>
-          }
-
-          <button [class]="buttonClass" type="submit" [disabled]="submitting()">
-            {{ submitting() ? 'Zapisywanie...' : 'Zmień hasło' }}
-          </button>
-        </form>
-      </section>
-    </main>
-  `
+  templateUrl: './change-password.page.html'
 })
 export class ChangePasswordPage {
   private readonly auth = inject(AuthStore);

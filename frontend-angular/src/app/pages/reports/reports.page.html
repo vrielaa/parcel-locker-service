@@ -1,0 +1,57 @@
+<section [class]="pageClass">
+  <header [class]="panelClass">
+    <p class="mb-2 text-xs font-bold uppercase text-muted">Serwis</p>
+    <h1 class="m-0 text-3xl">Zgłoś uszkodzoną skrytkę</h1>
+  </header>
+
+  <section class="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <aside [class]="panelClass">
+      <label [class]="labelClass">
+        Miasto
+        <select [class]="inputClass" [value]="city()" (change)="selectCity($event)">
+          <option value="">Wybierz miasto</option>
+          @for (city of cities(); track city) {
+            <option [value]="city">{{ city }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="mt-4 grid gap-2">
+        @for (locker of parcelLockers(); track parcelLockerId(locker)) {
+          <button [class]="cardButtonClass" type="button" (click)="selectParcelLocker(locker)">
+            <strong>{{ parcelLockerName(locker) }}</strong>
+            <small class="text-muted">{{ parcelLockerAddress(locker) }}</small>
+          </button>
+        }
+      </div>
+    </aside>
+
+    <section [class]="panelClass">
+      @if (layout().length) {
+        <div class="grid gap-4">
+          <h2 class="m-0 text-2xl">{{ parcelLockerName(selectedParcelLocker()) }}</h2>
+          <app-locker-layout
+            [layout]="layout()"
+            [selectable]="true"
+            [selectedId]="lockerId(selectedLocker())"
+            [disabledStatuses]="['USZKODZONA']"
+            (lockerSelected)="selectedLocker.set($event)"
+          />
+
+          <label [class]="labelClass">Opis problemu<textarea [class]="inputClass + ' min-h-24 py-3'" [value]="description()" (input)="setValue(description, $event)"></textarea></label>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button [class]="buttonClass" type="button" [disabled]="!selectedLocker() || !description().trim()" (click)="markDamaged()">Oznacz jako uszkodzoną</button>
+            <span class="text-sm text-muted">Wybrana: {{ selectedLocker() ? '#' + lockerId(selectedLocker()) : 'brak' }}</span>
+          </div>
+
+          @if (message()) {
+            <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">{{ message() }}</p>
+          }
+        </div>
+      } @else {
+        <p class="m-0 text-muted">Wybierz miasto i automat.</p>
+      }
+    </section>
+  </section>
+</section>

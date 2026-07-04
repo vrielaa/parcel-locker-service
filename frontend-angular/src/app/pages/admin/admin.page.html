@@ -1,0 +1,147 @@
+<section [class]="pageClass">
+  <header [class]="panelClass">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="mb-2 text-xs font-bold uppercase text-muted">Admin</p>
+        <h1 class="m-0 text-3xl">Administracja</h1>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button [class]="tab() === 'users' ? buttonClass : ghostButtonClass" type="button" (click)="tab.set('users')">Użytkownicy</button>
+        <button [class]="tab() === 'lockers' ? buttonClass : ghostButtonClass" type="button" (click)="tab.set('lockers')">Automaty</button>
+      </div>
+    </div>
+  </header>
+
+  @if (tab() === 'users') {
+    <section class="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+      <form [class]="panelClass" (submit)="createUser($event)">
+        <h2 class="mt-0 text-xl">Dodaj użytkownika</h2>
+        <div class="grid gap-3">
+          <label [class]="labelClass">Rola<select [class]="inputClass" [value]="newUserRole()" (change)="newUserRole.set(asRole($event))">@for (role of availableRoles; track role) { <option [value]="role">{{ role }}</option> }</select></label>
+          <label [class]="labelClass">Imię<input [class]="inputClass" [value]="newFirstName()" (input)="setValue(newFirstName, $event)"></label>
+          <label [class]="labelClass">Nazwisko<input [class]="inputClass" [value]="newLastName()" (input)="setValue(newLastName, $event)"></label>
+          <label [class]="labelClass">Email<input [class]="inputClass" type="email" [value]="newEmail()" (input)="setValue(newEmail, $event)"></label>
+          <label [class]="labelClass">Telefon<input [class]="inputClass" [value]="newPhone()" (input)="setValue(newPhone, $event)"></label>
+          <label [class]="labelClass">Hasło<input [class]="inputClass" type="password" [value]="newPassword()" (input)="setValue(newPassword, $event)"></label>
+          <button [class]="buttonClass" type="submit">Dodaj</button>
+        </div>
+      </form>
+
+      <section [class]="panelClass">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="m-0 text-xl">Użytkownicy</h2>
+          <button [class]="ghostButtonClass" type="button" (click)="loadUsers()">Odśwież</button>
+        </div>
+
+        <div class="grid gap-4">
+          @for (role of availableRoles; track role) {
+            <section class="rounded-2xl border border-line bg-background p-4">
+              <h3 class="mt-0">{{ role }}</h3>
+              <div class="grid gap-2">
+                @for (user of usersByRole(role); track user.app_user_id) {
+                  <article class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface p-3">
+                    <div>
+                      <strong>{{ userLabel(user) }}</strong>
+                      <p class="m-0 text-sm text-muted">{{ user.email }}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      @if (role === 'KLIENT' && user.klient_id) {
+                        <button [class]="ghostButtonClass" type="button" (click)="loadClientPackages(user)">Paczki</button>
+                      }
+                      <button [class]="dangerButtonClass" type="button" (click)="deleteUser(user)">Usuń</button>
+                    </div>
+                  </article>
+                } @empty {
+                  <p class="m-0 text-sm text-muted">Brak.</p>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      </section>
+    </section>
+
+    @if (selectedClientEmail()) {
+      <section [class]="panelClass">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="m-0 text-xl">Paczki klienta {{ selectedClientEmail() }}</h2>
+          <div class="flex flex-wrap gap-2">
+            <button [class]="clientPackageMode() === 'received' ? buttonClass : ghostButtonClass" type="button" (click)="loadSelectedClientPackages('received')">Odebrane</button>
+            <button [class]="clientPackageMode() === 'sent' ? buttonClass : ghostButtonClass" type="button" (click)="loadSelectedClientPackages('sent')">Nadane</button>
+          </div>
+        </div>
+        <div class="grid gap-2">
+          @for (pkg of clientPackages(); track packageId(pkg)) {
+            <article class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-background p-3">
+              <div>
+                <strong>{{ packageTracking(pkg) }}</strong>
+                <p class="m-0 text-sm text-muted">{{ formatStatus(pkg.status) }} · {{ pkg.docelowy_automat_label || '-' }}</p>
+              </div>
+              @if (pkg.status === 'W_AUTOMACIE') {
+                <button [class]="ghostButtonClass" type="button" (click)="simulatePickup(pkg)">Symuluj odbiór</button>
+              }
+            </article>
+          } @empty {
+            <p class="m-0 text-sm text-muted">Brak paczek w tej kategorii.</p>
+          }
+        </div>
+      </section>
+    }
+  } @else {
+    <section class="grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
+      <form [class]="panelClass" (submit)="createParcelLocker($event)">
+        <h2 class="mt-0 text-xl">Dodaj automat</h2>
+        <div class="grid gap-3">
+          <label [class]="labelClass">Kod/nazwa<input [class]="inputClass" [value]="lockerCode()" (input)="setValue(lockerCode, $event)"></label>
+          <label [class]="labelClass">Adres<input [class]="inputClass" [value]="lockerAddress()" (input)="setValue(lockerAddress, $event)"></label>
+          <label [class]="labelClass">Miasto<input [class]="inputClass" [value]="lockerCity()" (input)="setValue(lockerCity, $event)"></label>
+          <label [class]="labelClass">GPS<input [class]="inputClass" [value]="lockerGps()" (input)="setValue(lockerGps, $event)"></label>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label [class]="labelClass">Wiersze<input [class]="inputClass" type="number" [value]="lockerRows()" (input)="setNumber(lockerRows, $event)"></label>
+            <label [class]="labelClass">Kolumny<input [class]="inputClass" type="number" [value]="lockerColumns()" (input)="setNumber(lockerColumns, $event)"></label>
+          </div>
+          <button [class]="buttonClass" type="submit">Dodaj automat</button>
+        </div>
+      </form>
+
+      <section [class]="panelClass">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="m-0 text-xl">Uszkodzone skrytki</h2>
+          <button [class]="ghostButtonClass" type="button" (click)="loadFaultyLockers()">Odśwież</button>
+        </div>
+        <div class="grid gap-3">
+          @for (row of faultyLockers(); track row.automat_id) {
+            <article class="rounded-xl border border-line bg-background p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <strong>{{ row.nazwa }} #{{ row.automat_id }}</strong>
+                  <p class="m-0 text-sm text-muted">{{ row.miasto }} · {{ row.adres }}</p>
+                </div>
+                <span class="rounded-full bg-danger/10 px-3 py-1 text-sm font-bold text-danger">{{ row.faulty_lockers_count }}</span>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                @for (id of row.faulty_lockers_ids || []; track id) {
+                  <button [class]="ghostButtonClass" type="button" (click)="repairLocker(row, id)">Napraw #{{ id }}</button>
+                }
+              </div>
+            </article>
+          } @empty {
+            <p class="m-0 text-sm text-muted">Brak uszkodzonych skrytek.</p>
+          }
+        </div>
+
+        <div class="mt-6 grid gap-3 rounded-2xl border border-line bg-background p-4">
+          <h3 class="m-0">Usuń automat po ID</h3>
+          <div class="flex gap-2">
+            <input [class]="inputClass + ' flex-1'" type="number" [value]="deleteParcelLockerId()" (input)="setNumber(deleteParcelLockerId, $event)">
+            <button [class]="dangerButtonClass" type="button" [disabled]="!deleteParcelLockerId()" (click)="deleteParcelLocker()">Usuń</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  }
+
+  @if (message()) {
+    <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">{{ message() }}</p>
+  }
+</section>

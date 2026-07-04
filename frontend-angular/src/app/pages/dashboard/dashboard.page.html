@@ -1,0 +1,30 @@
+<section [class]="pageClass">
+  <div class="grid gap-6 rounded-3xl border border-line bg-surface p-7 shadow-card lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div>
+      <p class="mb-2 text-xs font-bold uppercase text-muted">Angular 2.0</p>
+      <h1 class="m-0 text-4xl leading-tight">Panel operacyjny</h1>
+      <p class="mt-3 max-w-3xl text-base leading-7 text-muted">
+        Nowa wersja działa na Angularze, signals i Tailwindzie. Każdy kafel prowadzi do realnego widoku podłączonego do backendu.
+      </p>
+    </div>
+
+    <div class="grid content-center gap-2 rounded-2xl bg-ink p-5 text-ink-text">
+      <span class="text-sm text-ink-muted">Zalogowano jako</span>
+      <strong class="break-all text-xl">{{ auth.user()?.email }}</strong>
+      <span class="w-fit rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{{ auth.role() }}</span>
+    </div>
+  </div>
+
+  <section class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+    @for (item of modules(); track item.path) {
+      <a
+        [routerLink]="item.path"
+        class="grid min-h-36 content-between rounded-2xl border border-line bg-surface p-5 text-foreground no-underline shadow-card transition hover:-translate-y-0.5 hover:border-brand"
+      >
+        <span class="text-xs font-bold uppercase text-muted">{{ item.area }}</span>
+        <strong class="text-xl">{{ item.label }}</strong>
+        <small class="text-sm leading-6 text-muted">{{ item.description }}</small>
+      </a>
+    }
+  </section>
+</section>

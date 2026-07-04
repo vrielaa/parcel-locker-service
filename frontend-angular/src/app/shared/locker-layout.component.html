@@ -1,0 +1,59 @@
+<div class="grid gap-4">
+  @if (layout().length) {
+    <div class="overflow-auto rounded-2xl border border-line bg-background p-4">
+      <div class="w-max rounded-2xl border border-line bg-ink p-3 shadow-inner">
+        <div
+          class="grid gap-1.5"
+          role="grid"
+          [attr.aria-label]="'Układ automatu: ' + rows() + ' wierszy i ' + columns() + ' kolumn'"
+          [style.grid-template-columns]="gridTemplateColumns()"
+          [style.grid-template-rows]="gridTemplateRows()"
+        >
+          @if (screenColumn()) {
+            <div
+              class="grid place-items-center rounded-lg border border-dashed border-warning/60 bg-warning/15 px-2 text-center text-[0.62rem] font-black uppercase text-warning"
+              aria-hidden="true"
+              [style.grid-column]="screenGridColumn()"
+              [style.grid-row]="screenGridRow()"
+            >
+              <span>Ekran</span>
+            </div>
+          }
+
+          @for (cell of sortedLayout(); track lockerId(cell)) {
+            <button
+              type="button"
+              role="gridcell"
+              [attr.aria-pressed]="selectedId() === lockerId(cell)"
+              [attr.aria-disabled]="!selectable() || isDisabled(cell)"
+              [attr.tabindex]="selectable() && !isDisabled(cell) ? 0 : -1"
+              [attr.title]="lockerTitle(cell)"
+              [disabled]="isDisabled(cell)"
+              [class]="lockerCellClass(cell)"
+              [style.grid-column]="lockerGridColumn(cell)"
+              [style.grid-row]="lockerGridRow(cell)"
+              (click)="select(cell)"
+            >
+              <strong class="text-[0.78rem] leading-none">{{ lockerSize(cell) }}</strong>
+              <span class="text-[0.58rem] leading-none opacity-75">#{{ lockerId(cell) }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2 text-xs text-muted">
+      <span class="rounded-full border border-line bg-background px-3 py-1 font-bold">{{ rows() }} wierszy x {{ columns() }} kolumn</span>
+      @for (item of sizeLegend(); track item.code) {
+        <span class="rounded-full border border-line bg-background px-3 py-1">
+          <strong>{{ item.code }}</strong>{{ item.dimensions ? ' · ' + item.dimensions : '' }}
+        </span>
+      }
+      <span class="rounded-full bg-success/10 px-3 py-1 font-bold text-success">Wolna</span>
+      <span class="rounded-full bg-brand-soft px-3 py-1 font-bold text-brand-strong">Zajęta</span>
+      <span class="rounded-full bg-danger/10 px-3 py-1 font-bold text-danger">Uszkodzona</span>
+    </div>
+  } @else {
+    <p class="m-0 rounded-xl border border-line bg-background p-4 text-sm text-muted">Brak danych układu automatu.</p>
+  }
+</div>

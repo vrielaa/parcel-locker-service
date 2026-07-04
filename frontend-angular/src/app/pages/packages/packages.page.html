@@ -1,0 +1,126 @@
+<section [class]="pageClass">
+  <header [class]="panelClass">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="mb-2 text-xs font-bold uppercase text-muted">Klient</p>
+        <h1 class="m-0 text-3xl">Paczki</h1>
+      </div>
+      <div class="flex gap-2">
+        <button [class]="mode() === 'list' ? buttonClass : ghostButtonClass" type="button" (click)="mode.set('list')">Moje paczki</button>
+        <button [class]="mode() === 'create' ? buttonClass : ghostButtonClass" type="button" (click)="mode.set('create')">Nadaj paczkę</button>
+      </div>
+    </div>
+  </header>
+
+  @if (mode() === 'list') {
+    <section class="grid gap-4 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+      <aside [class]="panelClass">
+        <div class="mb-4 flex flex-wrap gap-2">
+          <button [class]="packageMode() === 'received' ? buttonClass : ghostButtonClass" type="button" (click)="packageMode.set('received')">Do mnie</button>
+          <button [class]="packageMode() === 'sent' ? buttonClass : ghostButtonClass" type="button" (click)="packageMode.set('sent')">Nadane</button>
+          <button [class]="ghostButtonClass" type="button" (click)="loadPackages()">Odśwież</button>
+        </div>
+
+        <div class="grid gap-2">
+          @for (pkg of filteredPackages(); track packageId(pkg)) {
+            <button type="button" [class]="cardButtonClass" (click)="selectPackage(pkg)">
+              <span class="text-xs font-bold uppercase text-muted">#{{ packageId(pkg) }}</span>
+              <strong>{{ packageTracking(pkg) }}</strong>
+              <span [class]="'w-fit rounded-full px-2 py-1 text-xs font-bold ' + statusTone(pkg.status)">{{ formatStatus(pkg.status) }}</span>
+            </button>
+          } @empty {
+            <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">Brak paczek w tej kategorii.</p>
+          }
+        </div>
+      </aside>
+
+      <section [class]="panelClass">
+        @if (selectedPackage()) {
+          <div class="grid gap-5">
+            <div>
+              <p class="m-0 text-sm text-muted">Szczegóły</p>
+              <h2 class="m-0 text-2xl">{{ packageTracking(selectedPackage()) }}</h2>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Status</span><p class="m-0">{{ formatStatus(selectedPackage()?.status) }}</p></div>
+              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Data nadania</span><p class="m-0">{{ formatDate(selectedPackage()?.data_nadania) }}</p></div>
+              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Nadawca</span><p class="m-0 break-all">{{ selectedPackage()?.nadawca_email || '-' }}</p></div>
+              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Odbiorca</span><p class="m-0 break-all">{{ selectedPackage()?.odbiorca_email || '-' }}</p></div>
+              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Automat</span><p class="m-0">{{ selectedPackage()?.automat_nazwa || selectedPackage()?.docelowy_automat_nazwa || '-' }}</p></div>
+              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Termin odbioru</span><p class="m-0">{{ formatDate(selectedPackage()?.termin_odbioru) }}</p></div>
+            </div>
+
+            @if (canExtendSelected()) {
+              <button [class]="buttonClass" type="button" (click)="extendSelected()">Przedłuż odbiór o 24h</button>
+            }
+
+            <section>
+              <h3 class="text-lg">Historia zdarzeń</h3>
+              <div class="grid gap-2">
+                @for (event of events(); track event.zdarzenie_id || event.czas) {
+                  <article class="rounded-lg border border-line bg-background p-3">
+                    <strong>{{ event.typ || 'Zdarzenie' }}</strong>
+                    <p class="m-0 text-sm text-muted">{{ formatDate(event.czas) }} · {{ event.opis || '-' }}</p>
+                  </article>
+                } @empty {
+                  <p class="m-0 text-sm text-muted">Brak zdarzeń.</p>
+                }
+              </div>
+            </section>
+          </div>
+        } @else {
+          <p class="m-0 text-muted">Wybierz paczkę z listy.</p>
+        }
+      </section>
+    </section>
+  } @else {
+    <section [class]="panelClass">
+      <h2 class="mt-0 text-2xl">Nadaj nową paczkę</h2>
+      <form class="grid gap-4" (submit)="createPackage($event)">
+        <div class="grid gap-4 md:grid-cols-2">
+          <label [class]="labelClass">Email odbiorcy<input [class]="inputClass" type="email" [value]="receiverEmail()" (input)="setValue(receiverEmail, $event)"></label>
+          <label [class]="labelClass">Telefon odbiorcy<input [class]="inputClass" [value]="receiverPhone()" (input)="setValue(receiverPhone, $event)"></label>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <label [class]="labelClass">
+            Miasto
+            <select [class]="inputClass" [value]="createCity()" (change)="selectCreateCity($event)">
+              <option value="">Wybierz miasto</option>
+              @for (city of cities(); track city) {
+                <option [value]="city">{{ city }}</option>
+              }
+            </select>
+          </label>
+
+          <label [class]="labelClass">
+            Automat
+            <select [class]="inputClass" [value]="createParcelLockerId()" (change)="setNumber(createParcelLockerId, $event)">
+              <option value="0">Wybierz automat</option>
+              @for (locker of filteredCreateParcelLockers(); track parcelLockerId(locker)) {
+                <option [value]="parcelLockerId(locker)">{{ parcelLockerName(locker) }} — {{ parcelLockerAddress(locker) }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <label [class]="labelClass">Szukaj automatu po kodzie lub adresie<input [class]="inputClass" [value]="lockerSearch()" (input)="setValue(lockerSearch, $event)" placeholder="np. BYD01A"></label>
+
+        <div class="grid gap-4 md:grid-cols-3">
+          <label [class]="labelClass">Szerokość (cm)<input [class]="inputClass" type="number" min="1" [value]="width()" (input)="setNumber(width, $event)"></label>
+          <label [class]="labelClass">Wysokość (cm)<input [class]="inputClass" type="number" min="1" [value]="height()" (input)="setNumber(height, $event)"></label>
+          <label [class]="labelClass">Głębokość (cm)<input [class]="inputClass" type="number" min="1" [value]="depth()" (input)="setNumber(depth, $event)"></label>
+        </div>
+
+        <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">Sugerowany rozmiar skrytki: <strong>{{ suggestedPackageSize() }}</strong></p>
+
+        @if (formMessage()) {
+          <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">{{ formMessage() }}</p>
+        }
+
+        <button [class]="buttonClass" type="submit" [disabled]="submitting()">Nadaj paczkę</button>
+      </form>
+    </section>
+  }
+</section>

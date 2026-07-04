@@ -1,0 +1,38 @@
+<main class="grid min-h-screen place-items-center bg-background px-4 py-10">
+  <section class="mx-auto grid w-full max-w-2xl gap-5 rounded-2xl border border-line bg-surface p-7 shadow-card">
+    <div>
+      <p class="mb-2 text-xs font-bold uppercase text-muted">Nowe konto klienta</p>
+      <h1 class="m-0 text-3xl leading-tight">Rejestracja</h1>
+    </div>
+
+    <form class="grid gap-4" (submit)="submit($event)">
+      <div class="grid gap-4 md:grid-cols-2">
+        <label [class]="labelClass">Imię<input [class]="inputClass" [value]="firstName()" (input)="setValue(firstName, $event)"></label>
+        <label [class]="labelClass">Nazwisko<input [class]="inputClass" [value]="lastName()" (input)="setValue(lastName, $event)"></label>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <label [class]="labelClass">Email<input [class]="inputClass" type="email" [value]="email()" (input)="setValue(email, $event)"></label>
+        <label [class]="labelClass">Telefon<input [class]="inputClass" [value]="phone()" (input)="setValue(phone, $event)"></label>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <label [class]="labelClass">Hasło<input [class]="inputClass" type="password" [value]="password()" (input)="setValue(password, $event)"></label>
+        <label [class]="labelClass">Powtórz hasło<input [class]="inputClass" type="password" [value]="password2()" (input)="setValue(password2, $event)"></label>
+      </div>
+
+      @if (message()) {
+        <p class="m-0 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">{{ message() }}</p>
+      }
+
+      <button [class]="buttonClass" type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'Tworzenie konta...' : 'Utwórz konto' }}
+      </button>
+    </form>
+
+    <p class="m-0 text-sm text-muted">
+      Masz już konto?
+      <a [class]="secondaryLinkClass" routerLink="/login">Wróć do logowania</a>
+    </p>
+  </section>
+</main>

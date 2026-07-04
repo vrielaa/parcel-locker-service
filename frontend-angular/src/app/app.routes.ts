@@ -2,15 +2,13 @@ import { Routes } from '@angular/router';
 
 import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guards';
 import { ChangePasswordPage, LoginPage, RegisterPage } from './pages/auth/auth.pages';
-import {
-  AdminPage,
-  CourierPage,
-  DashboardPage,
-  OperatorPage,
-  PackagesPage,
-  ParcelLockersPage,
-  ReportsPage
-} from './pages/workspace/workspace.pages';
+import { AdminPage } from './pages/admin/admin.page';
+import { CourierPage } from './pages/courier/courier.page';
+import { DashboardPage } from './pages/dashboard/dashboard.page';
+import { OperatorPage } from './pages/operator/operator.page';
+import { PackagesPage } from './pages/packages/packages.page';
+import { ParcelLockersPage } from './pages/parcel-lockers/parcel-lockers.page';
+import { ReportsPage } from './pages/reports/reports.page';
 
 export const routes: Routes = [
   {

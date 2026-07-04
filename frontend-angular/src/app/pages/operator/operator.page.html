@@ -1,0 +1,52 @@
+<section [class]="pageClass">
+  <header [class]="panelClass">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="mb-2 text-xs font-bold uppercase text-muted">Operator</p>
+        <h1 class="m-0 text-3xl">Paczki do zatwierdzenia</h1>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button [class]="ghostButtonClass" type="button" (click)="load()">Odśwież</button>
+        <button [class]="ghostButtonClass" type="button" (click)="testDatabase()">Test bazy</button>
+        <button [class]="dangerButtonClass" type="button" (click)="initializeDatabase()">Wczytaj bazę</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="grid gap-4 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
+    <aside [class]="panelClass">
+      <label [class]="labelClass">Szukaj<input [class]="inputClass" [value]="query()" (input)="setQuery($event)" placeholder="tracking, email, ID"></label>
+      <div class="mt-4 grid gap-2">
+        @for (pkg of filtered(); track packageId(pkg)) {
+          <button type="button" [class]="cardButtonClass" (click)="selected.set(pkg)">
+            <span class="text-xs font-bold uppercase text-muted">#{{ packageId(pkg) }}</span>
+            <strong>{{ packageTracking(pkg) }}</strong>
+            <small class="text-muted">{{ pkg.nadawca_email }} → {{ pkg.odbiorca_email }}</small>
+          </button>
+        } @empty {
+          <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">Brak paczek do zatwierdzenia.</p>
+        }
+      </div>
+    </aside>
+
+    <section [class]="panelClass">
+      @if (selected()) {
+        <div class="grid gap-4">
+          <h2 class="m-0 text-2xl">{{ packageTracking(selected()) }}</h2>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Status</span><p class="m-0">{{ formatStatus(selected()?.status) }}</p></div>
+            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Wymiary</span><p class="m-0">{{ packageDimensions(selected()) }}</p></div>
+            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Nadawca</span><p class="m-0 break-all">{{ selected()?.nadawca_email }}</p></div>
+            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Odbiorca</span><p class="m-0 break-all">{{ selected()?.odbiorca_email }}</p></div>
+          </div>
+          <button [class]="buttonClass" type="button" (click)="approve()">Zatwierdź paczkę</button>
+          @if (message()) {
+            <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">{{ message() }}</p>
+          }
+        </div>
+      } @else {
+        <p class="m-0 text-muted">Wybierz paczkę do zatwierdzenia.</p>
+      }
+    </section>
+  </section>
+</section>
