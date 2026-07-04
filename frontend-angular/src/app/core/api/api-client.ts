@@ -1,6 +1,6 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders, httpResource } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { catchError, throwError } from 'rxjs';
 
 import { API_BASE_URL } from './api.config';
 
@@ -29,17 +29,30 @@ export class ApiClient {
     return this.request<T>('DELETE', path);
   }
 
-  private async request<T>(method: HttpMethod, path: string, body?: unknown) {
-    try {
-      return await firstValueFrom(
-        this.http.request<T>(method, this.url(path), {
-          body,
-          headers: this.authHeaders()
-        })
-      );
-    } catch (error) {
-      throw ApiError.from(error);
-    }
+  resource<T>(path: () => string | undefined, defaultValue: T, debugName: string) {
+    return httpResource<T>(
+      () => {
+        const currentPath = path();
+        if (!currentPath) return undefined;
+
+        return {
+          url: this.url(currentPath),
+          headers: this.authHeaderRecord()
+        };
+      },
+      {
+        defaultValue,
+        parse: (value) => value as T,
+        debugName
+      }
+    );
+  }
+
+  private request<T>(method: HttpMethod, path: string, body?: unknown) {
+    return this.http.request<T>(method, this.url(path), {
+      body,
+      headers: this.authHeaders()
+    }).pipe(catchError((error) => throwError(() => ApiError.from(error))));
   }
 
   private url(path: string) {
@@ -52,6 +65,12 @@ export class ApiClient {
     return token
       ? new HttpHeaders({ Authorization: `Bearer ${token}` })
       : undefined;
+  }
+
+  private authHeaderRecord() {
+    const token = localStorage.getItem('token');
+
+    return token ? { Authorization: `Bearer ${token}` } : undefined;
   }
 }
 

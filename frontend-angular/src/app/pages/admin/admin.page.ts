@@ -1,9 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormField, form } from '@angular/forms/signals';
 
-import { ApiClient } from '../../core/api/api-client';
+import { AdminApi } from '../../core/api/admin.api';
 import { FaultyLockerRow, PackageRow, Role, UserRow } from '../../core/models/app.models';
-import { formatStatus, packageId, packageTracking, roles } from '../../core/utils/format';
+import { apiMessage, formatStatus, packageId, packageTracking, roles } from '../../core/utils/format';
 
 interface NewUserFormModel {
   role: Role;
@@ -54,17 +54,14 @@ function createInitialParcelLockerForm(): ParcelLockerFormModel {
   imports: [FormField],
   templateUrl: './admin.page.html'
 })
-export class AdminPage implements OnInit {
-  private readonly api = inject(ApiClient);
+export class AdminPage {
+  private readonly adminApi = inject(AdminApi);
   protected readonly availableRoles = roles;
 
   protected readonly tab = signal<'users' | 'lockers'>('users');
-  protected readonly users = signal<UserRow[]>([]);
-  protected readonly clientPackages = signal<PackageRow[]>([]);
   protected readonly selectedClientId = signal(0);
   protected readonly selectedClientEmail = signal('');
   protected readonly clientPackageMode = signal<'received' | 'sent'>('received');
-  protected readonly faultyLockers = signal<FaultyLockerRow[]>([]);
   protected readonly message = signal('');
 
   protected readonly newUserModel = signal<NewUserFormModel>(createInitialNewUserForm());
@@ -78,9 +75,13 @@ export class AdminPage implements OnInit {
   protected readonly packageTracking = packageTracking;
   protected readonly formatStatus = formatStatus;
 
-  async ngOnInit() {
-    await Promise.all([this.loadUsers(), this.loadFaultyLockers()]);
-  }
+  protected readonly usersResource = this.adminApi.usersResource();
+  protected readonly clientPackagesResource = this.adminApi.clientPackagesResource(this.selectedClientId, this.clientPackageMode);
+  protected readonly faultyLockersResource = this.adminApi.faultyLockersResource();
+
+  protected readonly users = computed<UserRow[]>(() => this.usersResource.hasValue() ? this.usersResource.value().users || [] : []);
+  protected readonly clientPackages = computed<PackageRow[]>(() => this.clientPackagesResource.hasValue() ? this.clientPackagesResource.value().paczki || [] : []);
+  protected readonly faultyLockers = computed<FaultyLockerRow[]>(() => this.faultyLockersResource.hasValue() ? this.faultyLockersResource.value().lockers || [] : []);
 
   protected usersByRole(role: Role) {
     return this.users().filter((user) => user.rola === role);
@@ -92,88 +93,110 @@ export class AdminPage implements OnInit {
     return `${first} ${last}`.trim() || user.email || '-';
   }
 
-  protected async loadUsers() {
-    const data = await this.api.get<{ ok: boolean; users: UserRow[] }>('/admin/users');
-    this.users.set(data.users || []);
+  protected loadUsers() {
+    this.usersResource.reload();
   }
 
-  protected async createUser(event: Event) {
+  protected createUser(event: Event) {
     event.preventDefault();
     const data = this.newUserModel();
-    await this.api.post('/admin/users', {
+    this.adminApi.createUser({
       role: data.role,
       imie: data.firstName.trim(),
       nazwisko: data.lastName.trim(),
       email: data.email.trim().toLowerCase(),
       telefon: data.phone.trim(),
       password: data.password
+    }).subscribe({
+      next: () => {
+        this.message.set('Użytkownik dodany.');
+        this.newUserModel.set(createInitialNewUserForm());
+        this.usersResource.reload();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się dodać użytkownika.'))
     });
-    this.message.set('Użytkownik dodany.');
-    this.newUserModel.set(createInitialNewUserForm());
-    await this.loadUsers();
   }
 
-  protected async deleteUser(user: UserRow) {
+  protected deleteUser(user: UserRow) {
     if (!user.app_user_id || !confirm(`Usunąć użytkownika ${user.email}?`)) return;
-    await this.api.delete(`/admin/users/${user.app_user_id}`);
-    this.message.set('Użytkownik usunięty.');
-    await this.loadUsers();
+    this.adminApi.deleteUser(user.app_user_id).subscribe({
+      next: () => {
+        this.message.set('Użytkownik usunięty.');
+        this.usersResource.reload();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się usunąć użytkownika.'))
+    });
   }
 
-  protected async loadClientPackages(user: UserRow) {
+  protected loadClientPackages(user: UserRow) {
     if (!user.klient_id) return;
     this.selectedClientId.set(user.klient_id);
     this.selectedClientEmail.set(user.email || '');
-    await this.loadSelectedClientPackages('received');
+    this.loadSelectedClientPackages('received');
   }
 
-  protected async loadSelectedClientPackages(mode: 'received' | 'sent') {
+  protected loadSelectedClientPackages(mode: 'received' | 'sent') {
     const clientId = this.selectedClientId();
     if (!clientId) return;
     this.clientPackageMode.set(mode);
-    const data = await this.api.get<{ ok: boolean; paczki: PackageRow[] }>(`/admin/clients/${clientId}/paczki?mode=${mode}`);
-    this.clientPackages.set(data.paczki || []);
   }
 
-  protected async simulatePickup(pkg: PackageRow) {
+  protected simulatePickup(pkg: PackageRow) {
     const id = packageId(pkg);
     if (!id) return;
-    await this.api.post(`/admin/paczki/${id}/simulate-pickup`);
-    this.message.set('Odbiór zasymulowany.');
-    this.clientPackages.update((rows) => rows.filter((row) => packageId(row) !== id));
+    this.adminApi.simulatePickup(id).subscribe({
+      next: () => {
+        this.message.set('Odbiór zasymulowany.');
+        this.clientPackagesResource.reload();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się zasymulować odbioru.'))
+    });
   }
 
-  protected async createParcelLocker(event: Event) {
+  protected createParcelLocker(event: Event) {
     event.preventDefault();
     const data = this.parcelLockerModel();
-    await this.api.post('/admin/automaty', {
+    this.adminApi.createParcelLocker({
       kod: data.code.trim(),
       adres: data.address.trim(),
       miasto: data.city.trim(),
       wspolrzedne: data.gps.trim(),
       liczbaWierszy: data.rows,
       liczbaKolumn: data.columns
+    }).subscribe({
+      next: () => {
+        this.message.set('Automat dodany.');
+        this.parcelLockerModel.set(createInitialParcelLockerForm());
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się dodać automatu.'))
     });
-    this.message.set('Automat dodany.');
   }
 
-  protected async loadFaultyLockers() {
-    const data = await this.api.get<{ ok: boolean; lockers: FaultyLockerRow[] }>('/admin/automaty/locker-faulty');
-    this.faultyLockers.set(data.lockers || []);
+  protected loadFaultyLockers() {
+    this.faultyLockersResource.reload();
   }
 
-  protected async repairLocker(row: FaultyLockerRow, lockerIdValue: number) {
+  protected repairLocker(row: FaultyLockerRow, lockerIdValue: number) {
     if (!row.automat_id) return;
-    await this.api.put(`/admin/automaty/${row.automat_id}/lockers/${lockerIdValue}/mark-repaired`);
-    this.message.set(`Skrytka #${lockerIdValue} oznaczona jako naprawiona.`);
-    await this.loadFaultyLockers();
+    this.adminApi.repairLocker(row.automat_id, lockerIdValue).subscribe({
+      next: () => {
+        this.message.set(`Skrytka #${lockerIdValue} oznaczona jako naprawiona.`);
+        this.faultyLockersResource.reload();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się oznaczyć skrytki jako naprawionej.'))
+    });
   }
 
-  protected async deleteParcelLocker() {
+  protected deleteParcelLocker() {
     const parcelLockerIdValue = Number(this.deleteParcelLockerModel().parcelLockerId);
     if (!parcelLockerIdValue || !confirm(`Usunąć automat #${parcelLockerIdValue}?`)) return;
-    await this.api.delete(`/admin/automaty/${parcelLockerIdValue}`);
-    this.message.set('Automat usunięty.');
-    this.deleteParcelLockerForm.parcelLockerId().value.set(0);
+    this.adminApi.deleteParcelLocker(parcelLockerIdValue).subscribe({
+      next: () => {
+        this.message.set('Automat usunięty.');
+        this.deleteParcelLockerForm.parcelLockerId().value.set(0);
+        this.faultyLockersResource.reload();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się usunąć automatu.'))
+    });
   }
 }

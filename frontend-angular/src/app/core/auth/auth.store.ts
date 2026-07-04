@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 
-import { ApiClient } from '../api/api-client';
+import { AuthApi } from '../api/auth.api';
 import { AppUser, AuthResponse, MeResponse, Role } from '../models/app.models';
 import { normalizeRole } from '../utils/format';
 
@@ -11,7 +12,7 @@ const ROLE_KEY = 'rola';
   providedIn: 'root'
 })
 export class AuthStore {
-  private readonly api = inject(ApiClient);
+  private readonly authApi = inject(AuthApi);
 
   readonly user = signal<AppUser | null>(null);
   readonly loading = signal(false);
@@ -30,7 +31,7 @@ export class AuthStore {
 
     this.loading.set(true);
     try {
-      const data = await this.api.get<MeResponse>('/auth/me');
+      const data = await firstValueFrom(this.authApi.me());
       if (!data?.ok || !data.user) {
         this.clearSession();
         return null;
@@ -47,7 +48,7 @@ export class AuthStore {
   }
 
   async login(email: string, password: string) {
-    const data = await this.api.post<AuthResponse>('/auth/login', { email, password });
+    const data = await firstValueFrom(this.authApi.login(email, password));
     this.applyAuth(data);
     await this.ensureUser();
     return data;
@@ -61,17 +62,14 @@ export class AuthStore {
     password: string;
     password2: string;
   }) {
-    const data = await this.api.post<AuthResponse>('/auth/register', payload);
+    const data = await firstValueFrom(this.authApi.register(payload));
     this.applyAuth(data);
     await this.ensureUser();
     return data;
   }
 
   async changePassword(currentPassword: string, newPassword: string) {
-    await this.api.post('/auth/change-password', {
-      current_password: currentPassword,
-      new_password: newPassword
-    });
+    await firstValueFrom(this.authApi.changePassword(currentPassword, newPassword));
 
     const current = this.user();
     if (current) this.setUser({ ...current, must_change_password: false });

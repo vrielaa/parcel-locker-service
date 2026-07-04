@@ -1,9 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormField, form } from '@angular/forms/signals';
 
-import { ApiClient } from '../../core/api/api-client';
+import { CourierApi } from '../../core/api/courier.api';
 import { LockerCell, PackageEvent, PackageRow } from '../../core/models/app.models';
-import { formatDate, formatStatus, lockerId, packageDimensions, packageId, packageTracking } from '../../core/utils/format';
+import { apiMessage, formatDate, formatStatus, lockerId, packageDimensions, packageId, packageTracking } from '../../core/utils/format';
 
 interface CourierFilterFormModel {
   city: string;
@@ -14,18 +14,25 @@ interface CourierFilterFormModel {
   imports: [FormField],
   templateUrl: './courier.page.html'
 })
-export class CourierPage implements OnInit {
-  private readonly api = inject(ApiClient);
+export class CourierPage {
+  private readonly courierApi = inject(CourierApi);
 
-  protected readonly pool = signal<PackageRow[]>([]);
-  protected readonly mine = signal<PackageRow[]>([]);
   protected readonly selectedPackage = signal<PackageRow | null>(null);
-  protected readonly events = signal<PackageEvent[]>([]);
-  protected readonly destinationLockers = signal<LockerCell[]>([]);
+  protected readonly destinationPackageId = signal(0);
   protected readonly selectedLockerId = signal(0);
   protected readonly courierFilterModel = signal<CourierFilterFormModel>({ city: '' });
   protected readonly courierFilterForm = form(this.courierFilterModel);
   protected readonly message = signal('');
+
+  protected readonly mineResource = this.courierApi.myPackagesResource();
+  protected readonly poolResource = this.courierApi.poolPackagesResource();
+  protected readonly eventsResource = this.courierApi.packageEventsResource(() => packageId(this.selectedPackage()));
+  protected readonly destinationLockersResource = this.courierApi.destinationLockersResource(this.destinationPackageId);
+
+  protected readonly mine = computed<PackageRow[]>(() => this.mineResource.hasValue() ? this.mineResource.value().paczki || [] : []);
+  protected readonly pool = computed<PackageRow[]>(() => this.poolResource.hasValue() ? this.poolResource.value().paczki || [] : []);
+  protected readonly events = computed<PackageEvent[]>(() => this.eventsResource.hasValue() ? this.eventsResource.value().zdarzenia || [] : []);
+  protected readonly destinationLockers = computed<LockerCell[]>(() => this.destinationLockersResource.hasValue() ? this.destinationLockersResource.value().skrytki || [] : []);
 
   protected readonly allPackages = computed(() => [...this.mine(), ...this.pool()]);
   protected readonly courierCities = computed(() => {
@@ -43,30 +50,41 @@ export class CourierPage implements OnInit {
   protected readonly formatDate = formatDate;
   protected readonly lockerId = lockerId;
 
-  async ngOnInit() {
-    await this.load();
+  constructor() {
+    effect(() => {
+      const selectedId = packageId(this.selectedPackage());
+      if (!selectedId) return;
+
+      const updated = this.allPackages().find((pkg) => packageId(pkg) === selectedId);
+      if (updated && updated !== this.selectedPackage()) this.selectedPackage.set(updated);
+    });
+
+    effect(() => {
+      if (!this.destinationPackageId()) return;
+      if (this.destinationLockersResource.error()) {
+        this.message.set(apiMessage(this.destinationLockersResource.error(), 'Nie udało się pobrać wolnych skrytek.'));
+        return;
+      }
+      if (this.destinationLockersResource.hasValue()) {
+        this.message.set(this.destinationLockers().length ? '' : 'Brak wolnych skrytek pasujących do paczki.');
+      }
+    });
   }
 
-  protected async load() {
-    const [mine, pool] = await Promise.all([
-      this.api.get<{ ok: boolean; paczki: PackageRow[] }>('/kurier/paczki'),
-      this.api.get<{ ok: boolean; paczki: PackageRow[] }>('/kurier/paczki/pool')
-    ]);
-
-    this.mine.set(mine.paczki || []);
-    this.pool.set(pool.paczki || []);
+  protected load() {
+    this.mineResource.reload();
+    this.poolResource.reload();
   }
 
-  protected async selectPackage(pkg: PackageRow) {
+  protected selectPackage(pkg: PackageRow) {
     this.selectedPackage.set(pkg);
-    this.destinationLockers.set([]);
+    this.destinationPackageId.set(0);
     this.selectedLockerId.set(0);
-    await this.loadEvents();
   }
 
   protected setCourierCityFilter() {
     this.selectedPackage.set(null);
-    this.destinationLockers.set([]);
+    this.destinationPackageId.set(0);
     this.selectedLockerId.set(0);
   }
 
@@ -83,38 +101,38 @@ export class CourierPage implements OnInit {
     return String(this.selectedPackage()?.status || '').toUpperCase() === 'W_DRODZE';
   }
 
-  protected async startTransport() {
+  protected startTransport() {
     const id = packageId(this.selectedPackage());
     if (!id) return;
-    await this.api.post(`/kurier/paczki/${id}/podejmij`);
-    this.message.set('Transport rozpoczęty.');
-    await this.load();
-    const updated = this.allPackages().find((pkg) => packageId(pkg) === id);
-    if (updated) await this.selectPackage(updated);
+    this.courierApi.startTransport(id).subscribe({
+      next: () => {
+        this.message.set('Transport rozpoczęty.');
+        this.load();
+        this.eventsResource.reload();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się rozpocząć transportu.'))
+    });
   }
 
-  protected async loadDestinationLockers() {
+  protected loadDestinationLockers() {
     const id = packageId(this.selectedPackage());
     if (!id) return;
-    const data = await this.api.get<{ ok: boolean; skrytki: LockerCell[] }>(`/kurier/paczki/${id}/skrytki-docelowe`);
-    this.destinationLockers.set(data.skrytki || []);
-    this.message.set(data.skrytki?.length ? '' : 'Brak wolnych skrytek pasujących do paczki.');
+    this.destinationPackageId.set(id);
+    this.destinationLockersResource.reload();
   }
 
-  protected async placeInLocker() {
+  protected placeInLocker() {
     const id = packageId(this.selectedPackage());
     if (!id || !this.selectedLockerId()) return;
-    await this.api.post(`/kurier/paczki/${id}/umiesc-w-automacie`, { skrytka_id: this.selectedLockerId() });
-    this.message.set('Paczka została umieszczona w automacie.');
-    await this.load();
-    const updated = this.allPackages().find((pkg) => packageId(pkg) === id);
-    if (updated) await this.selectPackage(updated);
-  }
-
-  private async loadEvents() {
-    const id = packageId(this.selectedPackage());
-    if (!id) return;
-    const data = await this.api.get<{ ok: boolean; zdarzenia: PackageEvent[] }>(`/paczki/${id}/zdarzenia`);
-    this.events.set(data.zdarzenia || []);
+    this.courierApi.placeInLocker(id, this.selectedLockerId()).subscribe({
+      next: () => {
+        this.message.set('Paczka została umieszczona w automacie.');
+        this.destinationPackageId.set(0);
+        this.selectedLockerId.set(0);
+        this.load();
+        this.eventsResource.reload();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się umieścić paczki w automacie.'))
+    });
   }
 }

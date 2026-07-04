@@ -45,6 +45,28 @@ router.post("/paczki", requireAuth, requireRoles("KLIENT"), async (req, res) => 
     if (!Number.isFinite(heightCm) || heightCm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna wysokosc_cm" })
     if (!Number.isFinite(depthCm) || depthCm <= 0) return res.status(400).json({ ok: false, error: "Niepoprawna glebokosc_cm" })
 
+    const [packageMinCm, packageMidCm, packageMaxCm] = [widthCm, heightCm, depthCm].sort((a, b) => a - b)
+    const fittingLockerResult = await query(
+      `
+      SELECT 1
+      FROM parcel_locker.skrytka s
+      JOIN parcel_locker.rozmiar r ON r.rozmiar_id = s.rozmiar_id
+      WHERE s.automat_id = $1
+        AND $2 <= LEAST(r.szerokosc_cm, r.wysokosc_cm, r.glebokosc_cm)
+        AND $3 <= (
+          r.szerokosc_cm + r.wysokosc_cm + r.glebokosc_cm
+          - LEAST(r.szerokosc_cm, r.wysokosc_cm, r.glebokosc_cm)
+          - GREATEST(r.szerokosc_cm, r.wysokosc_cm, r.glebokosc_cm)
+        )
+        AND $4 <= GREATEST(r.szerokosc_cm, r.wysokosc_cm, r.glebokosc_cm)
+      LIMIT 1
+      `,
+      [parcelLockerId, packageMinCm, packageMidCm, packageMaxCm]
+    )
+    if (fittingLockerResult.rowCount === 0) {
+      return res.status(400).json({ ok: false, error: "Wymiary paczki przekraczają rozmiar skrytek w wybranym automacie." })
+    }
+
     if (!receiverEmail) return res.status(400).json({ ok: false, error: "Brak email odbiorcy" })
 
     const trackingNumber = makeTracking()

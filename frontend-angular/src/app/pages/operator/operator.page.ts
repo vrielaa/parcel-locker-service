@@ -1,9 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormField, form } from '@angular/forms/signals';
 
-import { ApiClient } from '../../core/api/api-client';
+import { OperatorApi } from '../../core/api/operator.api';
 import { PackageRow } from '../../core/models/app.models';
-import { formatDate, formatStatus, packageDimensions, packageId, packageTracking } from '../../core/utils/format';
+import { apiMessage, formatDate, formatStatus, packageDimensions, packageId, packageTracking } from '../../core/utils/format';
 
 interface OperatorFilterFormModel {
   query: string;
@@ -14,10 +14,9 @@ interface OperatorFilterFormModel {
   imports: [FormField],
   templateUrl: './operator.page.html'
 })
-export class OperatorPage implements OnInit {
-  private readonly api = inject(ApiClient);
+export class OperatorPage {
+  private readonly operatorApi = inject(OperatorApi);
 
-  protected readonly packages = signal<PackageRow[]>([]);
   protected readonly selected = signal<PackageRow | null>(null);
   protected readonly filterModel = signal<OperatorFilterFormModel>({ query: '' });
   protected readonly filterForm = form(this.filterModel);
@@ -27,6 +26,9 @@ export class OperatorPage implements OnInit {
   protected readonly packageTracking = packageTracking;
   protected readonly packageDimensions = packageDimensions;
   protected readonly formatStatus = formatStatus;
+
+  protected readonly packagesResource = this.operatorApi.pendingPackagesResource();
+  protected readonly packages = computed<PackageRow[]>(() => this.packagesResource.hasValue() ? this.packagesResource.value().paczki || [] : []);
 
   protected readonly filtered = computed(() => {
     const query = this.filterModel().query.trim().toLowerCase();
@@ -39,34 +41,38 @@ export class OperatorPage implements OnInit {
     );
   });
 
-  async ngOnInit() {
-    await this.load();
-  }
-
-  protected async load() {
-    const data = await this.api.get<{ ok: boolean; paczki: PackageRow[] }>('/operator/paczki/pending');
-    this.packages.set(data.paczki || []);
+  protected load() {
+    this.packagesResource.reload();
     this.selected.set(null);
   }
 
-  protected async approve() {
+  protected approve() {
     const id = packageId(this.selected());
     if (!id) return;
-    await this.api.post(`/operator/paczki/${id}/approve`);
-    this.message.set('Paczka zatwierdzona.');
-    await this.load();
+    this.operatorApi.approvePackage(id).subscribe({
+      next: () => {
+        this.message.set('Paczka zatwierdzona.');
+        this.load();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się zatwierdzić paczki.'))
+    });
   }
 
-  protected async testDatabase() {
-    const data = await this.api.get<{ ok: boolean; now?: string }>('/db/test');
-    this.message.set(data.ok ? `Połączenie z bazą działa: ${formatDate(data.now)}` : 'Nie udało się sprawdzić bazy.');
+  protected testDatabase() {
+    this.operatorApi.testDatabase().subscribe({
+      next: (data) => this.message.set(data.ok ? `Połączenie z bazą działa: ${formatDate(data.now)}` : 'Nie udało się sprawdzić bazy.'),
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się sprawdzić bazy.'))
+    });
   }
 
-  protected async initializeDatabase() {
+  protected initializeDatabase() {
     if (!confirm('To odtworzy schemat i dane startowe bazy. Kontynuować?')) return;
-    await this.api.post('/db/init');
-    this.message.set('Baza została wczytana od nowa.');
-    this.selected.set(null);
-    await this.load();
+    this.operatorApi.initializeDatabase().subscribe({
+      next: () => {
+        this.message.set('Baza została wczytana od nowa.');
+        this.load();
+      },
+      error: (error) => this.message.set(apiMessage(error, 'Nie udało się wczytać bazy od nowa.'))
+    });
   }
 }

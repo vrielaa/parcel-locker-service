@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 
-import { ApiClient } from '../../core/api/api-client';
+import { ParcelLockersApi } from '../../core/api/parcel-lockers.api';
 import { LockerCell, ParcelLocker } from '../../core/models/app.models';
 import { apiMessage, lockerId, parcelLockerAddress, parcelLockerId, parcelLockerName } from '../../core/utils/format';
 import { LockerLayoutView } from '../../shared/locker-layout.component';
@@ -10,69 +10,60 @@ import { LockerLayoutView } from '../../shared/locker-layout.component';
   imports: [LockerLayoutView],
   templateUrl: './parcel-lockers.page.html'
 })
-export class ParcelLockersPage implements OnInit {
-  protected readonly api = inject(ApiClient);
+export class ParcelLockersPage {
+  protected readonly parcelLockersApi = inject(ParcelLockersApi);
 
-  protected readonly cities = signal<string[]>([]);
   protected readonly selectedCity = signal('');
-  protected readonly parcelLockers = signal<ParcelLocker[]>([]);
   protected readonly selectedParcelLocker = signal<ParcelLocker | null>(null);
-  protected readonly layout = signal<LockerCell[]>([]);
-  protected readonly message = signal('');
 
   protected readonly parcelLockerId = parcelLockerId;
   protected readonly parcelLockerName = parcelLockerName;
   protected readonly parcelLockerAddress = parcelLockerAddress;
   protected readonly lockerId = lockerId;
 
-  async ngOnInit() {
-    await this.loadCities();
+  protected readonly citiesResource = this.parcelLockersApi.citiesResource();
+  protected readonly parcelLockersResource = this.parcelLockersApi.parcelLockersResource(this.selectedCity);
+  protected readonly layoutResource = this.parcelLockersApi.layoutResource(() => parcelLockerId(this.selectedParcelLocker()));
+
+  protected readonly cities = computed(() => this.citiesResource.hasValue() ? this.citiesResource.value() : []);
+  protected readonly parcelLockers = computed<ParcelLocker[]>(() => this.parcelLockersResource.hasValue() ? this.parcelLockersResource.value() : []);
+  protected readonly layout = computed<LockerCell[]>(() => this.layoutResource.hasValue() ? this.layoutResource.value() : []);
+
+  protected readonly message = computed(() => {
+    if (this.citiesResource.error()) return apiMessage(this.citiesResource.error(), 'Nie udało się pobrać miast.');
+    if (this.citiesResource.isLoading()) return 'Ładowanie miast...';
+    if (!this.cities().length) return 'Brak miast z automatami.';
+
+    if (!this.selectedCity()) return '';
+    if (this.parcelLockersResource.error()) return apiMessage(this.parcelLockersResource.error(), 'Nie udało się pobrać automatów.');
+    if (this.parcelLockersResource.isLoading()) return 'Ładowanie automatów...';
+    if (!this.parcelLockers().length) return 'Brak automatów w tym mieście.';
+
+    return '';
+  });
+
+  constructor() {
+    effect(() => {
+      const cities = this.cities();
+      if (!this.selectedCity() && cities[0]) this.selectCity(cities[0]);
+    });
   }
 
-  protected async loadCities() {
-    this.message.set('Ładowanie miast...');
-    try {
-      const cities = await this.api.get<string[]>('/miasta');
-      this.cities.set(cities);
-      this.message.set(cities.length ? '' : 'Brak miast z automatami.');
-      if (!this.selectedCity() && cities[0]) await this.selectCity(cities[0]);
-    } catch (error) {
-      this.message.set(apiMessage(error, 'Nie udało się pobrać miast.'));
-    }
+  protected loadCities() {
+    this.citiesResource.reload();
   }
 
-  protected async selectCity(city: string) {
+  protected selectCity(city: string) {
     this.selectedCity.set(city);
     this.selectedParcelLocker.set(null);
-    this.layout.set([]);
-    this.message.set('Ładowanie automatów...');
-
-    try {
-      const lockers = await this.api.get<ParcelLocker[]>(`/automaty?miasto=${encodeURIComponent(city)}`);
-      this.parcelLockers.set(lockers);
-      this.message.set(lockers.length ? '' : 'Brak automatów w tym mieście.');
-    } catch (error) {
-      this.parcelLockers.set([]);
-      this.message.set(apiMessage(error, 'Nie udało się pobrać automatów.'));
-    }
   }
 
-  protected async selectParcelLocker(parcelLocker: ParcelLocker) {
+  protected selectParcelLocker(parcelLocker: ParcelLocker) {
     this.selectedParcelLocker.set(parcelLocker);
-    await this.reloadSelectedLayout();
   }
 
-  protected async reloadSelectedLayout() {
-    const id = parcelLockerId(this.selectedParcelLocker());
-    if (!id) return;
-
-    try {
-      const layout = await this.api.get<LockerCell[]>(`/automaty/${id}`);
-      this.layout.set(layout);
-    } catch (error) {
-      this.layout.set([]);
-      this.message.set(apiMessage(error, 'Nie udało się pobrać skrytek.'));
-    }
+  protected reloadSelectedLayout() {
+    this.layoutResource.reload();
   }
 
 }
