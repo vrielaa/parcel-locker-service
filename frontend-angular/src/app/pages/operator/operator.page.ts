@@ -1,30 +1,26 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormField, form } from '@angular/forms/signals';
 
 import { ApiClient } from '../../core/api/api-client';
 import { PackageRow } from '../../core/models/app.models';
 import { formatDate, formatStatus, packageDimensions, packageId, packageTracking } from '../../core/utils/format';
-import { buttonClass, dangerButtonClass, getValue, ghostButtonClass, inputClass, labelClass, pageClass, panelClass, subtlePanelClass } from '../../shared/page-ui';
+
+interface OperatorFilterFormModel {
+  query: string;
+}
 
 @Component({
   selector: 'app-operator-page',
+  imports: [FormField],
   templateUrl: './operator.page.html'
 })
 export class OperatorPage implements OnInit {
   private readonly api = inject(ApiClient);
 
-  protected readonly pageClass = pageClass;
-  protected readonly panelClass = panelClass;
-  protected readonly subtlePanelClass = subtlePanelClass;
-  protected readonly buttonClass = buttonClass;
-  protected readonly ghostButtonClass = ghostButtonClass;
-  protected readonly dangerButtonClass = dangerButtonClass;
-  protected readonly inputClass = inputClass;
-  protected readonly labelClass = labelClass;
-  protected readonly cardButtonClass = 'grid gap-2 rounded-xl border border-line bg-background p-4 text-left transition hover:border-brand';
-
   protected readonly packages = signal<PackageRow[]>([]);
   protected readonly selected = signal<PackageRow | null>(null);
-  protected readonly query = signal('');
+  protected readonly filterModel = signal<OperatorFilterFormModel>({ query: '' });
+  protected readonly filterForm = form(this.filterModel);
   protected readonly message = signal('');
 
   protected readonly packageId = packageId;
@@ -33,7 +29,7 @@ export class OperatorPage implements OnInit {
   protected readonly formatStatus = formatStatus;
 
   protected readonly filtered = computed(() => {
-    const query = this.query().trim().toLowerCase();
+    const query = this.filterModel().query.trim().toLowerCase();
     if (!query) return this.packages();
     return this.packages().filter((pkg) =>
       [packageId(pkg), packageTracking(pkg), pkg.nadawca_email, pkg.odbiorca_email]
@@ -45,10 +41,6 @@ export class OperatorPage implements OnInit {
 
   async ngOnInit() {
     await this.load();
-  }
-
-  protected setQuery(event: Event) {
-    this.query.set(getValue(event));
   }
 
   protected async load() {

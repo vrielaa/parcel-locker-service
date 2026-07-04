@@ -49,11 +49,11 @@ Frontend:
 
 Frontend 2.0 na gałęzi `feature/angular-v2`:
 
-- Angular 21
+- Angular 22
 - TypeScript
 - Tailwind CSS 4 przez PostCSS
 - globalne design tokens w `frontend-angular/src/styles.css`
-- nowoczesne Signals API, `input()` i `output()` dla komponentów
+- nowoczesne Signals API, Signal Forms, `input()` i `output()` dla komponentów
 - RxJS tylko przy granicach frameworka lub IO, np. router i HTTP
 - lokalne proxy `/api` do backendu Express
 
@@ -116,7 +116,7 @@ W produkcji Firebase Hosting serwuje pliki z `frontend/dist`, a ścieżki `/api/
 ## Wymagania
 
 - Node.js 18+,
-- Node.js 20.19+ / 22.12+ / 24+ dla frontendu Angular 2.0,
+- Node.js 24.15.0 dla frontendu Angular 2.0 na Angularze 22 (`.nvmrc` i `.node-version` są w repo),
 - npm,
 - Docker Desktop z Docker Compose,
 - opcjonalnie PostgreSQL 14+ przy uruchamianiu bez Dockera,

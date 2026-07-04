@@ -1,36 +1,36 @@
-<section [class]="pageClass">
-  <header [class]="panelClass">
+<section class="app-page">
+  <header class="app-panel">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="mb-2 text-xs font-bold uppercase text-muted">Admin</p>
         <h1 class="m-0 text-3xl">Administracja</h1>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button [class]="tab() === 'users' ? buttonClass : ghostButtonClass" type="button" (click)="tab.set('users')">Użytkownicy</button>
-        <button [class]="tab() === 'lockers' ? buttonClass : ghostButtonClass" type="button" (click)="tab.set('lockers')">Automaty</button>
+        <button class="app-button" [class.app-button--ghost]="tab() !== 'users'" type="button" (click)="tab.set('users')">Użytkownicy</button>
+        <button class="app-button" [class.app-button--ghost]="tab() !== 'lockers'" type="button" (click)="tab.set('lockers')">Automaty</button>
       </div>
     </div>
   </header>
 
   @if (tab() === 'users') {
     <section class="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-      <form [class]="panelClass" (submit)="createUser($event)">
+      <form class="app-panel" (submit)="createUser($event)">
         <h2 class="mt-0 text-xl">Dodaj użytkownika</h2>
         <div class="grid gap-3">
-          <label [class]="labelClass">Rola<select [class]="inputClass" [value]="newUserRole()" (change)="newUserRole.set(asRole($event))">@for (role of availableRoles; track role) { <option [value]="role">{{ role }}</option> }</select></label>
-          <label [class]="labelClass">Imię<input [class]="inputClass" [value]="newFirstName()" (input)="setValue(newFirstName, $event)"></label>
-          <label [class]="labelClass">Nazwisko<input [class]="inputClass" [value]="newLastName()" (input)="setValue(newLastName, $event)"></label>
-          <label [class]="labelClass">Email<input [class]="inputClass" type="email" [value]="newEmail()" (input)="setValue(newEmail, $event)"></label>
-          <label [class]="labelClass">Telefon<input [class]="inputClass" [value]="newPhone()" (input)="setValue(newPhone, $event)"></label>
-          <label [class]="labelClass">Hasło<input [class]="inputClass" type="password" [value]="newPassword()" (input)="setValue(newPassword, $event)"></label>
-          <button [class]="buttonClass" type="submit">Dodaj</button>
+          <label class="app-label">Rola<select class="app-input" [formField]="newUserForm.role">@for (role of availableRoles; track role) { <option [value]="role">{{ role }}</option> }</select></label>
+          <label class="app-label">Imię<input class="app-input" [formField]="newUserForm.firstName"></label>
+          <label class="app-label">Nazwisko<input class="app-input" [formField]="newUserForm.lastName"></label>
+          <label class="app-label">Email<input class="app-input" type="email" [formField]="newUserForm.email"></label>
+          <label class="app-label">Telefon<input class="app-input" [formField]="newUserForm.phone"></label>
+          <label class="app-label">Hasło<input class="app-input" type="password" [formField]="newUserForm.password"></label>
+          <button class="app-button" type="submit">Dodaj</button>
         </div>
       </form>
 
-      <section [class]="panelClass">
+      <section class="app-panel">
         <div class="mb-4 flex items-center justify-between gap-3">
           <h2 class="m-0 text-xl">Użytkownicy</h2>
-          <button [class]="ghostButtonClass" type="button" (click)="loadUsers()">Odśwież</button>
+          <button class="app-button app-button--ghost" type="button" (click)="loadUsers()">Odśwież</button>
         </div>
 
         <div class="grid gap-4">
@@ -46,9 +46,9 @@
                     </div>
                     <div class="flex flex-wrap gap-2">
                       @if (role === 'KLIENT' && user.klient_id) {
-                        <button [class]="ghostButtonClass" type="button" (click)="loadClientPackages(user)">Paczki</button>
+                        <button class="app-button app-button--ghost" type="button" (click)="loadClientPackages(user)">Paczki</button>
                       }
-                      <button [class]="dangerButtonClass" type="button" (click)="deleteUser(user)">Usuń</button>
+                      <button class="app-button app-button--danger" type="button" (click)="deleteUser(user)">Usuń</button>
                     </div>
                   </article>
                 } @empty {
@@ -62,12 +62,12 @@
     </section>
 
     @if (selectedClientEmail()) {
-      <section [class]="panelClass">
+      <section class="app-panel">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="m-0 text-xl">Paczki klienta {{ selectedClientEmail() }}</h2>
           <div class="flex flex-wrap gap-2">
-            <button [class]="clientPackageMode() === 'received' ? buttonClass : ghostButtonClass" type="button" (click)="loadSelectedClientPackages('received')">Odebrane</button>
-            <button [class]="clientPackageMode() === 'sent' ? buttonClass : ghostButtonClass" type="button" (click)="loadSelectedClientPackages('sent')">Nadane</button>
+            <button class="app-button" [class.app-button--ghost]="clientPackageMode() !== 'received'" type="button" (click)="loadSelectedClientPackages('received')">Odebrane</button>
+            <button class="app-button" [class.app-button--ghost]="clientPackageMode() !== 'sent'" type="button" (click)="loadSelectedClientPackages('sent')">Nadane</button>
           </div>
         </div>
         <div class="grid gap-2">
@@ -78,7 +78,7 @@
                 <p class="m-0 text-sm text-muted">{{ formatStatus(pkg.status) }} · {{ pkg.docelowy_automat_label || '-' }}</p>
               </div>
               @if (pkg.status === 'W_AUTOMACIE') {
-                <button [class]="ghostButtonClass" type="button" (click)="simulatePickup(pkg)">Symuluj odbiór</button>
+                <button class="app-button app-button--ghost" type="button" (click)="simulatePickup(pkg)">Symuluj odbiór</button>
               }
             </article>
           } @empty {
@@ -89,25 +89,25 @@
     }
   } @else {
     <section class="grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
-      <form [class]="panelClass" (submit)="createParcelLocker($event)">
+      <form class="app-panel" (submit)="createParcelLocker($event)">
         <h2 class="mt-0 text-xl">Dodaj automat</h2>
         <div class="grid gap-3">
-          <label [class]="labelClass">Kod/nazwa<input [class]="inputClass" [value]="lockerCode()" (input)="setValue(lockerCode, $event)"></label>
-          <label [class]="labelClass">Adres<input [class]="inputClass" [value]="lockerAddress()" (input)="setValue(lockerAddress, $event)"></label>
-          <label [class]="labelClass">Miasto<input [class]="inputClass" [value]="lockerCity()" (input)="setValue(lockerCity, $event)"></label>
-          <label [class]="labelClass">GPS<input [class]="inputClass" [value]="lockerGps()" (input)="setValue(lockerGps, $event)"></label>
+          <label class="app-label">Kod/nazwa<input class="app-input" [formField]="parcelLockerForm.code"></label>
+          <label class="app-label">Adres<input class="app-input" [formField]="parcelLockerForm.address"></label>
+          <label class="app-label">Miasto<input class="app-input" [formField]="parcelLockerForm.city"></label>
+          <label class="app-label">GPS<input class="app-input" [formField]="parcelLockerForm.gps"></label>
           <div class="grid gap-3 md:grid-cols-2">
-            <label [class]="labelClass">Wiersze<input [class]="inputClass" type="number" [value]="lockerRows()" (input)="setNumber(lockerRows, $event)"></label>
-            <label [class]="labelClass">Kolumny<input [class]="inputClass" type="number" [value]="lockerColumns()" (input)="setNumber(lockerColumns, $event)"></label>
+            <label class="app-label">Wiersze<input class="app-input" type="number" [formField]="parcelLockerForm.rows"></label>
+            <label class="app-label">Kolumny<input class="app-input" type="number" [formField]="parcelLockerForm.columns"></label>
           </div>
-          <button [class]="buttonClass" type="submit">Dodaj automat</button>
+          <button class="app-button" type="submit">Dodaj automat</button>
         </div>
       </form>
 
-      <section [class]="panelClass">
+      <section class="app-panel">
         <div class="mb-4 flex items-center justify-between gap-3">
           <h2 class="m-0 text-xl">Uszkodzone skrytki</h2>
-          <button [class]="ghostButtonClass" type="button" (click)="loadFaultyLockers()">Odśwież</button>
+          <button class="app-button app-button--ghost" type="button" (click)="loadFaultyLockers()">Odśwież</button>
         </div>
         <div class="grid gap-3">
           @for (row of faultyLockers(); track row.automat_id) {
@@ -121,7 +121,7 @@
               </div>
               <div class="mt-3 flex flex-wrap gap-2">
                 @for (id of row.faulty_lockers_ids || []; track id) {
-                  <button [class]="ghostButtonClass" type="button" (click)="repairLocker(row, id)">Napraw #{{ id }}</button>
+                  <button class="app-button app-button--ghost" type="button" (click)="repairLocker(row, id)">Napraw #{{ id }}</button>
                 }
               </div>
             </article>
@@ -133,8 +133,8 @@
         <div class="mt-6 grid gap-3 rounded-2xl border border-line bg-background p-4">
           <h3 class="m-0">Usuń automat po ID</h3>
           <div class="flex gap-2">
-            <input [class]="inputClass + ' flex-1'" type="number" [value]="deleteParcelLockerId()" (input)="setNumber(deleteParcelLockerId, $event)">
-            <button [class]="dangerButtonClass" type="button" [disabled]="!deleteParcelLockerId()" (click)="deleteParcelLocker()">Usuń</button>
+            <input class="app-input flex-1" type="number" [formField]="deleteParcelLockerForm.parcelLockerId">
+            <button class="app-button app-button--danger" type="button" [disabled]="!deleteParcelLockerModel().parcelLockerId" (click)="deleteParcelLocker()">Usuń</button>
           </div>
         </div>
       </section>

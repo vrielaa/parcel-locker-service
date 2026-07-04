@@ -3,7 +3,6 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ApiClient } from '../../core/api/api-client';
 import { LockerCell, ParcelLocker } from '../../core/models/app.models';
 import { apiMessage, lockerId, parcelLockerAddress, parcelLockerId, parcelLockerName } from '../../core/utils/format';
-import { ghostButtonClass, pageClass, panelClass } from '../../shared/page-ui';
 import { LockerLayoutView } from '../../shared/locker-layout.component';
 
 @Component({
@@ -13,13 +12,6 @@ import { LockerLayoutView } from '../../shared/locker-layout.component';
 })
 export class ParcelLockersPage implements OnInit {
   protected readonly api = inject(ApiClient);
-
-  protected readonly pageClass = pageClass;
-  protected readonly panelClass = panelClass;
-  protected readonly ghostButtonClass = ghostButtonClass;
-  protected readonly listButtonClass = 'min-h-10 rounded-lg border border-line bg-surface px-3 text-left text-sm font-semibold text-muted hover:border-brand hover:text-brand-strong';
-  protected readonly activeListButtonClass = 'min-h-10 rounded-lg border border-brand bg-brand-soft px-3 text-left text-sm font-bold text-brand-strong';
-  protected readonly cardButtonClass = 'grid min-h-32 gap-2 rounded-xl border border-line bg-background p-4 text-left transition hover:border-brand hover:shadow-card';
 
   protected readonly cities = signal<string[]>([]);
   protected readonly selectedCity = signal('');

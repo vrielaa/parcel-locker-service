@@ -1,5 +1,5 @@
 <main class="grid min-h-screen place-items-center bg-background px-4 py-10">
-  <section [class]="authCardClass">
+  <section class="auth-card">
     <div>
       <p class="mb-2 text-xs font-bold uppercase text-muted">Parcel Locker 2.0</p>
       <h1 class="m-0 text-3xl leading-tight">Logowanie</h1>
@@ -7,28 +7,28 @@
     </div>
 
     <form class="grid gap-4" (submit)="submit($event)">
-      <label [class]="labelClass">
+      <label class="app-label">
         Email
-        <input [class]="inputClass" type="email" autocomplete="email" [value]="email()" (input)="setValue(email, $event)">
+        <input class="app-input" type="email" autocomplete="email" [formField]="loginForm.email">
       </label>
 
-      <label [class]="labelClass">
+      <label class="app-label">
         Hasło
-        <input [class]="inputClass" type="password" autocomplete="current-password" [value]="password()" (input)="setValue(password, $event)">
+        <input class="app-input" type="password" autocomplete="current-password" [formField]="loginForm.password">
       </label>
 
       @if (message()) {
         <p class="m-0 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">{{ message() }}</p>
       }
 
-      <button [class]="buttonClass" type="submit" [disabled]="submitting()">
+      <button class="app-button" type="submit" [disabled]="submitting()">
         {{ submitting() ? 'Logowanie...' : 'Zaloguj się' }}
       </button>
     </form>
 
     <p class="m-0 text-sm text-muted">
       Nie masz konta?
-      <a [class]="secondaryLinkClass" routerLink="/register">Zarejestruj się</a>
+      <a class="app-link" routerLink="/register">Zarejestruj się</a>
     </p>
   </section>
 </main>

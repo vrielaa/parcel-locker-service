@@ -1,32 +1,32 @@
-<section [class]="pageClass">
-  <header [class]="panelClass">
+<section class="app-page">
+  <header class="app-panel">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="mb-2 text-xs font-bold uppercase text-muted">Klient</p>
         <h1 class="m-0 text-3xl">Paczki</h1>
       </div>
       <div class="flex gap-2">
-        <button [class]="mode() === 'list' ? buttonClass : ghostButtonClass" type="button" (click)="mode.set('list')">Moje paczki</button>
-        <button [class]="mode() === 'create' ? buttonClass : ghostButtonClass" type="button" (click)="mode.set('create')">Nadaj paczkę</button>
+        <button class="app-button" [class.app-button--ghost]="mode() !== 'list'" type="button" (click)="mode.set('list')">Moje paczki</button>
+        <button class="app-button" [class.app-button--ghost]="mode() !== 'create'" type="button" (click)="mode.set('create')">Nadaj paczkę</button>
       </div>
     </div>
   </header>
 
   @if (mode() === 'list') {
     <section class="grid gap-4 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <aside [class]="panelClass">
+      <aside class="app-panel">
         <div class="mb-4 flex flex-wrap gap-2">
-          <button [class]="packageMode() === 'received' ? buttonClass : ghostButtonClass" type="button" (click)="packageMode.set('received')">Do mnie</button>
-          <button [class]="packageMode() === 'sent' ? buttonClass : ghostButtonClass" type="button" (click)="packageMode.set('sent')">Nadane</button>
-          <button [class]="ghostButtonClass" type="button" (click)="loadPackages()">Odśwież</button>
+          <button class="app-button" [class.app-button--ghost]="packageMode() !== 'received'" type="button" (click)="packageMode.set('received')">Do mnie</button>
+          <button class="app-button" [class.app-button--ghost]="packageMode() !== 'sent'" type="button" (click)="packageMode.set('sent')">Nadane</button>
+          <button class="app-button app-button--ghost" type="button" (click)="loadPackages()">Odśwież</button>
         </div>
 
         <div class="grid gap-2">
           @for (pkg of filteredPackages(); track packageId(pkg)) {
-            <button type="button" [class]="cardButtonClass" (click)="selectPackage(pkg)">
+            <button type="button" class="app-list-card" (click)="selectPackage(pkg)">
               <span class="text-xs font-bold uppercase text-muted">#{{ packageId(pkg) }}</span>
               <strong>{{ packageTracking(pkg) }}</strong>
-              <span [class]="'w-fit rounded-full px-2 py-1 text-xs font-bold ' + statusTone(pkg.status)">{{ formatStatus(pkg.status) }}</span>
+              <span class="app-status-badge" [attr.data-status]="pkg.status">{{ formatStatus(pkg.status) }}</span>
             </button>
           } @empty {
             <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">Brak paczek w tej kategorii.</p>
@@ -34,7 +34,7 @@
         </div>
       </aside>
 
-      <section [class]="panelClass">
+      <section class="app-panel">
         @if (selectedPackage()) {
           <div class="grid gap-5">
             <div>
@@ -43,16 +43,16 @@
             </div>
 
             <div class="grid gap-3 md:grid-cols-2">
-              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Status</span><p class="m-0">{{ formatStatus(selectedPackage()?.status) }}</p></div>
-              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Data nadania</span><p class="m-0">{{ formatDate(selectedPackage()?.data_nadania) }}</p></div>
-              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Nadawca</span><p class="m-0 break-all">{{ selectedPackage()?.nadawca_email || '-' }}</p></div>
-              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Odbiorca</span><p class="m-0 break-all">{{ selectedPackage()?.odbiorca_email || '-' }}</p></div>
-              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Automat</span><p class="m-0">{{ selectedPackage()?.automat_nazwa || selectedPackage()?.docelowy_automat_nazwa || '-' }}</p></div>
-              <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Termin odbioru</span><p class="m-0">{{ formatDate(selectedPackage()?.termin_odbioru) }}</p></div>
+              <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Status</span><p class="m-0">{{ formatStatus(selectedPackage()?.status) }}</p></div>
+              <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Data nadania</span><p class="m-0">{{ formatDate(selectedPackage()?.data_nadania) }}</p></div>
+              <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Nadawca</span><p class="m-0 break-all">{{ selectedPackage()?.nadawca_email || '-' }}</p></div>
+              <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Odbiorca</span><p class="m-0 break-all">{{ selectedPackage()?.odbiorca_email || '-' }}</p></div>
+              <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Automat</span><p class="m-0">{{ selectedPackage()?.automat_nazwa || selectedPackage()?.docelowy_automat_nazwa || '-' }}</p></div>
+              <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Termin odbioru</span><p class="m-0">{{ formatDate(selectedPackage()?.termin_odbioru) }}</p></div>
             </div>
 
             @if (canExtendSelected()) {
-              <button [class]="buttonClass" type="button" (click)="extendSelected()">Przedłuż odbiór o 24h</button>
+              <button class="app-button" type="button" (click)="extendSelected()">Przedłuż odbiór o 24h</button>
             }
 
             <section>
@@ -75,18 +75,18 @@
       </section>
     </section>
   } @else {
-    <section [class]="panelClass">
+    <section class="app-panel">
       <h2 class="mt-0 text-2xl">Nadaj nową paczkę</h2>
       <form class="grid gap-4" (submit)="createPackage($event)">
         <div class="grid gap-4 md:grid-cols-2">
-          <label [class]="labelClass">Email odbiorcy<input [class]="inputClass" type="email" [value]="receiverEmail()" (input)="setValue(receiverEmail, $event)"></label>
-          <label [class]="labelClass">Telefon odbiorcy<input [class]="inputClass" [value]="receiverPhone()" (input)="setValue(receiverPhone, $event)"></label>
+          <label class="app-label">Email odbiorcy<input class="app-input" type="email" [formField]="packageForm.receiverEmail"></label>
+          <label class="app-label">Telefon odbiorcy<input class="app-input" [formField]="packageForm.receiverPhone"></label>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
-          <label [class]="labelClass">
+          <label class="app-label">
             Miasto
-            <select [class]="inputClass" [value]="createCity()" (change)="selectCreateCity($event)">
+            <select class="app-input" [formField]="packageForm.createCity" (change)="selectCreateCity()">
               <option value="">Wybierz miasto</option>
               @for (city of cities(); track city) {
                 <option [value]="city">{{ city }}</option>
@@ -94,10 +94,10 @@
             </select>
           </label>
 
-          <label [class]="labelClass">
+          <label class="app-label">
             Automat
-            <select [class]="inputClass" [value]="createParcelLockerId()" (change)="setNumber(createParcelLockerId, $event)">
-              <option value="0">Wybierz automat</option>
+            <select class="app-input" [formField]="packageForm.createParcelLockerId">
+              <option value="">Wybierz automat</option>
               @for (locker of filteredCreateParcelLockers(); track parcelLockerId(locker)) {
                 <option [value]="parcelLockerId(locker)">{{ parcelLockerName(locker) }} — {{ parcelLockerAddress(locker) }}</option>
               }
@@ -105,12 +105,12 @@
           </label>
         </div>
 
-        <label [class]="labelClass">Szukaj automatu po kodzie lub adresie<input [class]="inputClass" [value]="lockerSearch()" (input)="setValue(lockerSearch, $event)" placeholder="np. BYD01A"></label>
+        <label class="app-label">Szukaj automatu po kodzie lub adresie<input class="app-input" [formField]="packageForm.lockerSearch" placeholder="np. BYD01A"></label>
 
         <div class="grid gap-4 md:grid-cols-3">
-          <label [class]="labelClass">Szerokość (cm)<input [class]="inputClass" type="number" min="1" [value]="width()" (input)="setNumber(width, $event)"></label>
-          <label [class]="labelClass">Wysokość (cm)<input [class]="inputClass" type="number" min="1" [value]="height()" (input)="setNumber(height, $event)"></label>
-          <label [class]="labelClass">Głębokość (cm)<input [class]="inputClass" type="number" min="1" [value]="depth()" (input)="setNumber(depth, $event)"></label>
+          <label class="app-label">Szerokość (cm)<input class="app-input" type="number" [formField]="packageForm.width"></label>
+          <label class="app-label">Wysokość (cm)<input class="app-input" type="number" [formField]="packageForm.height"></label>
+          <label class="app-label">Głębokość (cm)<input class="app-input" type="number" [formField]="packageForm.depth"></label>
         </div>
 
         <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">Sugerowany rozmiar skrytki: <strong>{{ suggestedPackageSize() }}</strong></p>
@@ -119,7 +119,7 @@
           <p class="m-0 rounded-lg bg-background px-3 py-2 text-sm text-muted">{{ formMessage() }}</p>
         }
 
-        <button [class]="buttonClass" type="submit" [disabled]="submitting()">Nadaj paczkę</button>
+        <button class="app-button" type="submit" [disabled]="submitting()">Nadaj paczkę</button>
       </form>
     </section>
   }

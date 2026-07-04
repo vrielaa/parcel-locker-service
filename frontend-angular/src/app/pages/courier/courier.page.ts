@@ -1,25 +1,21 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormField, form } from '@angular/forms/signals';
 
 import { ApiClient } from '../../core/api/api-client';
 import { LockerCell, PackageEvent, PackageRow } from '../../core/models/app.models';
 import { formatDate, formatStatus, lockerId, packageDimensions, packageId, packageTracking } from '../../core/utils/format';
-import { buttonClass, getValue, ghostButtonClass, inputClass, labelClass, pageClass, panelClass, statusTone, subtlePanelClass } from '../../shared/page-ui';
+
+interface CourierFilterFormModel {
+  city: string;
+}
 
 @Component({
   selector: 'app-courier-page',
+  imports: [FormField],
   templateUrl: './courier.page.html'
 })
 export class CourierPage implements OnInit {
   private readonly api = inject(ApiClient);
-
-  protected readonly pageClass = pageClass;
-  protected readonly panelClass = panelClass;
-  protected readonly subtlePanelClass = subtlePanelClass;
-  protected readonly buttonClass = buttonClass;
-  protected readonly ghostButtonClass = ghostButtonClass;
-  protected readonly inputClass = inputClass;
-  protected readonly labelClass = labelClass;
-  protected readonly cardButtonClass = 'grid gap-2 rounded-xl border border-line bg-background p-4 text-left transition hover:border-brand';
 
   protected readonly pool = signal<PackageRow[]>([]);
   protected readonly mine = signal<PackageRow[]>([]);
@@ -27,7 +23,8 @@ export class CourierPage implements OnInit {
   protected readonly events = signal<PackageEvent[]>([]);
   protected readonly destinationLockers = signal<LockerCell[]>([]);
   protected readonly selectedLockerId = signal(0);
-  protected readonly courierCityFilter = signal('');
+  protected readonly courierFilterModel = signal<CourierFilterFormModel>({ city: '' });
+  protected readonly courierFilterForm = form(this.courierFilterModel);
   protected readonly message = signal('');
 
   protected readonly allPackages = computed(() => [...this.mine(), ...this.pool()]);
@@ -36,7 +33,7 @@ export class CourierPage implements OnInit {
       .sort((a, b) => a.localeCompare(b, 'pl'));
   });
   protected readonly filteredCourierPackages = computed(() => {
-    const city = this.courierCityFilter();
+    const city = this.courierFilterModel().city;
     return city ? this.allPackages().filter((pkg) => pkg.docelowy_automat_miasto === city) : this.allPackages();
   });
   protected readonly packageId = packageId;
@@ -44,7 +41,6 @@ export class CourierPage implements OnInit {
   protected readonly packageDimensions = packageDimensions;
   protected readonly formatStatus = formatStatus;
   protected readonly formatDate = formatDate;
-  protected readonly statusTone = statusTone;
   protected readonly lockerId = lockerId;
 
   async ngOnInit() {
@@ -68,11 +64,15 @@ export class CourierPage implements OnInit {
     await this.loadEvents();
   }
 
-  protected setCourierCityFilter(event: Event) {
-    this.courierCityFilter.set(getValue(event));
+  protected setCourierCityFilter() {
     this.selectedPackage.set(null);
     this.destinationLockers.set([]);
     this.selectedLockerId.set(0);
+  }
+
+  protected clearCourierCityFilter() {
+    this.courierFilterForm.city().value.set('');
+    this.setCourierCityFilter();
   }
 
   protected canStartTransport() {

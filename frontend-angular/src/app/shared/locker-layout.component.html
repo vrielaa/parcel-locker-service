@@ -29,7 +29,7 @@
               [attr.tabindex]="selectable() && !isDisabled(cell) ? 0 : -1"
               [attr.title]="lockerTitle(cell)"
               [disabled]="isDisabled(cell)"
-              [class]="lockerCellClass(cell)"
+              class="locker-cell" [class.locker-cell--selected]="selectedId() === lockerId(cell)" [class.locker-cell--selectable]="selectable() && !isDisabled(cell)" [attr.data-status]="cell.status || ''" [attr.data-size]="lockerSize(cell)"
               [style.grid-column]="lockerGridColumn(cell)"
               [style.grid-row]="lockerGridRow(cell)"
               (click)="select(cell)"

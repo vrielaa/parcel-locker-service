@@ -1,21 +1,21 @@
-<section [class]="pageClass">
-  <header [class]="panelClass">
+<section class="app-page">
+  <header class="app-panel">
     <p class="mb-2 text-xs font-bold uppercase text-muted">Automaty</p>
     <h1 class="m-0 text-3xl">Lista automatów i skrytek</h1>
   </header>
 
   <section class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-    <aside [class]="panelClass">
+    <aside class="app-panel">
       <div class="mb-4 flex items-center justify-between gap-3">
         <h2 class="m-0 text-lg">Miasta</h2>
-        <button [class]="ghostButtonClass" type="button" (click)="loadCities()">Odśwież</button>
+        <button class="app-button app-button--ghost" type="button" (click)="loadCities()">Odśwież</button>
       </div>
 
       <div class="grid max-h-[520px] gap-2 overflow-auto pr-1">
         @for (city of cities(); track city) {
           <button
             type="button"
-            [class]="city === selectedCity() ? activeListButtonClass : listButtonClass"
+            class="app-list-button" [class.app-list-button--active]="city === selectedCity()"
             (click)="selectCity(city)"
           >
             {{ city }}
@@ -25,7 +25,7 @@
     </aside>
 
     <div class="grid gap-4">
-      <section [class]="panelClass">
+      <section class="app-panel">
         <h2 class="m-0 text-lg">Automaty {{ selectedCity() ? 'w mieście ' + selectedCity() : '' }}</h2>
 
         @if (message()) {
@@ -34,7 +34,7 @@
 
         <div class="mt-4 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
           @for (locker of parcelLockers(); track parcelLockerId(locker)) {
-            <button type="button" [class]="cardButtonClass" (click)="selectParcelLocker(locker)">
+            <button type="button" class="app-list-card app-list-card--large" (click)="selectParcelLocker(locker)">
               <span class="text-xs font-bold uppercase text-muted">#{{ parcelLockerId(locker) }}</span>
               <strong class="text-left">{{ parcelLockerName(locker) }}</strong>
               <small class="text-left text-muted">{{ parcelLockerAddress(locker) }}</small>
@@ -44,14 +44,14 @@
       </section>
 
       @if (selectedParcelLocker()) {
-        <section [class]="panelClass">
+        <section class="app-panel">
           <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p class="m-0 text-sm text-muted">Wybrany automat</p>
               <h2 class="m-0 text-2xl">{{ parcelLockerName(selectedParcelLocker()) }}</h2>
               <p class="m-0 text-sm text-muted">{{ parcelLockerAddress(selectedParcelLocker()) }}</p>
             </div>
-            <button [class]="ghostButtonClass" type="button" (click)="reloadSelectedLayout()">Odśwież skrytki</button>
+            <button class="app-button app-button--ghost" type="button" (click)="reloadSelectedLayout()">Odśwież skrytki</button>
           </div>
 
           <app-locker-layout [layout]="layout()" />

@@ -1,14 +1,14 @@
-<section [class]="pageClass">
-  <header [class]="panelClass">
+<section class="app-page">
+  <header class="app-panel">
     <p class="mb-2 text-xs font-bold uppercase text-muted">Serwis</p>
     <h1 class="m-0 text-3xl">Zgłoś uszkodzoną skrytkę</h1>
   </header>
 
   <section class="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-    <aside [class]="panelClass">
-      <label [class]="labelClass">
+    <aside class="app-panel">
+      <label class="app-label">
         Miasto
-        <select [class]="inputClass" [value]="city()" (change)="selectCity($event)">
+        <select class="app-input" [formField]="reportForm.city" (change)="selectCity()">
           <option value="">Wybierz miasto</option>
           @for (city of cities(); track city) {
             <option [value]="city">{{ city }}</option>
@@ -18,7 +18,7 @@
 
       <div class="mt-4 grid gap-2">
         @for (locker of parcelLockers(); track parcelLockerId(locker)) {
-          <button [class]="cardButtonClass" type="button" (click)="selectParcelLocker(locker)">
+          <button class="app-list-card app-list-card--compact" type="button" (click)="selectParcelLocker(locker)">
             <strong>{{ parcelLockerName(locker) }}</strong>
             <small class="text-muted">{{ parcelLockerAddress(locker) }}</small>
           </button>
@@ -26,7 +26,7 @@
       </div>
     </aside>
 
-    <section [class]="panelClass">
+    <section class="app-panel">
       @if (layout().length) {
         <div class="grid gap-4">
           <h2 class="m-0 text-2xl">{{ parcelLockerName(selectedParcelLocker()) }}</h2>
@@ -38,10 +38,10 @@
             (lockerSelected)="selectedLocker.set($event)"
           />
 
-          <label [class]="labelClass">Opis problemu<textarea [class]="inputClass + ' min-h-24 py-3'" [value]="description()" (input)="setValue(description, $event)"></textarea></label>
+          <label class="app-label">Opis problemu<textarea class="app-input min-h-24 py-3" [formField]="reportForm.description"></textarea></label>
 
           <div class="flex flex-wrap items-center gap-3">
-            <button [class]="buttonClass" type="button" [disabled]="!selectedLocker() || !description().trim()" (click)="markDamaged()">Oznacz jako uszkodzoną</button>
+            <button class="app-button" type="button" [disabled]="!selectedLocker() || !reportModel().description.trim()" (click)="markDamaged()">Oznacz jako uszkodzoną</button>
             <span class="text-sm text-muted">Wybrana: {{ selectedLocker() ? '#' + lockerId(selectedLocker()) : 'brak' }}</span>
           </div>
 

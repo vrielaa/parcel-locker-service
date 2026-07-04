@@ -3,7 +3,6 @@ import { RouterLink } from '@angular/router';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { Role } from '../../core/models/app.models';
-import { pageClass } from '../../shared/page-ui';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -12,7 +11,6 @@ import { pageClass } from '../../shared/page-ui';
 })
 export class DashboardPage {
   protected readonly auth = inject(AuthStore);
-  protected readonly pageClass = pageClass;
 
   protected readonly modules = computed(() => {
     const role = this.auth.role();

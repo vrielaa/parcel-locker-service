@@ -1,18 +1,34 @@
-import { Component, WritableSignal, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { FormField, form } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { apiMessage } from '../../core/utils/format';
 
-const authCardClass = 'mx-auto grid w-full max-w-md gap-5 rounded-2xl border border-line bg-surface p-7 shadow-card';
-const labelClass = 'grid gap-1.5 text-sm font-semibold text-foreground';
-const inputClass = 'min-h-11 rounded-lg border border-line bg-field px-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20';
-const buttonClass = 'min-h-11 rounded-lg bg-brand px-4 text-sm font-bold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55';
-const secondaryLinkClass = 'font-semibold text-brand-strong no-underline hover:underline';
+interface LoginFormModel {
+  email: string;
+  password: string;
+}
+
+interface RegisterFormModel {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  password2: string;
+}
+
+interface ChangePasswordFormModel {
+  currentPassword: string;
+  newPassword: string;
+  newPassword2: string;
+}
+
 
 @Component({
   selector: 'app-login-page',
-  imports: [RouterLink],
+  imports: [FormField, RouterLink],
   templateUrl: './login.page.html'
 })
 export class LoginPage {
@@ -20,38 +36,31 @@ export class LoginPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  protected readonly authCardClass = authCardClass;
-  protected readonly labelClass = labelClass;
-  protected readonly inputClass = inputClass;
-  protected readonly buttonClass = buttonClass;
-  protected readonly secondaryLinkClass = secondaryLinkClass;
-
-  protected readonly email = signal('');
-  protected readonly password = signal('');
+  protected readonly loginModel = signal<LoginFormModel>({
+    email: '',
+    password: ''
+  });
+  protected readonly loginForm = form(this.loginModel);
   protected readonly submitting = signal(false);
   protected readonly message = signal('');
-
-  protected setValue(target: WritableSignal<string>, event: Event) {
-    target.set((event.target as HTMLInputElement).value);
-    this.message.set('');
-  }
 
   protected async submit(event: Event) {
     event.preventDefault();
     this.message.set('');
+    const credentials = this.loginModel();
 
-    if (!this.email().trim() || !this.password()) {
+    if (!credentials.email.trim() || !credentials.password) {
       this.message.set('Uzupełnij email i hasło.');
       return;
     }
 
     this.submitting.set(true);
     try {
-      const data = await this.auth.login(this.email().trim(), this.password());
+      const data = await this.auth.login(credentials.email.trim(), credentials.password);
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
       await this.router.navigateByUrl(data.must_change_password ? '/change-password' : returnUrl);
     } catch (error) {
-      this.password.set('');
+      this.loginForm.password().value.set('');
       this.message.set(apiMessage(error, 'Nieprawidłowy email lub hasło.'));
     } finally {
       this.submitting.set(false);
@@ -61,63 +70,57 @@ export class LoginPage {
 
 @Component({
   selector: 'app-register-page',
-  imports: [RouterLink],
+  imports: [FormField, RouterLink],
   templateUrl: './register.page.html'
 })
 export class RegisterPage {
   private readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
 
-  protected readonly labelClass = labelClass;
-  protected readonly inputClass = inputClass;
-  protected readonly buttonClass = buttonClass;
-  protected readonly secondaryLinkClass = secondaryLinkClass;
-
-  protected readonly firstName = signal('');
-  protected readonly lastName = signal('');
-  protected readonly email = signal('');
-  protected readonly phone = signal('');
-  protected readonly password = signal('');
-  protected readonly password2 = signal('');
+  protected readonly registerModel = signal<RegisterFormModel>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    password2: ''
+  });
+  protected readonly registerForm = form(this.registerModel);
   protected readonly submitting = signal(false);
   protected readonly message = signal('');
-
-  protected setValue(target: WritableSignal<string>, event: Event) {
-    target.set((event.target as HTMLInputElement).value);
-    this.message.set('');
-  }
 
   protected async submit(event: Event) {
     event.preventDefault();
     this.message.set('');
+    const data = this.registerModel();
 
-    if (!this.firstName().trim() || !this.lastName().trim() || !this.email().trim()) {
+    if (!data.firstName.trim() || !data.lastName.trim() || !data.email.trim()) {
       this.message.set('Uzupełnij imię, nazwisko i email.');
       return;
     }
 
-    if (this.password().length < 8) {
+    if (data.password.length < 8) {
       this.message.set('Hasło musi mieć min. 8 znaków.');
       return;
     }
 
-    if (this.password() !== this.password2()) {
+    if (data.password !== data.password2) {
       this.message.set('Hasła nie są takie same.');
       return;
     }
 
     this.submitting.set(true);
     try {
-      const data = await this.auth.register({
-        imie: this.firstName().trim(),
-        nazwisko: this.lastName().trim(),
-        email: this.email().trim().toLowerCase(),
-        telefon: this.phone().trim() || null,
-        password: this.password(),
-        password2: this.password2()
+      const response = await this.auth.register({
+        imie: data.firstName.trim(),
+        nazwisko: data.lastName.trim(),
+        email: data.email.trim().toLowerCase(),
+        telefon: data.phone.trim() || null,
+        password: data.password,
+        password2: data.password2
       });
 
-      await this.router.navigateByUrl(data.must_change_password ? '/change-password' : '/dashboard');
+      await this.router.navigateByUrl(response.must_change_password ? '/change-password' : '/dashboard');
     } catch (error) {
       this.message.set(apiMessage(error, 'Rejestracja nieudana.'));
     } finally {
@@ -128,45 +131,40 @@ export class RegisterPage {
 
 @Component({
   selector: 'app-change-password-page',
+  imports: [FormField],
   templateUrl: './change-password.page.html'
 })
 export class ChangePasswordPage {
   private readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
 
-  protected readonly authCardClass = authCardClass;
-  protected readonly labelClass = labelClass;
-  protected readonly inputClass = inputClass;
-  protected readonly buttonClass = buttonClass;
-
-  protected readonly currentPassword = signal('');
-  protected readonly newPassword = signal('');
-  protected readonly newPassword2 = signal('');
+  protected readonly changePasswordModel = signal<ChangePasswordFormModel>({
+    currentPassword: '',
+    newPassword: '',
+    newPassword2: ''
+  });
+  protected readonly changePasswordForm = form(this.changePasswordModel);
   protected readonly submitting = signal(false);
   protected readonly message = signal('');
-
-  protected setValue(target: WritableSignal<string>, event: Event) {
-    target.set((event.target as HTMLInputElement).value);
-    this.message.set('');
-  }
 
   protected async submit(event: Event) {
     event.preventDefault();
     this.message.set('');
+    const data = this.changePasswordModel();
 
-    if (this.newPassword().length < 8) {
+    if (data.newPassword.length < 8) {
       this.message.set('Nowe hasło musi mieć min. 8 znaków.');
       return;
     }
 
-    if (this.newPassword() !== this.newPassword2()) {
+    if (data.newPassword !== data.newPassword2) {
       this.message.set('Nowe hasła nie są takie same.');
       return;
     }
 
     this.submitting.set(true);
     try {
-      await this.auth.changePassword(this.currentPassword(), this.newPassword());
+      await this.auth.changePassword(data.currentPassword, data.newPassword);
       await this.router.navigateByUrl('/dashboard');
     } catch (error) {
       this.message.set(apiMessage(error, 'Nie udało się zmienić hasła.'));

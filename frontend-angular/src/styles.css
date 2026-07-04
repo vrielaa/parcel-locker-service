@@ -43,3 +43,125 @@
     @apply block max-w-full;
   }
 }
+
+@layer components {
+  .app-page {
+    @apply grid gap-6;
+  }
+
+  .app-panel {
+    @apply rounded-2xl border border-line bg-surface p-6 shadow-card;
+  }
+
+  .app-subtle-panel {
+    @apply rounded-xl border border-line bg-background p-4;
+  }
+
+  .auth-card {
+    @apply mx-auto grid w-full max-w-md gap-5 rounded-2xl border border-line bg-surface p-7 shadow-card;
+  }
+
+  .app-label {
+    @apply grid gap-1.5 text-sm font-semibold text-foreground;
+  }
+
+  .app-input {
+    @apply min-h-10 rounded-lg border border-line bg-field px-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20;
+  }
+
+  .app-button {
+    @apply min-h-10 rounded-lg bg-brand px-4 text-sm font-bold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .app-button--ghost {
+    @apply border border-line bg-surface text-foreground hover:border-brand hover:bg-surface hover:text-brand-strong;
+  }
+
+  .app-button--danger {
+    @apply border border-danger/50 bg-danger text-ink-text hover:bg-danger/90;
+  }
+
+  .app-link {
+    @apply font-semibold text-brand-strong no-underline hover:underline;
+  }
+
+  .app-list-button {
+    @apply min-h-10 rounded-lg border border-line bg-surface px-3 text-left text-sm font-semibold text-muted hover:border-brand hover:text-brand-strong;
+  }
+
+  .app-list-button--active {
+    @apply border-brand bg-brand-soft font-bold text-brand-strong;
+  }
+
+  .app-list-card {
+    @apply grid gap-2 rounded-xl border border-line bg-background p-4 text-left transition hover:border-brand;
+  }
+
+  .app-list-card--large {
+    @apply min-h-32 hover:shadow-card;
+  }
+
+  .app-list-card--compact {
+    @apply gap-1;
+  }
+
+  .app-status-badge {
+    @apply w-fit rounded-full bg-background px-2 py-1 text-xs font-bold text-muted;
+  }
+
+  .app-status-badge[data-status="AKTYWNY"],
+  .app-status-badge[data-status="WOLNA"],
+  .app-status-badge[data-status="ODEBRANA"] {
+    @apply bg-success/10 text-success;
+  }
+
+  .app-status-badge[data-status="NADANA"],
+  .app-status-badge[data-status="W_DRODZE"],
+  .app-status-badge[data-status="W_AUTOMACIE"] {
+    @apply bg-brand-soft text-brand-strong;
+  }
+
+  .app-status-badge[data-status="CZEKA_NA_ZATWIERDZENIE"],
+  .app-status-badge[data-status="W_SERWISIE"] {
+    @apply bg-warning/10 text-warning;
+  }
+
+  .app-status-badge[data-status="USZKODZONA"],
+  .app-status-badge[data-status="NIEAKTYWNY"],
+  .app-status-badge[data-status="ANULOWANA"],
+  .app-status-badge[data-status="PRZETERMINOWANA"] {
+    @apply bg-danger/10 text-danger;
+  }
+
+  .locker-cell {
+    @apply grid h-full min-h-0 min-w-[54px] place-items-center rounded-md border px-1 py-1 text-center font-bold leading-none transition disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .locker-cell[data-status="WOLNA"] {
+    @apply border-success/70 bg-success/15 text-success;
+  }
+
+  .locker-cell[data-status="USZKODZONA"] {
+    @apply border-danger/70 bg-danger/15 text-danger;
+  }
+
+  .locker-cell:not([data-status="WOLNA"]):not([data-status="USZKODZONA"]) {
+    @apply border-brand/70 bg-brand-soft text-brand-strong;
+  }
+
+  .locker-cell[data-size="L"] {
+    @apply shadow-md;
+  }
+
+  .locker-cell[data-size="M"] {
+    @apply shadow-sm;
+  }
+
+  .locker-cell--selectable {
+    @apply hover:-translate-y-0.5 hover:border-white focus:outline-none focus:ring-2 focus:ring-white/70;
+  }
+
+  .locker-cell--selected {
+    @apply ring-2 ring-ink-text ring-offset-2 ring-offset-ink;
+  }
+}

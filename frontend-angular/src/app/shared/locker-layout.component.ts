@@ -110,23 +110,6 @@ export class LockerLayoutView {
     return this.disabledStatuses().map((item) => item.toUpperCase()).includes(status) || this.disabledIds().includes(lockerId(cell));
   }
 
-  protected lockerCellClass(cell: LockerCell) {
-    const status = String(cell.status || '').toUpperCase();
-    const selected = this.selectedId() === lockerId(cell);
-    const selectable = this.selectable() && !this.isDisabled(cell);
-    const size = lockerSize(cell);
-    const tone =
-      status === 'WOLNA'
-        ? 'border-success/70 bg-success/15 text-success'
-        : status === 'USZKODZONA'
-          ? 'border-danger/70 bg-danger/15 text-danger'
-          : 'border-brand/70 bg-brand-soft text-brand-strong';
-    const sizeTone = size === 'L' ? 'shadow-md' : size === 'M' ? 'shadow-sm' : '';
-    const interaction = selectable ? 'hover:-translate-y-0.5 hover:border-white focus:outline-none focus:ring-2 focus:ring-white/70' : 'cursor-default';
-
-    return `grid h-full min-h-0 min-w-[54px] place-items-center rounded-md border px-1 py-1 text-center font-bold leading-none transition ${tone} ${sizeTone} ${interaction} ${selected ? 'ring-2 ring-ink-text ring-offset-2 ring-offset-ink' : ''} disabled:cursor-not-allowed disabled:opacity-45`;
-  }
-
   protected lockerTitle(cell: LockerCell) {
     const dimensions = lockerDimensions(cell);
     return [

@@ -1,24 +1,61 @@
-import { Component, OnInit, WritableSignal, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormField, form } from '@angular/forms/signals';
 
 import { ApiClient } from '../../core/api/api-client';
 import { FaultyLockerRow, PackageRow, Role, UserRow } from '../../core/models/app.models';
 import { formatStatus, packageId, packageTracking, roles } from '../../core/utils/format';
-import { buttonClass, dangerButtonClass, getValue, ghostButtonClass, inputClass, labelClass, numberValue, pageClass, panelClass } from '../../shared/page-ui';
+
+interface NewUserFormModel {
+  role: Role;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+
+interface ParcelLockerFormModel {
+  code: string;
+  address: string;
+  city: string;
+  gps: string;
+  rows: number;
+  columns: number;
+}
+
+interface DeleteParcelLockerFormModel {
+  parcelLockerId: number;
+}
+
+function createInitialNewUserForm(): NewUserFormModel {
+  return {
+    role: 'KLIENT',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: ''
+  };
+}
+
+function createInitialParcelLockerForm(): ParcelLockerFormModel {
+  return {
+    code: '',
+    address: '',
+    city: '',
+    gps: '',
+    rows: 6,
+    columns: 4
+  };
+}
 
 @Component({
   selector: 'app-admin-page',
+  imports: [FormField],
   templateUrl: './admin.page.html'
 })
 export class AdminPage implements OnInit {
   private readonly api = inject(ApiClient);
-
-  protected readonly pageClass = pageClass;
-  protected readonly panelClass = panelClass;
-  protected readonly buttonClass = buttonClass;
-  protected readonly ghostButtonClass = ghostButtonClass;
-  protected readonly dangerButtonClass = dangerButtonClass;
-  protected readonly inputClass = inputClass;
-  protected readonly labelClass = labelClass;
   protected readonly availableRoles = roles;
 
   protected readonly tab = signal<'users' | 'lockers'>('users');
@@ -30,20 +67,12 @@ export class AdminPage implements OnInit {
   protected readonly faultyLockers = signal<FaultyLockerRow[]>([]);
   protected readonly message = signal('');
 
-  protected readonly newUserRole = signal<Role>('KLIENT');
-  protected readonly newFirstName = signal('');
-  protected readonly newLastName = signal('');
-  protected readonly newEmail = signal('');
-  protected readonly newPhone = signal('');
-  protected readonly newPassword = signal('');
-
-  protected readonly lockerCode = signal('');
-  protected readonly lockerAddress = signal('');
-  protected readonly lockerCity = signal('');
-  protected readonly lockerGps = signal('');
-  protected readonly lockerRows = signal(6);
-  protected readonly lockerColumns = signal(4);
-  protected readonly deleteParcelLockerId = signal(0);
+  protected readonly newUserModel = signal<NewUserFormModel>(createInitialNewUserForm());
+  protected readonly newUserForm = form(this.newUserModel);
+  protected readonly parcelLockerModel = signal<ParcelLockerFormModel>(createInitialParcelLockerForm());
+  protected readonly parcelLockerForm = form(this.parcelLockerModel);
+  protected readonly deleteParcelLockerModel = signal<DeleteParcelLockerFormModel>({ parcelLockerId: 0 });
+  protected readonly deleteParcelLockerForm = form(this.deleteParcelLockerModel);
 
   protected readonly packageId = packageId;
   protected readonly packageTracking = packageTracking;
@@ -51,20 +80,6 @@ export class AdminPage implements OnInit {
 
   async ngOnInit() {
     await Promise.all([this.loadUsers(), this.loadFaultyLockers()]);
-  }
-
-  protected setValue(target: WritableSignal<string>, event: Event) {
-    target.set(getValue(event));
-    this.message.set('');
-  }
-
-  protected setNumber(target: WritableSignal<number>, event: Event) {
-    target.set(numberValue(getValue(event)));
-    this.message.set('');
-  }
-
-  protected asRole(event: Event) {
-    return getValue(event) as Role;
   }
 
   protected usersByRole(role: Role) {
@@ -84,20 +99,17 @@ export class AdminPage implements OnInit {
 
   protected async createUser(event: Event) {
     event.preventDefault();
+    const data = this.newUserModel();
     await this.api.post('/admin/users', {
-      role: this.newUserRole(),
-      imie: this.newFirstName().trim(),
-      nazwisko: this.newLastName().trim(),
-      email: this.newEmail().trim().toLowerCase(),
-      telefon: this.newPhone().trim(),
-      password: this.newPassword()
+      role: data.role,
+      imie: data.firstName.trim(),
+      nazwisko: data.lastName.trim(),
+      email: data.email.trim().toLowerCase(),
+      telefon: data.phone.trim(),
+      password: data.password
     });
     this.message.set('Użytkownik dodany.');
-    this.newFirstName.set('');
-    this.newLastName.set('');
-    this.newEmail.set('');
-    this.newPhone.set('');
-    this.newPassword.set('');
+    this.newUserModel.set(createInitialNewUserForm());
     await this.loadUsers();
   }
 
@@ -133,13 +145,14 @@ export class AdminPage implements OnInit {
 
   protected async createParcelLocker(event: Event) {
     event.preventDefault();
+    const data = this.parcelLockerModel();
     await this.api.post('/admin/automaty', {
-      kod: this.lockerCode().trim(),
-      adres: this.lockerAddress().trim(),
-      miasto: this.lockerCity().trim(),
-      wspolrzedne: this.lockerGps().trim(),
-      liczbaWierszy: this.lockerRows(),
-      liczbaKolumn: this.lockerColumns()
+      kod: data.code.trim(),
+      adres: data.address.trim(),
+      miasto: data.city.trim(),
+      wspolrzedne: data.gps.trim(),
+      liczbaWierszy: data.rows,
+      liczbaKolumn: data.columns
     });
     this.message.set('Automat dodany.');
   }
@@ -157,9 +170,10 @@ export class AdminPage implements OnInit {
   }
 
   protected async deleteParcelLocker() {
-    if (!this.deleteParcelLockerId() || !confirm(`Usunąć automat #${this.deleteParcelLockerId()}?`)) return;
-    await this.api.delete(`/admin/automaty/${this.deleteParcelLockerId()}`);
+    const parcelLockerIdValue = Number(this.deleteParcelLockerModel().parcelLockerId);
+    if (!parcelLockerIdValue || !confirm(`Usunąć automat #${parcelLockerIdValue}?`)) return;
+    await this.api.delete(`/admin/automaty/${parcelLockerIdValue}`);
     this.message.set('Automat usunięty.');
-    this.deleteParcelLockerId.set(0);
+    this.deleteParcelLockerForm.parcelLockerId().value.set(0);
   }
 }

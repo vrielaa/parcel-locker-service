@@ -1,37 +1,37 @@
-<section [class]="pageClass">
-  <header [class]="panelClass">
+<section class="app-page">
+  <header class="app-panel">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="mb-2 text-xs font-bold uppercase text-muted">Kurier</p>
         <h1 class="m-0 text-3xl">Transport paczek</h1>
       </div>
-      <button [class]="ghostButtonClass" type="button" (click)="load()">Odśwież</button>
+      <button class="app-button app-button--ghost" type="button" (click)="load()">Odśwież</button>
     </div>
   </header>
 
   <section class="grid gap-4 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
-    <aside [class]="panelClass">
+    <aside class="app-panel">
       <h2 class="mt-0 text-lg">Paczki do obsługi</h2>
       <div class="mb-4 grid gap-3 rounded-xl border border-line bg-background p-3">
-        <label [class]="labelClass">
+        <label class="app-label">
           Filtr miasta
-          <select [class]="inputClass" [value]="courierCityFilter()" (change)="setCourierCityFilter($event)">
+          <select class="app-input" [formField]="courierFilterForm.city" (change)="setCourierCityFilter()">
             <option value="">Wszystkie miasta</option>
             @for (city of courierCities(); track city) {
               <option [value]="city">{{ city }}</option>
             }
           </select>
         </label>
-        @if (courierCityFilter()) {
-          <button [class]="ghostButtonClass" type="button" (click)="courierCityFilter.set('')">Wyczyść filtr</button>
+        @if (courierFilterModel().city) {
+          <button class="app-button app-button--ghost" type="button" (click)="clearCourierCityFilter()">Wyczyść filtr</button>
         }
       </div>
       <div class="grid gap-2">
         @for (pkg of filteredCourierPackages(); track packageId(pkg)) {
-          <button type="button" [class]="cardButtonClass" (click)="selectPackage(pkg)">
+          <button type="button" class="app-list-card" (click)="selectPackage(pkg)">
             <span class="text-xs font-bold uppercase text-muted">#{{ packageId(pkg) }}</span>
             <strong>{{ packageTracking(pkg) }}</strong>
-            <span [class]="'w-fit rounded-full px-2 py-1 text-xs font-bold ' + statusTone(pkg.status)">{{ formatStatus(pkg.status) }}</span>
+            <span class="app-status-badge" [attr.data-status]="pkg.status">{{ formatStatus(pkg.status) }}</span>
             <small class="text-muted">{{ pkg.docelowy_automat_miasto || pkg.docelowy_automat_adres || '-' }}</small>
           </button>
         } @empty {
@@ -40,7 +40,7 @@
       </div>
     </aside>
 
-    <section [class]="panelClass">
+    <section class="app-panel">
       @if (selectedPackage()) {
         <div class="grid gap-5">
           <div>
@@ -49,20 +49,20 @@
           </div>
 
           <div class="grid gap-3 md:grid-cols-2">
-            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Status</span><p class="m-0">{{ formatStatus(selectedPackage()?.status) }}</p></div>
-            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Wymiary</span><p class="m-0">{{ packageDimensions(selectedPackage()) }}</p></div>
-            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Nadawca</span><p class="m-0 break-all">{{ selectedPackage()?.nadawca_email || '-' }}</p></div>
-            <div [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Odbiorca</span><p class="m-0 break-all">{{ selectedPackage()?.odbiorca_email || '-' }}</p></div>
-            <div class="md:col-span-2" [class]="subtlePanelClass"><span class="text-xs font-bold uppercase text-muted">Automat docelowy</span><p class="m-0">{{ selectedPackage()?.docelowy_automat_nazwa || '-' }} — {{ selectedPackage()?.docelowy_automat_adres || '-' }}</p></div>
+            <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Status</span><p class="m-0">{{ formatStatus(selectedPackage()?.status) }}</p></div>
+            <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Wymiary</span><p class="m-0">{{ packageDimensions(selectedPackage()) }}</p></div>
+            <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Nadawca</span><p class="m-0 break-all">{{ selectedPackage()?.nadawca_email || '-' }}</p></div>
+            <div class="app-subtle-panel"><span class="text-xs font-bold uppercase text-muted">Odbiorca</span><p class="m-0 break-all">{{ selectedPackage()?.odbiorca_email || '-' }}</p></div>
+            <div class="app-subtle-panel md:col-span-2"><span class="text-xs font-bold uppercase text-muted">Automat docelowy</span><p class="m-0">{{ selectedPackage()?.docelowy_automat_nazwa || '-' }} — {{ selectedPackage()?.docelowy_automat_adres || '-' }}</p></div>
           </div>
 
           <div class="flex flex-wrap gap-2">
             @if (canStartTransport()) {
-              <button [class]="buttonClass" type="button" (click)="startTransport()">Podejmij paczkę</button>
+              <button class="app-button" type="button" (click)="startTransport()">Podejmij paczkę</button>
             }
 
             @if (canPlaceInLocker()) {
-              <button [class]="ghostButtonClass" type="button" (click)="loadDestinationLockers()">Pokaż wolne skrytki</button>
+              <button class="app-button app-button--ghost" type="button" (click)="loadDestinationLockers()">Pokaż wolne skrytki</button>
             }
           </div>
 
@@ -71,12 +71,12 @@
               <h3 class="m-0 text-lg">Wybierz skrytkę</h3>
               <div class="flex flex-wrap gap-2">
                 @for (locker of destinationLockers(); track lockerId(locker)) {
-                  <button [class]="selectedLockerId() === lockerId(locker) ? buttonClass : ghostButtonClass" type="button" (click)="selectedLockerId.set(lockerId(locker))">
+                  <button class="app-button" [class.app-button--ghost]="selectedLockerId() !== lockerId(locker)" type="button" (click)="selectedLockerId.set(lockerId(locker))">
                     #{{ lockerId(locker) }} · {{ locker.rozmiar_kod || '-' }}
                   </button>
                 }
               </div>
-              <button [class]="buttonClass" type="button" [disabled]="!selectedLockerId()" (click)="placeInLocker()">Umieść w automacie</button>
+              <button class="app-button" type="button" [disabled]="!selectedLockerId()" (click)="placeInLocker()">Umieść w automacie</button>
             </div>
           }
 

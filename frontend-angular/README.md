@@ -1,10 +1,16 @@
 # Parcel Locker Angular 2.0
 
-Angular migration workspace for the Parcel Locker Service frontend.
+Angular 22 migration workspace for the Parcel Locker Service frontend.
 
 Styling is Tailwind-first. Global design tokens live in `src/styles.css`, and component templates should use utility classes by default.
 
 ## Local Development
+
+Use Node.js 24.15.0 from the repository root version files:
+
+```bash
+nvm use
+```
 
 Install dependencies from this directory:
 
@@ -35,6 +41,7 @@ npm run build
 ## Angular 2.0 Conventions
 
 - Prefer `signal`, `computed`, and local signal state for component UI state.
+- Use Angular Signal Forms for user-facing forms.
 - Prefer `input()` / `input.required()` and `output()` for component boundaries.
 - Use RxJS only at framework or IO boundaries, such as router data, HTTP streams, and cancellation-heavy flows.
 - Convert router streams to signals with `toSignal()` when templates need reactive route data.
