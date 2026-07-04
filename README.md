@@ -1,5 +1,12 @@
 # Parcel Locker Service
 
+## Wersje Aplikacji
+
+W repozytorium istnieją dwie wersje aplikacji:
+
+- `main` - stabilna wersja 1.x oparta o frontend w `frontend/`,
+- `feature/angular-v2` - rozwijana wersja 2.0 z frontendem migrowanym do Angulara.
+
 Webowa aplikacja bazodanowa symulująca system obsługi automatów paczkowych. Projekt składa się z frontendu statycznego, backendu REST API oraz bazy PostgreSQL ze schematem `parcel_locker`.
 
 ## Spis Treści
